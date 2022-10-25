@@ -1,0 +1,23 @@
+**/*.pyc
+.svn/
+src/build/
+src/dist/
+src/artisan.py.bak
+src/artisan.py.org.py
+src/artisan.py.python2.py
+src/artisan.py.zip
+**/*.DS_Store
+src/Artisan.app/
+src/.settings/
+src/translations copy/
+src/Artisan-10.6.app/
+src/.project
+src/.pydevproject
+src/artisan-mac-2.4.5-beta.dmg
+src/artisan-mac-2.4.5.dmg
+
+.coverage
+simple.log
+artisan_plus.log
+outbox/
+*flycheck_*.py
