@@ -49,7 +49,7 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     echo Python Version Now:
     python -V
 )
-
+exit /b
 ::
 :: get pip up to date
 ::
