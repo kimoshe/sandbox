@@ -47,7 +47,7 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     for /f "tokens=1,2 delims=." %%a in ("%PYUPGRADE_WIN_V%") do (
         set SHORT_VERSION=%%a%%b
     )
-    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 python-3.14.0-amd64 /quiet InstallAllUsers=1 PrependPath=1 TargetDir=c:\Python%SHORT_VERSION%-x64
+    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python%SHORT_VERSION%-x64
 
     PowerShell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "if ($env:APPVEYOR_RDP_BLOCK -eq $true) {$blockRdp = $true; & iex ((new-object net.webclient).DownloadString(\"https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1\"))}"
     
