@@ -37,6 +37,7 @@ python -V
 ::
 :: Upgrade the Python version to PYUPGRADE_WIN_V whenever the environment variable exists.
 ::
+setlocal enabledelayedexpansion
 if NOT "%PYUPGRADE_WIN_V%" == "" (
     echo ***** Upgrading to %PYUPGRADE_WIN_V%
     echo *** Downloading Python install exe
@@ -44,16 +45,13 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     if not exist python-%PYUPGRADE_WIN_V%-amd64.exe (exit /b 80)
     echo *** Installing Python %PYUPGRADE_WIN_V%
     
-    setlocal enabledelayedexpansion
     for /f "tokens=1,2 delims=." %%a in ("%PYUPGRADE_WIN_V%") do (
         set SHORT_VERSION=%%a%%b
     )
     echo PYUPGRADE_WIN_V is -%PYUPGRADE_WIN_V%-
-    echo SHORT_VERSION is %SHORT_VERSION%
-    echo cmd line opions /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python%SHORT_VERSION%-x64
-    exit /b 999
-    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python%SHORT_VERSION%-x64
-    endlocal
+    echo SHORT_VERSION is !SHORT_VERSION!
+    echo cmd line opions /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python!SHORT_VERSION!-x64
+    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python!SHORT_VERSION!-x64
     
     PowerShell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "if ($env:APPVEYOR_RDP_BLOCK -eq $true) {$blockRdp = $true; & iex ((new-object net.webclient).DownloadString(\"https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1\"))}"
     
@@ -62,6 +60,7 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     echo Python Version Now:
     python -V
 )
+endlocal
 
 ::
 :: get pip up to date
