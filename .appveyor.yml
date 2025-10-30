@@ -51,6 +51,8 @@ init:
       if ([bool]$env:APPVEYOR_PULL_REQUEST_NUMBER -eq $true) {
         $env:artifact_prefix = 'artisan'
       }
+  # Enable remote desktop
+  - ps: $env:APPVEYOR_RDP_BLOCK = $true
 
 branches:
   only:

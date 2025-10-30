@@ -43,6 +43,10 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     curl -L -O https://www.python.org/ftp/python/%PYUPGRADE_WIN_V%/python-%PYUPGRADE_WIN_V%-amd64.exe
     if not exist python-%PYUPGRADE_WIN_V%-amd64.exe (exit /b 80)
     echo *** Installing Python %PYUPGRADE_WIN_V%
+    
+    :: Pause Build Here For Remote Desktop Access
+    PowerShell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "if ($env:APPVEYOR_RDP_BLOCK -eq $true) {$blockRdp = $true; & iex ((new-object net.webclient).DownloadString(\"https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1\"))}"
+    
     python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1
     if not exist %PYTHON_PATH%\python.exe (exit /b 90)
     echo ***** Upgrade Complete
