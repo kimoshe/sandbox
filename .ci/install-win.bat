@@ -47,8 +47,8 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     for /f "tokens=1,2 delims=." %%a in ("%PYUPGRADE_WIN_V%") do (
         set SHORT_VERSION=%%a%%b
     )
-    echo PYUPGRADE_WIN_V is %PYUPGRADE_WIN_V%
-    echo SHORTVERSION is %SHORT_VERSION%
+    echo PYUPGRADE_WIN_V is |%PYUPGRADE_WIN_V%|
+    echo SHORT_VERSION is %SHORT_VERSION%
     echo cmd line opions /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python%SHORT_VERSION%-x64
     exit /b 999
     python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python%SHORT_VERSION%-x64
