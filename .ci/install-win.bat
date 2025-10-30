@@ -44,10 +44,13 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     if not exist python-%PYUPGRADE_WIN_V%-amd64.exe (exit /b 80)
     echo *** Installing Python %PYUPGRADE_WIN_V%
     
-    :: Pause Build Here For Remote Desktop Access
+    for /f "tokens=1,2 delims=." %%a in ("%PYUPGRADE_WIN_V%") do (
+        set SHORT_VERSION=%%a%%b
+    )
+    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 python-3.14.0-amd64 /quiet InstallAllUsers=1 PrependPath=1 TargetDir=c:\Python%SHORT_VERSION%-x64
+
     PowerShell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "if ($env:APPVEYOR_RDP_BLOCK -eq $true) {$blockRdp = $true; & iex ((new-object net.webclient).DownloadString(\"https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1\"))}"
     
-    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1
     if not exist %PYTHON_PATH%\python.exe (exit /b 90)
     echo ***** Upgrade Complete
     echo Python Version Now:
