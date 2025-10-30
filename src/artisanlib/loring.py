@@ -6,70 +6,57 @@ from pathlib import Path
 import time as libtime
 import csv
 import logging
-try:
-    from typing import Final
-except ImportError:
-    # for Python 3.7:
-    from typing_extensions import Final
+from typing import Final, List, Optional, Callable
 
 try:
-    #ylint: disable = E, W, R, C
-    from PyQt6.QtWidgets import QApplication # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtCore import QDateTime, Qt # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtWidgets import QApplication # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtCore import QDateTime, Qt # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import QDateTime, Qt # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
 
-from artisanlib.util import fill_gaps, fromFtoC, RoRfromFtoC, encodeLocal
+from artisanlib.util import replace_duplicates, fromFtoCstrict, RoRfromFtoCstrict, encodeLocal, encodeLocalStrict
+from artisanlib.atypes import ProfileData
 
-_log: Final = logging.getLogger(__name__)
+_log: Final[logging.Logger] = logging.getLogger(__name__)
 
-def replace_duplicates(data):
-    lv = -1
-    data_core = []
-    for v in data:
-        if v == lv:
-            data_core.append(-1)
-        else:
-            data_core.append(v)
-            lv = v
-    # reconstruct first and last reading
-    if len(data)>0:
-        data_core[-1] = data[-1]
-    return fill_gaps(data_core, interpolate_max=100)
-
-# returns a dict containing all profile information contained in the given IKAWA CSV file
-def extractProfileLoringCSV(file,aw):
-    res = {} # the interpreted data set
+# returns a dict containing all profile information contained in the given Loring CSV file
+def extractProfileLoringCSV(file:str,
+        etypesdefault:List[str],
+        _alt_etypesdefault:List[str],
+        _artisanflavordefaultlabels:List[str],
+        eventsExternal2InternalValue:Callable[[int],float]) -> ProfileData:
+    res:ProfileData = ProfileData() # the interpreted data set
 
     with open(file, newline='',encoding='utf-8') as csvFile:
         data = csv.reader(csvFile,delimiter=',')
         #read file header
         header = next(data)
 
+        res['roastertype'] = 'Loring'
+        res['roasterheating'] = 2 # NG
+
         power = None # holds last processed heater event value
         power_last = None # holds the heater event value before the last one
-        specialevents = []
-        specialeventstype = []
-        specialeventsvalue = []
-        specialeventsStrings = []
-        timex = []
-        temp1 = []
-        temp2 = []
-        extra1 = [] # burner
-        extra2 = [] # inlet
-        extra3 = [] # stack
-        extra4 = [] # ror
-        timeindex = [-1,0,0,0,0,0,0,0] #CHARGE index init set to -1 as 0 could be an actal index used
+        specialevents:List[int] = []
+        specialeventstype:List[int] = []
+        specialeventsvalue:List[float] = []
+        specialeventsStrings:List[str] = []
+        timex:List[float] = []
+        temp1:List[float] = []
+        temp2:List[float] = []
+        extra1:List[float] = [] # burner
+        extra2:List[float] = [] # inlet
+        extra3:List[float] = [] # stack
+        extra4:List[float] = [] # ror
+        timeindex:List[int] = [-1,0,0,0,0,0,0,0] #CHARGE index init set to -1 as 0 could be an actual index used
 
+        power_event:bool = False
 
-        start_datetime = None
-        last_sampling = None
-        sampling_interval = 6
-        roasting = 0
+        start_datetime:Optional[QDateTime] = None
+        last_sampling:Optional[float] = None
+        sampling_interval:float = 6
+        roasting:int = 0
 
-        mode = 'C' # by default we assume temperature data in degree Celcius
+        mode = 'C' # by default we assume temperature data in degree Celsius
 
         i = 0
         for row in data:
@@ -81,16 +68,22 @@ def extractProfileLoringCSV(file,aw):
             try:
                 if 'Time' in item and 'RoastTimeSeconds' in item and 'RoastingOnOff' in item and item['RoastingOnOff'] != '':
 
-                    #time = int(item['RoastTimeSeconds']) # seems to be unprecise and does not correspond exactly to the 6s interval given by 'Time'
+                    #time = int(item['RoastTimeSeconds']) # seems to be imprecise and does not correspond exactly to the 6s interval given by 'Time'
 
-                    datetime = QDateTime.fromString(item['Time'], 'M/d/yyyy h:mm:ss AP')
+                    datetime:QDateTime = QDateTime.fromString(item['Time'], 'M/d/yyyy h:mm:ss AP')
 
                     if start_datetime is None:
                         start_datetime = datetime
-                        time = 0
-                        res['roastdate'] = encodeLocal(start_datetime.date().toString())
-                        res['roastisodate'] = encodeLocal(start_datetime.date().toString(Qt.DateFormat.ISODate))
-                        res['roasttime'] = encodeLocal(start_datetime.time().toString())
+                        time:float = 0
+                        roastdate:Optional[str] = encodeLocal(start_datetime.date().toString())
+                        if roastdate is not None:
+                            res['roastdate'] = roastdate
+                        roastisodate:Optional[str] = encodeLocal(start_datetime.date().toString(Qt.DateFormat.ISODate))
+                        if roastisodate is not None:
+                            res['roastisodate'] = roastisodate
+                        roasttime:Optional[str] = encodeLocal(start_datetime.time().toString())
+                        if roasttime is not None:
+                            res['roasttime'] = roasttime
                         res['roastepoch'] = int(start_datetime.toSecsSinceEpoch())
                         res['roasttzoffset'] = libtime.timezone
                     else:
@@ -163,7 +156,7 @@ def extractProfileLoringCSV(file,aw):
                     if 'ReturnAirTemperature' in item and item['ReturnAirTemperature'] != '':
                         ET = float(item['ReturnAirTemperature'])/10 # °C x 10
                         if mode == 'F':
-                            ET = fromFtoC(ET)
+                            ET = fromFtoCstrict(ET)
                     else:
                         ET = -1
                     temp1.append(ET)
@@ -171,7 +164,7 @@ def extractProfileLoringCSV(file,aw):
                     if 'BeanTemperature' in item and item['BeanTemperature'] != '':
                         BT = float(item['BeanTemperature'])/10 # °C x 10
                         if mode == 'F':
-                            BT = fromFtoC(BT)
+                            BT = fromFtoCstrict(BT)
                     else:
                         BT = -1
                     temp2.append(BT)
@@ -196,8 +189,7 @@ def extractProfileLoringCSV(file,aw):
                                     power_last = power
                                     power = v
                                     power_event = True
-                                    v = v/10. + 1
-                                    specialeventsvalue.append(v)
+                                    specialeventsvalue.append(eventsExternal2InternalValue(int(round(v))))
                                     specialevents.append(i)
                                     specialeventstype.append(3)
                                     specialeventsStrings.append(f'{X1:.1f}%')
@@ -212,7 +204,7 @@ def extractProfileLoringCSV(file,aw):
                     if 'InletAirTemperature' in item and item['InletAirTemperature'] != '':
                         X2 = float(item['InletAirTemperature'])/10 # °C x 10
                         if mode == 'F':
-                            X2 = fromFtoC(X2)
+                            X2 = fromFtoCstrict(X2)
                     else:
                         X2 = -1
                     extra2.append(X2)
@@ -220,7 +212,7 @@ def extractProfileLoringCSV(file,aw):
                     if 'StackTemperature' in item and item['StackTemperature'] != '':
                         X3 = float(item['StackTemperature'])/10 # °C x 10
                         if mode == 'F':
-                            X3 = fromFtoC(X3)
+                            X3 = fromFtoCstrict(X3)
                     else:
                         X3 = -1
                     extra3.append(X3)
@@ -228,7 +220,7 @@ def extractProfileLoringCSV(file,aw):
                     if 'BeanTemperatureRateOfRise' in item and item['BeanTemperatureRateOfRise'] != '':
                         X4 = float(item['BeanTemperatureRateOfRise'])/10 # °C x 10
                         if mode == 'F':
-                            X4 = RoRfromFtoC(X4)
+                            X4 = RoRfromFtoCstrict(X4)
                     else:
                         X4 = -1
                     extra4.append(X4)
@@ -246,29 +238,19 @@ def extractProfileLoringCSV(file,aw):
     res['samplinginterval'] = int(round(sampling_interval))
 
     res['timex'] = timex
-    if aw.qmc.dropDuplicates:
-        res['temp1'] = replace_duplicates(temp1)
-        res['temp2'] = replace_duplicates(temp2)
-    else:
-        res['temp1'] = temp1
-        res['temp2'] = temp2
+    res['temp1'] = replace_duplicates(temp1)
+    res['temp2'] = replace_duplicates(temp2)
     res['timeindex'] = timeindex
 
     res['extradevices'] = [33, 55]
     res['extratimex'] = [timex[:],timex[:]]
 
     res['extraname1'] = ['{3}','Stack']
-    if aw.qmc.dropDuplicates:
-        res['extratemp1'] = [replace_duplicates(extra1), replace_duplicates(extra3)]
-    else:
-        res['extratemp1'] = [extra1, extra3]
+    res['extratemp1'] = [replace_duplicates(extra1), replace_duplicates(extra3)]
     res['extramathexpression1'] = ['','']
 
     res['extraname2'] = ['Inlet','RoR']
-    if aw.qmc.dropDuplicates:
-        res['extratemp2'] = [replace_duplicates(extra2), replace_duplicates(extra4)]
-    else:
-        res['extratemp2'] = [extra2, extra4]
+    res['extratemp2'] = [replace_duplicates(extra2), replace_duplicates(extra4)]
     res['extramathexpression2'] = ['','']
 
     if len(specialevents) > 0:
@@ -278,12 +260,7 @@ def extractProfileLoringCSV(file,aw):
         res['specialeventsStrings'] = specialeventsStrings
         if power_event:
             # first set etypes to defaults
-            res['etypes'] = [QApplication.translate('ComboBox', 'Air'),
-                             QApplication.translate('ComboBox', 'Drum'),
-                             QApplication.translate('ComboBox', 'Damper'),
-                             QApplication.translate('ComboBox', 'Burner'),
-                             '--']
+            res['etypes'] = etypesdefault
 
-
-    res['title'] = Path(file).stem
+    res['title'] = encodeLocalStrict(Path(file).stem)
     return res

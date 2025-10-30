@@ -5,40 +5,20 @@
 from pathlib import Path
 import csv
 import logging
-try:
-    from typing import Final
-except ImportError:
-    # for Python 3.7:
-    from typing_extensions import Final
+from typing import Final, List, Callable
 
-try:
-    #ylint: disable = E, W, R, C
-    from PyQt6.QtWidgets import QApplication # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtWidgets import QApplication # @UnusedImport @Reimport  @UnresolvedImport
+from artisanlib.util import replace_duplicates, encodeLocalStrict
+from artisanlib.atypes import ProfileData
 
-from artisanlib.util import fill_gaps
-
-_log: Final = logging.getLogger(__name__)
-
-def replace_duplicates(data):
-    lv = -1
-    data_core = []
-    for v in data:
-        if v == lv:
-            data_core.append(-1)
-        else:
-            data_core.append(v)
-            lv = v
-    # reconstruct first and last reading
-    if len(data)>0:
-        data_core[-1] = data[-1]
-    return fill_gaps(data_core, interpolate_max=100)
+_log: Final[logging.Logger] = logging.getLogger(__name__)
 
 # returns a dict containing all profile information contained in the given IKAWA CSV file
-def extractProfileGiesenCSV(file,aw):
-    res = {} # the interpreted data set
+def extractProfileGiesenCSV(file:str,
+        etypesdefault:List[str],
+        _alt_etypesdefault:List[str],
+        _artisanflavordefaultlabels:List[str],
+        eventsExternal2InternalValue:Callable[[int],float]) -> ProfileData:
+    res:ProfileData = ProfileData() # the interpreted data set
 
     res['samplinginterval'] = 1.0
 
@@ -53,19 +33,19 @@ def extractProfileGiesenCSV(file,aw):
         power_last = None # holds the heater event value before the last one
         speed_event = False # set to True if a drum event exists
         power_event = False # set to True if a heater event exists
-        specialevents = []
-        specialeventstype = []
-        specialeventsvalue = []
-        specialeventsStrings = []
-        timex = []
-        temp1 = []
-        temp2 = []
-        extra1 = [] # ror
-        extra2 = [] # power
-        extra3 = [] # speed
-        extra4 = [] # pressure
-        timeindex = [-1,0,0,0,0,0,0,0] #CHARGE index init set to -1 as 0 could be an actal index used
-        i = 0
+        specialevents:List[int] = []
+        specialeventstype:List[int] = []
+        specialeventsvalue:List[float] = []
+        specialeventsStrings:List[str] = []
+        timex:List[float] = []
+        temp1:List[float] = []
+        temp2:List[float] = []
+        extra1:List[float] = [] # ror
+        extra2:List[float] = [] # power
+        extra3:List[float] = [] # speed
+        extra4:List[float] = [] # pressure
+        timeindex:List[int] = [-1,0,0,0,0,0,0,0] #CHARGE index init set to -1 as 0 could be an actual index used
+        i:int = 0
         for row in data:
             i = i + 1
             items = list(zip(header, row))
@@ -83,7 +63,7 @@ def extractProfileGiesenCSV(file,aw):
             else:
                 temp2.append(-1)
             # mark CHARGE
-            if not timeindex[0] > -1:
+            if timeindex[0] <= -1:
                 timeindex[0] = i
             # add ror, power, speed and pressure
             if 'ror' in item:
@@ -121,8 +101,7 @@ def extractProfileGiesenCSV(file,aw):
                             speed_last = speed
                             speed = v
                             speed_event = True
-                            v = v/10. + 1
-                            specialeventsvalue.append(v)
+                            specialeventsvalue.append(eventsExternal2InternalValue(int(round(v))))
                             specialevents.append(i)
                             specialeventstype.append(1)
                             specialeventsStrings.append(f'{speed:.1f}%')
@@ -148,8 +127,7 @@ def extractProfileGiesenCSV(file,aw):
                             power_last = power
                             power = v
                             power_event = True
-                            v = v/10. + 1
-                            specialeventsvalue.append(v)
+                            specialeventsvalue.append(eventsExternal2InternalValue(int(round(v))))
                             specialevents.append(i)
                             specialeventstype.append(3)
                             specialeventsStrings.append(f'{power:.0f}%')
@@ -159,12 +137,8 @@ def extractProfileGiesenCSV(file,aw):
                     _log.exception(e)
 
     res['timex'] = timex
-    if aw.qmc.dropDuplicates:
-        res['temp1'] = replace_duplicates(temp1)
-        res['temp2'] = replace_duplicates(temp2)
-    else:
-        res['temp1'] = temp1
-        res['temp2'] = temp2
+    res['temp1'] = replace_duplicates(temp1)
+    res['temp2'] = replace_duplicates(temp2)
     res['timeindex'] = timeindex
 
     res['extradevices'] = [25,25]
@@ -185,15 +159,6 @@ def extractProfileGiesenCSV(file,aw):
         res['specialeventsStrings'] = specialeventsStrings
         if power_event or speed_event:
             # first set etypes to defaults
-            res['etypes'] = [QApplication.translate('ComboBox', 'Air'),
-                             QApplication.translate('ComboBox', 'Drum'),
-                             QApplication.translate('ComboBox', 'Damper'),
-                             QApplication.translate('ComboBox', 'Burner'),
-                             '--']
-            # update
-            if speed_event:
-                res['etypes'][0] = 'Speed'
-            if power_event:
-                res['etypes'][3] = 'Power'
-    res['title'] = Path(file).stem
+            res['etypes'] = etypesdefault
+    res['title'] = encodeLocalStrict(Path(file).stem)
     return res

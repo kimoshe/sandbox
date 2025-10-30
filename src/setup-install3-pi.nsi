@@ -1,3 +1,29 @@
+; ABOUT
+; NSIS script file for Artisan Windows installer.
+;
+; LICENSE
+; This program or module is free software: you can redistribute it and/or
+; modify it under the terms of the GNU General Public License as published
+; by the Free Software Foundation, either version 2 of the License, or
+; version 3 of the License, or (at your option) any later versison. It is
+; provided for educational purposes and is distributed in the hope that
+; it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+; the GNU General Public License for more details.
+;
+; AUTHOR
+; Dave Baxter, Marko Luther 2023
+;
+; .nsi command line options:
+;    /DPRODUCT_VERSION=ww.xx.yy     -explicitly set the product version, default is 0.0.0
+;    /DPRODUCT_BUILD=zz             -explicityl set the product build, default is 0
+;    /DLEGACY=True|False            -True is a build for legacy Windows, default is False
+;    /DSIGN=True|False              -True if the build is part of the process to sign files, default is False
+;                                    Note: SignArtisan is not a part of the ci process
+;
+; installer command line options
+;    /S                             -silent operation
+
 RequestExecutionLevel admin
 
 !macro APP_ASSOCIATE_URL FILECLASS DESCRIPTION COMMANDTEXT COMMAND
@@ -81,11 +107,11 @@ RequestExecutionLevel admin
 
 ; !defines for use with SHChangeNotify
 !ifdef SHCNE_ASSOCCHANGED
-!undef SHCNE_ASSOCCHANGED
+  !undef SHCNE_ASSOCCHANGED
 !endif
 !define SHCNE_ASSOCCHANGED 0x08000000
 !ifdef SHCNF_FLUSH
-!undef SHCNF_FLUSH
+  !undef SHCNF_FLUSH
 !endif
 !define SHCNF_FLUSH        0x1000
 
@@ -106,22 +132,30 @@ RequestExecutionLevel admin
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
-;Special commandline options
-;Product version can be defined on the command line '/DPRODUCT_VERSION=ww.xx.yy.zz'
-;  and will override the version explicitly set below.
-!define /ifndef PRODUCT_VERSION "0.0.0.0"
+; Special commandline options
+; Product version and build can be defined on the command line '/DPRODUCT_VERSION=ww.xx.yy'
+;   and '/DPRODUCT_VERSION=zz' These will override the default version an build explicitly set below.
+!define /ifndef PRODUCT_VERSION "0.0.0"
+!define /ifndef PRODUCT_BUILD "0"
 !define /ifndef SIGN "False"
 !define /ifndef LEGACY "False"
+!if ${LEGACY} == "True"
+  !define LEGACY_STR "-legacy"
+!else
+  !define LEGACY_STR ""
+!endif
 
+!define /date CUR_YEAR "%Y"
 Caption "${PRODUCT_NAME} Installer"
-VIProductVersion ${PRODUCT_VERSION}
+
+VIProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 VIAddVersionKey ProductName "${PRODUCT_NAME}"
 VIAddVersionKey Comments "Installer for Artisan"
 VIAddVersionKey CompanyName ""
-VIAddVersionKey LegalCopyright "Copyright 2010-2022, Artisan developers. GNU General Public License"
-VIAddVersionKey FileVersion "${PRODUCT_VERSION}"
+VIAddVersionKey LegalCopyright "Copyright 2010-${CUR_YEAR}, Artisan developers. GNU General Public License"
+VIAddVersionKey FileVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 VIAddVersionKey FileDescription "${PRODUCT_NAME} Installer"
-VIAddVersionKey ProductVersion "${PRODUCT_VERSION}"
+VIAddVersionKey ProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 
 SetCompressor lzma
 
@@ -156,7 +190,7 @@ SetCompressor lzma
 ; MUI end ------
 
 Name "${PRODUCT_NAME}"
-OutFile "Setup-${PRODUCT_NAME}-${PRODUCT_VERSION}.exe"
+OutFile "artisan-win-x64${LEGACY_STR}-${PRODUCT_VERSION}-setup.exe"
 InstallDir "C:\Program Files\Artisan"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
@@ -235,6 +269,7 @@ SectionEnd
 
 Section "Microsoft Visual C++ Redistributable Package (x64)" SEC02
   ExecWait '$INSTDIR\vc_redist.x64.exe /install /passive /norestart'
+  Delete '$INSTDIR\vc_redist.x64.exe'
 SectionEnd
 
 Section -AdditionalIcons
@@ -257,7 +292,7 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\artisan.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
 
@@ -296,7 +331,7 @@ Function un.onInit
     !insertmacro IsRunning
 
     IfSilent +3
-        MessageBox MB_ICONQUESTION|MB_YESNO|MB_TOPMOST "Are you sure you want to completely remove $(^Name) and all of its components?" IDYES +2
+        MessageBox MB_ICONQUESTION|MB_YESNO|MB_TOPMOST "Are you sure you want to remove $(^Name)?" IDYES +2
         Abort
     HideWindow
 
@@ -312,8 +347,11 @@ Section Uninstall
   Delete "$INSTDIR\base_library.zip"
 
   RMDir /r "$INSTDIR\certifi"
+  RMDir /r "$INSTDIR\charset_normalizer"
   RMDir /r "$INSTDIR\contourpy"
+  RMDir /r "$INSTDIR\fontTools"
   RMDir /r "$INSTDIR\gevent"
+  RMDir /r "$INSTDIR\google"
   RMDir /r "$INSTDIR\greenlet"
   RMDir /r "$INSTDIR\Icons"
   RMDir /r "$INSTDIR\Include"
@@ -324,10 +362,12 @@ Section Uninstall
   RMDir /r "$INSTDIR\Machines"
   RMDir /r "$INSTDIR\markupsafe"
   RMDir /r "$INSTDIR\matplotlib"
+  RMDir /r "$INSTDIR\matplotlib.libs"
   RMDir /r "$INSTDIR\mpl-data"
   RMDir /r "$INSTDIR\numpy"
   RMDir /r "$INSTDIR\openpyxl"
   RMDir /r "$INSTDIR\PIL"
+  RMDir /r "$INSTDIR\psutil"
   RMDir /r "$INSTDIR\pyinstaller"
   RMDir /r "$INSTDIR\pytz"
   RMDir /r "$INSTDIR\pywin32_system32"
@@ -340,12 +380,16 @@ Section Uninstall
   RMDir /r "$INSTDIR\tornado"
   RMDir /r "$INSTDIR\translations"
   RMDir /r "$INSTDIR\wcwidth"
+  RMDir /r "$INSTDIR\websockets"
   RMDir /r "$INSTDIR\Wheels"
   RMDir /r "$INSTDIR\win32com"
+  RMDir /r "$INSTDIR\win32"
   RMDir /r "$INSTDIR\wx"
   RMDir /r "$INSTDIR\yaml"
   RMDir /r "$INSTDIR\yoctopuce"
   RMDir /r "$INSTDIR\zope"
+
+  RMDir /r "$INSTDIR\_internal"
 
   !insertmacro Rmdir_Wildcard "$INSTDIR\PyQt*" ${__LINE__}
   !insertmacro Rmdir_Wildcard "$INSTDIR\qt*_plugins" ${__LINE__}
@@ -364,6 +408,7 @@ Section Uninstall
   !insertmacro Rmdir_Wildcard "$INSTDIR\pyinstaller*.dist-info" ${__LINE__}
   !insertmacro Rmdir_Wildcard "$INSTDIR\python_snap7*.dist-info" ${__LINE__}
   !insertmacro Rmdir_Wildcard "$INSTDIR\setuptools*.dist-info" ${__LINE__}
+  !insertmacro Rmdir_Wildcard "$INSTDIR\websockets*.dist-info" ${__LINE__}
   !insertmacro Rmdir_Wildcard "$INSTDIR\wheel*.dist-info" ${__LINE__}
   !insertmacro Rmdir_Wildcard "$INSTDIR\zope.event*.dist-info" ${__LINE__}
   !insertmacro Rmdir_Wildcard "$INSTDIR\zope.interface*.dist-info" ${__LINE__}
@@ -379,6 +424,8 @@ Section Uninstall
   Delete "$INSTDIR\artisanSettings.ico"
   Delete "$INSTDIR\Humor-Sans.ttf"
   Delete "$INSTDIR\dijkstra.ttf"
+  Delete "$INSTDIR\xkcd-script.ttf"
+  Delete "$INSTDIR\ComicNeue-Regular.ttf"
   Delete "$INSTDIR\WenQuanYiZenHei-01.ttf"
   Delete "$INSTDIR\WenQuanYiZenHeiMonoMedium.ttf"
   Delete "$INSTDIR\SourceHanSansCN-Regular.otf"
@@ -390,7 +437,22 @@ Section Uninstall
   Delete "$INSTDIR\alarmclock.svg"
   Delete "$INSTDIR\alarmclock.ttf"
   Delete "$INSTDIR\alarmclock.woff"
+  Delete "$INSTDIR\roboto-300.woff2"
+  Delete "$INSTDIR\roboto-600.woff2"
+  Delete "$INSTDIR\roboto-regular.woff2"
+  Delete "$INSTDIR\android-chrome-192x192.png"
+  Delete "$INSTDIR\android-chrome-512x512.png"
+  Delete "$INSTDIR\apple-touch-icon.png"
+  Delete "$INSTDIR\browserconfig.xml"
+  Delete "$INSTDIR\favicon-16x16.png"
+  Delete "$INSTDIR\favicon-32x32.png"
+  Delete "$INSTDIR\favicon.ico"
+  Delete "$INSTDIR\mstile-150x150.png"
+  Delete "$INSTDIR\safari-pinned-tab.svg"
+  Delete "$INSTDIR\site.webmanifest"
   Delete "$INSTDIR\artisan.tpl"
+  Delete "$INSTDIR\scale_widget.tpl"
+  Delete "$INSTDIR\fitty_patched.js"
   Delete "$INSTDIR\bigtext.js"
   Delete "$INSTDIR\sorttable.js"
   Delete "$INSTDIR\report-template.htm"

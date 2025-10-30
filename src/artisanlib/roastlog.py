@@ -5,32 +5,34 @@
 import time as libtime
 import dateutil.parser
 import requests
-from requests_file import FileAdapter  # @UnresolvedImport
+from requests_file import FileAdapter
 import re
 from lxml import html
 import logging
-try:
-    from typing import Final
-except ImportError:
-    # for Python 3.7:
-    from typing_extensions import Final
+from typing import Final, List, Optional, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PyQt6.QtCore import QUrl # pylint: disable=unused-import
 
 try:
-    #ylint: disable = E, W, R, C
     from PyQt6.QtCore import QDateTime, Qt # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import QDateTime, Qt # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import QDateTime, Qt # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
 
 
 from artisanlib.util import encodeLocal, stringtoseconds
+from artisanlib.atypes import ProfileData
 
 
-_log: Final = logging.getLogger(__name__)
+_log: Final[logging.Logger] = logging.getLogger(__name__)
 
 # returns a dict containing all profile information contained in the given RoastLog document pointed by the given QUrl
-def extractProfileRoastLog(url,_):
-    res = {} # the interpreted data set
+def extractProfileRoastLog(url:'QUrl',
+        _etypesdefault:List[str],
+        _alt_etypesdefault:List[str],
+        _artisanflavordefaultlabels:List[str],
+        _eventsExternal2InternalValue:Callable[[int],float]) -> Optional[ProfileData]:
+    res:ProfileData = ProfileData() # the interpreted data set
     try:
         s = requests.Session()
         s.mount('file://', FileAdapter())
@@ -39,32 +41,40 @@ def extractProfileRoastLog(url,_):
 
         title = ''
         title_elements = tree.xpath('//h2[contains(@id,"page-title")]/text()')
-        if len(title_elements)>0:
-            title = title_elements[0].strip()
+        if isinstance(title_elements, list) and len(title_elements)>0:
+            title0 = title_elements[0]
+            if isinstance(title0,str):
+                title = title0.strip()
 
         tag_values = {}
         for tag in ['Roastable:', 'Starting mass:', 'Ending mass:', 'Roasted on:', 'Roasted by:', 'Roaster:', 'Roast level:', 'Roast Notes:']:
             tag_elements = tree.xpath(f'//td[contains(@class,"text-rt") and normalize-space(text())="{tag}"]/following::td[1]/text()')
-            if len(tag_elements)>0:
-                tag_values[tag] = '\n'.join([e.strip() for e in tag_elements])
-        # {'Roastable:': '2003000 Diablo FTO BULK', 'Starting mass:': '140.00 lb', 'Ending mass:': '116.80 lb', 'Roasted on:': 'Thu, Jun 6th, 2019 11:11 PM', 'Roasted by:': 'Ryan@caffeladro.com', 'Roaster:': 'Diedrich CR-70'}
+            if isinstance(tag_elements, list) and len(tag_elements)>0:
+                tag_values[tag] = '\n'.join([str(e).strip() for e in tag_elements])
+        # {'Roastable:': '2003000 Diablo FTO BULK', 'Starting mass:': '140.00 lb', 'Ending mass:': '116.80 lb', 'Roasted on:': 'Thu, Jun 6th, 2019 11:11 PM', 'Roasted by:': 'infor@coffee.com', 'Roaster:': 'Diedrich CR-70'}
 
         if 'Roasted on:' in tag_values:
             try:
                 dt = dateutil.parser.parse(tag_values['Roasted on:'])
                 dateQt = QDateTime.fromSecsSinceEpoch(int(round(dt.timestamp())))
                 if dateQt.isValid():
-                    res['roastdate'] = encodeLocal(dateQt.date().toString())
-                    res['roastisodate'] = encodeLocal(dateQt.date().toString(Qt.DateFormat.ISODate))
-                    res['roasttime'] = encodeLocal(dateQt.time().toString())
+                    roastdate:Optional[str] = encodeLocal(dateQt.date().toString())
+                    if roastdate is not None:
+                        res['roastdate'] = roastdate
+                    roastisodate:Optional[str] = encodeLocal(dateQt.date().toString(Qt.DateFormat.ISODate))
+                    if roastisodate is not None:
+                        res['roastisodate'] = roastisodate
+                    roasttime:Optional[str] = encodeLocal(dateQt.time().toString())
+                    if roasttime is not None:
+                        res['roasttime'] = roasttime
                     res['roastepoch'] = int(dateQt.toSecsSinceEpoch())
                     res['roasttzoffset'] = libtime.timezone
             except Exception: # pylint: disable=broad-except
                 pass
 
-        w_in = 0
-        w_out = 0
-        u = 'lb'
+        w_in:str = '0'
+        w_out:str = '0'
+        u:str = 'lb'
         if 'Starting mass:' in tag_values:
             w_in,u = tag_values['Starting mass:'].strip().split(' ')
         if 'Ending mass:' in tag_values:
@@ -93,32 +103,32 @@ def extractProfileRoastLog(url,_):
         # if DROP temp > 300 => F else C
 
         source_elements = tree.xpath('//script[contains(@id,"source")]/text()')
-        if len(source_elements)>0:
-            source_element = source_elements[0].strip()
+        if isinstance(source_elements, list) and len(source_elements)>0:
+            source_element = str(source_elements[0]).strip()
 
             pattern = re.compile(r"\"rid=(\d+)\"")
             d = pattern.findall(source_element)
             if len(d)>0:
                 rid = d[0]
 
-                url = f'https://roastlog.com/roasts/profiles/?rid={rid}'
+                url_str:str = f'https://roastlog.com/roasts/profiles/?rid={rid}'
                 headers = {
                     'X-Requested-With' : 'XMLHttpRequest',
                     'Accept' : 'application/json',
                     'Accept-Encoding' : 'gzip'}
-                response = requests.get(url, timeout=(4, 15), headers=headers)
+                response = requests.get(url_str, timeout=(4, 15), headers=headers)
                 data_json = response.json()
 
-                timeindex = [-1,0,0,0,0,0,0,0]
-                specialevents = []
-                specialeventstype = []
-                specialeventsvalue = []
-                specialeventsStrings = []
+                timeindex:List[int] = [-1,0,0,0,0,0,0,0]
+                specialevents:List[int] = []
+                specialeventstype:List[int] = []
+                specialeventsvalue:List[float] = []
+                specialeventsStrings:List[str] = []
+                timex = []
+                temp1,temp2,temp3,temp4 = [],[],[],[]
 
                 if 'line_plots' in data_json:
                     mode = 'F'
-                    timex = []
-                    temp1,temp2,temp3,temp4 = [],[],[],[]
                     temp3_label = 'TC3'
                     temp4_label = 'TC4'
 #                    temp1ror = []
@@ -144,11 +154,11 @@ def extractProfileRoastLog(url,_):
                     if len(timex) == len(temp1):
                         res['temp2'] = temp1
                     else:
-                        res['temp2'] = [-1]*len(timex)
+                        res['temp2'] = [-1.0]*len(timex)
                     if len(timex) == len(temp2):
                         res['temp1'] = temp2
                     else:
-                        res['temp1'] = [-1]*len(timex)
+                        res['temp1'] = [-1.0]*len(timex)
                     if len(temp3) == len(timex) or len(temp4) == len(timex):
                         temp3_visibility = True
                         temp4_visibility = True
@@ -158,12 +168,12 @@ def extractProfileRoastLog(url,_):
                         if len(temp3) == len(timex):
                             res['extratemp1'] = [temp3]
                         else:
-                            res['extratemp1'] = [[-1]*len(timex)]
+                            res['extratemp1'] = [[-1.0]*len(timex)]
                             temp3_visibility = False
                         if len(temp4) == len(timex):
                             res['extratemp2'] = [temp4]
                         else:
-                            res['extratemp2'] = [[-1]*len(timex)]
+                            res['extratemp2'] = [[-1.0]*len(timex)]
                             temp4_visibility = False
                         res['extraname1'] = [temp3_label]
                         res['extraname2'] = [temp4_label]
@@ -181,8 +191,8 @@ def extractProfileRoastLog(url,_):
                         res['extradevicecolor2'] = ['black']
                         res['extramarkersizes1'] = [6.0]
                         res['extramarkersizes2'] = [6.0]
-                        res['extramarkers1'] = [None]
-                        res['extramarkers2'] = [None]
+                        res['extramarkers1'] = ['None']
+                        res['extramarkers2'] = ['None']
                         res['extralinewidths1'] = [1.0]
                         res['extralinewidths2'] = [1.0]
                         res['extralinestyles1'] = ['-']
@@ -210,13 +220,13 @@ def extractProfileRoastLog(url,_):
                         if 'label' in te and 'time' in te:
                             if te['label'] in timex_events:
                                 try:
-                                    timex_idx = res['timex'].index(stringtoseconds(te['time']))
+                                    timex_idx = res['timex'].index(stringtoseconds(te['time'])) # pyright:ignore[reportTypedDictNotRequiredAccess]
                                     timeindex[timex_events[te['label']]] = max(0,timex_idx)
                                 except Exception: # pylint: disable=broad-except
                                     pass
                             else:
                                 try:
-                                    timex_idx = res['timex'].index(stringtoseconds(te['time']))
+                                    timex_idx = res['timex'].index(stringtoseconds(te['time'])) # pyright:ignore[reportTypedDictNotRequiredAccess]
                                     specialeventsStrings.append(te['label'])
                                     specialevents.append(timex_idx)
                                     specialeventstype.append(4)

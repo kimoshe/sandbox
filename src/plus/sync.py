@@ -1,7 +1,7 @@
 #
 # sync.py
 #
-# Copyright (c) 2018, Paul Holleis, Marko Luther
+# Copyright (c) 2023, Paul Holleis, Marko Luther
 # All rights reserved.
 #
 #
@@ -22,28 +22,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 try:
-    #ylint: disable = E, W, R, C
-    from PyQt6.QtCore import QSemaphore, QTimer # @UnusedImport @Reimport  @UnresolvedImport
+    #pylint: disable = E, W, R, C
+    from PyQt6.QtCore import QSemaphore, QTimer, pyqtSlot # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtWidgets import QApplication # @UnusedImport @Reimport  @UnresolvedImport
 except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import QSemaphore, QTimer # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import QApplication # @UnusedImport @Reimport  @UnresolvedImport
+    #pylint: disable = E, W, R, C
+    from PyQt5.QtCore import QSemaphore, QTimer, pyqtSlot # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import QApplication # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
 
 from pathlib import Path
-from artisanlib.util import getDirectory
-from plus import config, util, connection, controller, roast
+from artisanlib.util import getDirectory, weight_units, convertWeight, float2float
+from plus import config, util, connection, controller, roast, stock
 import os
 import time
 import logging
-try:
-    from typing import Final
-except ImportError:
-    # for Python 3.7:
-    from typing_extensions import Final
+import json
+import json.decoder
+from typing import Final, Optional, Dict, Any, List, IO
 
 
-_log: Final = logging.getLogger(__name__)
+_log: Final[logging.Logger] = logging.getLogger(__name__)
 
 # SYNC CACHE
 # holding all roast UUIDs under sync with the server
@@ -51,26 +49,25 @@ _log: Final = logging.getLogger(__name__)
 sync_cache_semaphore = QSemaphore(1)
 
 
-def getSyncName():
+def getSyncName() -> str:
     if config.account_nr is None or config.account_nr == 0:
-        fn = config.sync_cache
-    else:
-        fn = f'{config.sync_cache}{config.account_nr}'
-    return fn
+        return config.sync_cache
+    return f'{config.sync_cache}{config.account_nr}'
 
 
 # if lock is True, return the path of the corresponding lock file
-def getSyncPath(lock: bool = False):
+def getSyncPath(lock: bool = False) -> str:
     fn = getSyncName()
     if lock:
         fn = f'{fn}_lock'
     return getDirectory(fn, share=True)
 
 
-def addSyncShelve(uuid: str, modified_at, fh):
+def addSyncShelve(uuid: str, modified_at:float, fh:IO[str]) -> None:
     _log.debug('addSyncShelve(%s,%s,_fh_)', uuid, modified_at)
     import dbm
     import shelve
+    db:shelve.Shelf[float]
     try:
         with shelve.open(getSyncPath()) as db:
             db[uuid] = modified_at
@@ -112,12 +109,13 @@ def addSyncShelve(uuid: str, modified_at, fh):
 # register the modified_at timestamp (EPOC as float with milliseoncds)
 # for the given uuid, assuming it holds the last timepoint modifications were
 # last synced with the server
-def addSync(uuid, modified_at):
+def addSync(uuid:str, modified_at:float) -> None:
     import portalocker
+    fh:IO[str]
     try:
         sync_cache_semaphore.acquire(1)
-        _log.debug('addSync(%s,%s)', str(uuid), str(modified_at))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh:
+        _log.debug('addSync(%s,%s)', uuid, modified_at)
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh: # pyrefly: ignore
             addSyncShelve(uuid, modified_at, fh)
     except portalocker.exceptions.LockException as e:
         _log.exception(e)
@@ -130,7 +128,7 @@ def addSync(uuid, modified_at):
         _log.debug(
             'retry sync:addSync(%s,%s)', str(uuid), str(modified_at)
         )
-        with portalocker.Lock(lock_path, timeout=0.3) as fh:
+        with portalocker.Lock(lock_path, timeout=0.3) as fh: # pyrefly: ignore
             addSyncShelve(uuid, modified_at, fh)
     except Exception as e:  # pylint: disable=broad-except
         _log.exception(e)
@@ -141,13 +139,15 @@ def addSync(uuid, modified_at):
 
 # returns None if given uuid is not registered for syncing, otherwise the
 # last modified_at timestamp in EPOC milliseconds
-def getSync(uuid):
+def getSync(uuid:str) -> Optional[float]:
     import portalocker
     import shelve
+    fh:IO[str]
+    db:shelve.Shelf[float]
     try:
         sync_cache_semaphore.acquire(1)
         _log.debug('getSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh:
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh: # pyrefly: ignore
             try:
                 with shelve.open(getSyncPath()) as db:
                     try:
@@ -172,7 +172,7 @@ def getSync(uuid):
         _log.info('clean lock %s', str(lock_path))
         lock_path.unlink()
         _log.debug('retry sync:getSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh:
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh: # pyrefly: ignore
             try:
                 with shelve.open(getSyncPath()) as db:
                     try:
@@ -196,13 +196,14 @@ def getSync(uuid):
             sync_cache_semaphore.release(1)
 
 
-def delSync(uuid):
+def delSync(uuid:str) -> None:
     import portalocker
     import shelve
+    fh:IO[str]
     try:
         sync_cache_semaphore.acquire(1)
         _log.debug('delSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh:
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh: # pyrefly: ignore
             try:
                 with shelve.open(getSyncPath()) as db:
                     del db[uuid]
@@ -220,7 +221,7 @@ def delSync(uuid):
         _log.info('clean lock %s', str(lock_path))
         lock_path.unlink()
         _log.debug('retry sync:delSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh:
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh: # pyrefly: ignore
             try:
                 with shelve.open(getSyncPath()) as db:
                     del db[uuid]
@@ -246,17 +247,17 @@ def delSync(uuid):
 sync_record_semaphore = QSemaphore(
     1
 )  # protecting access to the cached_plus_sync_record_hash
-cached_sync_record_hash = None  # hash over the sync record
-cached_sync_record = None  # the actual sync record the hash is computed over
+cached_sync_record_hash:Optional[str] = None  # hash over the sync record
+cached_sync_record:Optional[Dict[str,Any]] = None  # the actual sync record the hash is computed over
 # to be able to compute the differences
 # to the current sync record and send only those in updates
 
 
-# called before local edits can start to remember the original state of
+# called before local edits can start, to remember the original state of
 # the sync record
 # if provided, roast_record is assumed to be a full roast record as provided by
-# roast.getRoast(), otherwise the roast record is taken from the current data
-def setSyncRecordHash(sync_record=None, h=None):
+# roast.getRoast() and h its hash, otherwise the roast record is taken from the current data (not suppressing any default zero values like 0, '', 50)
+def setSyncRecordHash(sync_record:Optional[Dict[str, Any]] = None, h:Optional[str] = None) -> None:
     # pylint: disable=global-statement
     global cached_sync_record_hash, cached_sync_record
     try:
@@ -274,7 +275,7 @@ def setSyncRecordHash(sync_record=None, h=None):
             sync_record_semaphore.release(1)
 
 
-def clearSyncRecordHash():
+def clearSyncRecordHash() -> None:
     # pylint: disable=global-statement
     global cached_sync_record_hash, cached_sync_record
     try:
@@ -293,7 +294,7 @@ def clearSyncRecordHash():
 # current roast data) equals the cached_sync_record_hash
 # if provided, roast_record is assumed to be a full roast record
 # as provided by roast.getRoast()
-def syncRecordUpdated(roast_record=None):
+def syncRecordUpdated(roast_record:Optional[Dict[str, Any]] = None) -> bool:
     try:
         _log.debug('syncRecordUpdated(%s)', roast_record)
         sync_record_semaphore.acquire(1)
@@ -303,17 +304,31 @@ def syncRecordUpdated(roast_record=None):
         return res
     except Exception as e:  # pylint: disable=broad-except
         _log.exception(e)
-        return False
     finally:
         if sync_record_semaphore.available() < 1:
             sync_record_semaphore.release(1)
+    return False
+
+
+# replaces zero values like 0 and '' by None for attributes enabled for suppression to save data space on server
+def surpress_zero_values(roast_record:Dict[str, Any]) -> Dict[str, Any]:
+    for key in roast.sync_record_zero_supressed_attributes:
+        if key in roast_record and roast_record[key] == 0:
+            roast_record[key] = None
+    for key in roast.sync_record_fifty_supressed_attributes:
+        if key in roast_record and roast_record[key] == 50:
+            roast_record[key] = None
+    for key in roast.sync_record_empty_string_supressed_attributes:
+        if key in roast_record and roast_record[key] == '':
+            roast_record[key] = None
+    return roast_record
 
 
 # returns the roast_record with all attributes, but for the roast_id, with
-# the same value as in the current cached_sync_record removed
+# the attributes holding the same values as in the current cached_sync_record removed
 # the result is the roast_record with all unchanged attributes, which do not
 # need to synced on updates, removed
-def diffCachedSyncRecord(roast_record):
+def diffCachedSyncRecord(roast_record:Dict[str, Any]) -> Dict[str, Any]:
     try:
         _log.debug('diffCachedSyncRecord()')
         sync_record_semaphore.acquire(1)
@@ -327,6 +342,7 @@ def diffCachedSyncRecord(roast_record):
             if key != 'roast_id' and key in res and res[key] == value:
                 del res[key]
                 keys_with_equal_values.append(key)
+        # NOTE: the cached_sync_record does not contain null values like 0 and '' as those might have been suppressed
         # for items where we suppress zero values we need to force the
         # propagate of zeros in case on server there is no zero
         # established yet
@@ -343,6 +359,22 @@ def diffCachedSyncRecord(roast_record):
                 # to sync back the local 0 value with the non-zero value
                 # currently on the server
                 res[key] = 0
+        # for items where we suppress fifty values we need to force the
+        # propagate of fifty in case on server there is no fifty
+        # established yet
+        for key in roast.sync_record_fifty_supressed_attributes:
+            if (
+                key in cached_sync_record
+                and cached_sync_record[key]
+                and key not in res
+                and key not in keys_with_equal_values
+            ):  # not if data is equal on both sides and thus the key got
+                # deleted from res in the step before
+                # we explicitly set the value of key to 0 despite it is
+                # part of the sync_record_fifty_supressed_attributes
+                # to sync back the local fifty value with the non-fifty value
+                # currently on the server
+                res[key] = 50
         # for items where we suppress empty string values we need to force
         # the propagate of empty strings in case on server there is no
         # zero established yet
@@ -362,10 +394,10 @@ def diffCachedSyncRecord(roast_record):
         return res
     except Exception as e:  # pylint: disable=broad-except
         _log.exception(e)
-        return roast_record
     finally:
         if sync_record_semaphore.available() < 1:
             sync_record_semaphore.release(1)
+    return roast_record
 
 
 # Server Updates (applying updates to the current "sync record" from server)
@@ -373,10 +405,10 @@ def diffCachedSyncRecord(roast_record):
 applied_server_updates_modified_at_semaphore = QSemaphore(
     1
 )  # protecting access to the applied_server_updates_modified_at
-applied_server_updates_modified_at = None
+applied_server_updates_modified_at:Optional[float] = None
 
 
-def setApplidedServerUpdatesModifiedAt(modified_at):
+def setApplidedServerUpdatesModifiedAt(modified_at:Optional[float]) -> None:
     # pylint: disable=global-statement
     global applied_server_updates_modified_at
     try:
@@ -390,8 +422,8 @@ def setApplidedServerUpdatesModifiedAt(modified_at):
             applied_server_updates_modified_at_semaphore.release(1)
 
 
-def getApplidedServerUpdatesModifiedAt():
-    # ylint: disable=global-statement
+def getApplidedServerUpdatesModifiedAt() -> Optional[float]:
+    # pylint: disable=global-statement
     try:
         _log.debug('getApplidedServerUpdatesModifiedAt()')
         applied_server_updates_modified_at_semaphore.acquire(1)
@@ -406,221 +438,289 @@ def getApplidedServerUpdatesModifiedAt():
 
 # the values of "syncable" properties in data are applied to the apps
 # variables directly
-# if the contained UUID
-def applyServerUpdates(data):
+# NOTE: server returns always all values of the SyncRecord, but suppresses NULL values
+def applyServerUpdates(data:Dict[str, Any]) -> None:
     dirty = False
     title_changed = False
+    aw = config.app_window
     try:
         _log.debug('applyServerUpdates()')
         _log.debug('-> apply: %s', data)
-        aw = config.app_window
 
-        if 'amount' in data and data['amount'] is not None:
-            w = aw.convertWeight(
-                data['amount'],
-                aw.qmc.weight_units.index('Kg'),
-                aw.qmc.weight_units.index(aw.qmc.weight[2]),
-            )
-            if w != aw.qmc.weight[0]:
-                aw.qmc.weight[0] = w
-                dirty = True
-        if 'end_weight' in data and data['end_weight'] is not None:
-            w = aw.convertWeight(
-                data['end_weight'],
-                aw.qmc.weight_units.index('Kg'),
-                aw.qmc.weight_units.index(aw.qmc.weight[2]),
-            )
-            if w != aw.qmc.weight[1]:
-                aw.qmc.weight[1] = w
-                dirty = True
-        if (
-            'batch_number' in data
-            and data['batch_number'] != aw.qmc.roastbatchnr
-        ):
-            aw.qmc.roastbatchnr = data['batch_number']
-            dirty = True
-            title_changed = True
-        if (
-            'batch_prefix' in data
-            and data['batch_prefix'] != aw.qmc.roastbatchprefix
-        ):
-            aw.qmc.roastbatchprefix = data['batch_prefix']
-            dirty = True
-            title_changed = True
-        if 'batch_pos' in data and data['batch_pos'] != aw.qmc.roastbatchpos:
-            aw.qmc.roastbatchpos = data['batch_pos']
-            dirty = True
-            title_changed = True
-        if 'label' in data and data['label'] != aw.qmc.title:
-            aw.qmc.title = data['label']
-            dirty = True
-            title_changed = True
+        if aw is not None:
 
-        if 'location' in data and data['location'] is not None:
-            if (
-                'hr_id' in data['location']
-                and data['location']['hr_id'] != aw.qmc.plus_store
-            ):
-                aw.qmc.plus_store = data['location']['hr_id']
+            # add to transmitted zero/null values
+            for key in roast.sync_record_zero_supressed_attributes_synced:
+                # NOTE that the attributes in sync_record_zero_supressed_attributes_unsynced are NOT added here with defaults as those are never returned from the server (unsynced)
+                if key not in data:
+                    data[key] = 0
+            for key in roast.sync_record_fifty_supressed_attributes:
+                if key not in data:
+                    data[key] = 50
+            for key in roast.sync_record_empty_string_supressed_attributes:
+                if key not in data:
+                    data[key] = ''
+#            _log.debug('-> apply data with reconstructed suppressed null values: %s', data)
+
+            win:float = aw.qmc.weight[0]
+            wout:float = aw.qmc.weight[1]
+            wunit:str = aw.qmc.weight[2]
+            wdefects: float = aw.qmc.roasted_defects_weight
+            if 'amount' in data and data['amount'] is not None:
+                assert isinstance(data['amount'], (int, float))
+                w = convertWeight(
+                    data['amount'],
+                    weight_units.index('Kg'),
+                    weight_units.index(wunit),
+                )
+                if w != win:
+                    win = w
+                    dirty = True
+            if 'end_weight' in data and data['end_weight'] is not None:
+                w = convertWeight(
+                    data['end_weight'],
+                    weight_units.index('Kg'),
+                    weight_units.index(wunit),
+                )
+                if w != wout:
+                    wout = w
+                    dirty = True
+            if dirty:
+                # register new data
+                aw.qmc.weight = (win,wout,wunit)
+            if 'defects_weight' in data and data['defects_weight'] is not None:
+                w = convertWeight(
+                    data['defects_weight'],
+                    weight_units.index('Kg'),
+                    weight_units.index(wunit),
+                )
+                if w != wdefects:
+                    wdefects = w
+                    dirty = True
+            if dirty:
+                # register new data
+                aw.qmc.roasted_defects_weight = wdefects
+            if 'batch_number' in data:
+                if data['batch_number'] != aw.qmc.roastbatchnr:
+                    aw.qmc.roastbatchnr = data['batch_number']
+                    dirty = True
+                    title_changed = True
+            elif aw.qmc.roastbatchnr != 0:
+                aw.qmc.roastbatchnr = 0
                 dirty = True
-            if (
-                'label' in data['location']
-                and data['location']['label'] != aw.qmc.plus_store_label
-            ):
-                aw.qmc.plus_store_label = data['location']['label']
+                title_changed = True
+            if 'batch_prefix' in data:
+                if data['batch_prefix'] != aw.qmc.roastbatchprefix:
+                    aw.qmc.roastbatchprefix = data['batch_prefix']
+                    dirty = True
+                    title_changed = True
+            elif aw.qmc.roastbatchprefix != '':
+                aw.qmc.roastbatchprefix = ''
                 dirty = True
-        if 'coffee' in data and data['coffee'] is not None:
-            if (
-                'hr_id' in data['coffee']
-                and data['coffee']['hr_id'] != aw.qmc.plus_coffee
-            ):
-                aw.qmc.plus_coffee = data['coffee']['hr_id']
+                title_changed = True
+            if 'batch_pos' in data:
+                if data['batch_pos'] != aw.qmc.roastbatchpos:
+                    aw.qmc.roastbatchpos = data['batch_pos']
+                    dirty = True
+                    title_changed = True
+            elif aw.qmc.roastbatchpos != 0:
+                aw.qmc.roastbatchpos = 0
                 dirty = True
-            if (
-                'label' in data['coffee']
-                and data['coffee']['label'] != aw.qmc.plus_coffee_label
-            ):
-                aw.qmc.plus_coffee_label = data['coffee']['label']
+                title_changed = True
+            if 'label' in data and data['label'] != aw.qmc.title:
+                aw.qmc.title = data['label']
                 dirty = True
-            if aw.qmc.plus_coffee is not None:
-                aw.qmc.plus_blend_label = None
+                title_changed = True
+
+            if 'location' in data and data['location'] is not None:
+                if (
+                    'hr_id' in data['location']
+                    and data['location']['hr_id'] != aw.qmc.plus_store
+                ):
+                    aw.qmc.plus_store = data['location']['hr_id']
+                    dirty = True
+                if (
+                    'label' in data['location']
+                    and data['location']['label'] != aw.qmc.plus_store_label
+                ):
+                    aw.qmc.plus_store_label = data['location']['label']
+                    dirty = True
+            if 'coffee' in data:
+                if data['coffee'] is not None:
+                    if (
+                        'hr_id' in data['coffee']
+                        and data['coffee']['hr_id'] != aw.qmc.plus_coffee
+                    ):
+                        aw.qmc.plus_coffee = data['coffee']['hr_id']
+                        dirty = True
+                    if (
+                        'label' in data['coffee']
+                        and data['coffee']['label'] != aw.qmc.plus_coffee_label
+                    ):
+                        aw.qmc.plus_coffee_label = data['coffee']['label']
+                        dirty = True
+                elif aw.qmc.plus_coffee is not None: # and we know here that data['coffee'] is None
+                    aw.qmc.plus_coffee = None
+                    dirty = True
+                if aw.qmc.plus_coffee is not None:
+                    aw.qmc.plus_blend_label = None
+                    aw.qmc.plus_blend_spec = None
+                    aw.qmc.plus_blend_spec_labels = None
+            elif aw.qmc.plus_coffee is not None: # data['coffee'] is implicit None
+                aw.qmc.plus_coffee = None
+                dirty = True
+            if 'blend' in data:
+                if (data['blend'] is not None
+                    and 'label' in data['blend']
+                    and 'ingredients' in data['blend']
+                    and data['blend']['ingredients']
+                ):
+                    try:
+                        ingredients:List[stock.BlendIngredient] = []
+                        for i in data['blend']['ingredients']:
+                            entry = stock.BlendIngredient(
+                                ratio = i['ratio'],
+                                coffee = i['coffee']['hr_id'])
+                            # just the hr_id as a string and not the full object
+                            if 'ratio_num' in i and i['ratio_num'] is not None:
+                                entry['ratio_num'] = i['ratio_num']
+                            if 'ratio_denom' in i and i['ratio_denom'] is not None:
+                                entry['ratio_denom'] = i['ratio_denom']
+                            ingredients.append(entry)
+                        blend_spec = stock.Blend(
+                            label = data['blend']['label'],
+                            ingredients = ingredients
+                        )
+
+                        blend_spec_labels = [
+                            i['coffee']['label'] for i in data['blend']['ingredients']
+                        ]
+                        aw.qmc.plus_blend_spec = blend_spec
+                        aw.qmc.plus_blend_spec_labels = blend_spec_labels
+                        dirty = True
+                    except Exception as e:  # pylint: disable=broad-except
+                        _log.exception(e)
+                    if aw.qmc.plus_blend_spec is not None:
+                        aw.qmc.plus_coffee = None
+                        aw.qmc.plus_coffee_label = None
+                elif data['blend'] is None and aw.qmc.plus_coffee is not None:
+                    aw.qmc.plus_blend_spec = None
+                    aw.qmc.plus_blend_spec_labels = None
+                    dirty = True
+            elif aw.qmc.plus_blend_spec is not None: # data['blend'] is implicit None
                 aw.qmc.plus_blend_spec = None
                 aw.qmc.plus_blend_spec_labels = None
-        if (
-            'blend' in data
-            and data['blend'] is not None
-            and 'label' in data['blend']
-            and 'ingredients' in data['blend']
-            and data['blend']['ingredients']
-        ):
-            try:
-                ingredients = []
-                for i in data['blend']['ingredients']:
-                    entry = {}
-                    entry['ratio'] = i['ratio']
-                    entry['coffee'] = i['coffee'][
-                        'hr_id'
-                    ]  # just the hr_id as a string and not the full object
-                    if 'ratio_num' in i and i['ratio_num'] is not None:
-                        entry['ratio_num'] = i['ratio_num']
-                    if 'ratio_denom' in i and i['ratio_denom'] is not None:
-                        entry['ratio_denom'] = i['ratio_denom']
-                    ingredients.append(entry)
-                blend_spec = {
-                    'label': data['blend']['label'],
-                    'ingredients': ingredients,
-                }
-                blend_spec_labels = [
-                    i['coffee']['label'] for i in data['blend']['ingredients']
-                ]
-                aw.qmc.plus_blend_spec = blend_spec
-                aw.qmc.plus_blend_spec_labels = blend_spec_labels
                 dirty = True
-            except Exception as e:  # pylint: disable=broad-except
-                _log.exception(e)
-            if aw.qmc.plus_blend_spec is not None:
-                aw.qmc.plus_coffee = None
-                aw.qmc.plus_coffee_label = None
+            # ensure that location is None if neither coffee nor blend is set
+            if (
+                aw.qmc.plus_coffee is None
+                and aw.qmc.plus_blend_spec is None
+                and aw.qmc.plus_store is not None
+            ):
+                aw.qmc.plus_store = None
 
-        # ensure that location is None if neither coffee nor blend is set
-        if (
-            aw.qmc.plus_coffee is None
-            and aw.qmc.plus_blend_spec is None
-            and aw.qmc.plus_store is not None
-        ):
-            aw.qmc.plus_store = None
-
-        if (
-            'color_system' in data
-            and data['color_system']
-            != aw.qmc.color_systems[aw.qmc.color_system_idx]
-        ):
-            try:
-                aw.qmc.color_system_idx = aw.qmc.color_systems.index(
-                    data['color_system']
-                )
+            if 's_item_id' in data:
+                if data['s_item_id'] is not None:
+                    if data['s_item_id'] != aw.qmc.scheduleID:
+                        aw.qmc.scheduleID = data['s_item_id']
+                        dirty = True
+                elif aw.qmc.scheduleID is not None:
+                    aw.qmc.scheduleID = None
+                    aw.qmc.scheduleDate = None
+                    dirty = True
+            elif aw.qmc.scheduleID is not None: # data['s_item_id'] is implicit None
+                aw.qmc.scheduleID = None
+                aw.qmc.scheduleDate = None
                 dirty = True
-            except Exception as e:  # pylint: disable=broad-except
-                # cloud color system not known by Artisan client
-                _log.exception(e)
-        if (
-            'ground_color' in data
-            and data['ground_color'] != aw.qmc.ground_color
-        ):
-            aw.qmc.ground_color = data['ground_color']
-            dirty = True
-        if 'whole_color' in data and data['whole_color'] != aw.qmc.whole_color:
-            aw.qmc.whole_color = data['whole_color']
-            dirty = True
-        if 'machine' in data and data['machine'] != aw.qmc.roastertype:
-            aw.qmc.roastertype = data['machine']
-            dirty = True
-        if 'notes' in data and data['notes'] != aw.qmc.roastingnotes:
-            aw.qmc.roastingnotes = data['notes']
-            dirty = True
-        if (
-            'density_roasted' in data
-            and data['density_roasted'] != aw.qmc.density_roasted[0]
-        ):
-            aw.qmc.density_roasted[0] = data['density_roasted']
-            dirty = True
-        if (
-            'moisture' in data
-            and data['moisture'] != aw.qmc.density_roasted[0]
-        ):
-            aw.qmc.moisture_roasted = data['moisture']
-            dirty = True
-        if 'temperature' in data and data['temperature'] != aw.qmc.ambientTemp:
-            aw.qmc.ambientTemp = data['temperature']
-            dirty = True
-        if 'pressure' in data and data['pressure'] != aw.qmc.ambient_pressure:
-            aw.qmc.ambient_pressure = data['pressure']
-            dirty = True
-        if 'humidity' in data and data['humidity'] != aw.qmc.ambient_humidity:
-            aw.qmc.ambient_humidity = data['humidity']
-            dirty = True
-        if 'roastersize' in data and data['roastersize'] != aw.qmc.roastersize:
-            aw.qmc.roastersize = data['roastersize']
-            dirty = True
-        if (
-            'roasterheating' in data
-            and data['roasterheating'] != aw.qmc.roasterheating
-        ):
-            aw.qmc.roasterheating = data['roasterheating']
-            dirty = True
-        setSyncRecordHash()
-        # here the sync record is taken form the profiles data after
-        # application of the received server updates
-        # Note that this sync record does not contain null values not
-        # transferred for attributes from the server side.
-        # To fix this, we will update that sync record with all attributes not
-        # in the server data set to null values
-        # this forces those non-null values from the profile to be transmitted
-        # to the server on next sync
-        updated_record = {}
-        for key, value in cached_sync_record.items():
-            if not (key in data):
-                # we explicitly add the implicit null value (0 or "")
-                # for that key
-                if (
-                    key in roast.sync_record_zero_supressed_attributes
-                    and value != 0
-                ):
-                    updated_record[key] = 0
-                elif (
-                    key in roast.sync_record_empty_string_supressed_attributes
-                    and value != ''
-                ):
-                    updated_record[key] = ''
-            else:
-                updated_record[key] = value
-        (
-            cached_sync_record_updated,
-            cached_sync_record_hash_updated,
-        ) = roast.getSyncRecord(updated_record)
-        setSyncRecordHash(
-            cached_sync_record_updated, cached_sync_record_hash_updated
-        )
+# s_item_date is not stored by the server and thus never returned
+#            if 's_item_date' in data:
+#                if data['s_item_date'] is not None:
+#                    if data['s_item_date'] != aw.qmc.scheduleDate:
+#                        aw.qmc.scheduleDate = data['s_item_date']
+#                        dirty = True
+#                elif aw.qmc.scheduleDate is not None:
+#                    aw.qmc.scheduleDate = None
+#                    dirty = True
+
+            if 'color_system' in data:
+                if data['color_system'] != aw.qmc.color_systems[aw.qmc.color_system_idx]:
+                    try:
+                        aw.qmc.color_system_idx = aw.qmc.color_systems.index(
+                            data['color_system']
+                        )
+                        dirty = True
+                    except Exception as e:  # pylint: disable=broad-except
+                        # cloud color system not known by Artisan client
+                        _log.exception(e)
+            elif aw.qmc.color_system_idx != 0:
+                aw.qmc.color_system_idx = 0
+                dirty = True
+            if 'ground_color' in data:
+                if data['ground_color'] != aw.qmc.ground_color:
+                    aw.qmc.ground_color = float2float(data['ground_color'])
+                    dirty = True
+            elif aw.qmc.ground_color != 0:
+                aw.qmc.ground_color = 0
+                dirty = True
+            if 'whole_color' in data:
+                if data['whole_color'] != aw.qmc.whole_color:
+                    aw.qmc.whole_color = float2float(data['whole_color'])
+                    dirty = True
+            elif aw.qmc.whole_color != 0:
+                aw.qmc.whole_color = 0
+                dirty = True
+            if 'machine' in data:
+                if data['machine'] != aw.qmc.roastertype:
+                    aw.qmc.roastertype = data['machine']
+                    dirty = True
+            elif aw.qmc.roastertype != '':
+                aw.qmc.roastertype = ''
+                dirty = True
+            if 'notes' in data:
+                if data['notes'] != aw.qmc.roastingnotes:
+                    aw.qmc.roastingnotes = data['notes']
+                    dirty = True
+            elif aw.qmc.roastingnotes != '':
+                aw.qmc.roastingnotes = ''
+                dirty = True
+            if 'cupping_notes' in data:
+                if data['cupping_notes'] != aw.qmc.cuppingnotes:
+                    aw.qmc.cuppingnotes = data['cupping_notes']
+                    dirty = True
+            elif aw.qmc.cuppingnotes != '':
+                aw.qmc.cuppingnotes = ''
+                dirty = True
+            cupping_value = aw.qmc.calcFlavorChartScore()
+            if 'cupping_score' in data:
+                if data['cupping_score'] != cupping_value:
+                    aw.qmc.setFlavorChartScore(float(data['cupping_score']))
+                    dirty = True
+            elif cupping_value != 50: # NOTE: default value is 50 and not 0 as with other attributes
+                aw.qmc.setFlavorChartScore(50)
+                dirty = True
+            if 'density_roasted' in data:
+                if data['density_roasted'] != aw.qmc.density_roasted[0]:
+                    aw.qmc.density_roasted = (data['density_roasted'],aw.qmc.density_roasted[1],aw.qmc.density_roasted[2],aw.qmc.density_roasted[3])
+                    dirty = True
+            elif aw.qmc.density_roasted[0] != 0:
+                aw.qmc.density_roasted = (0,aw.qmc.density_roasted[1],aw.qmc.density_roasted[2],aw.qmc.density_roasted[3])
+                dirty = True
+            if 'moisture' in data:
+                if data['moisture'] != aw.qmc.moisture_roasted:
+                    aw.qmc.moisture_roasted = data['moisture']
+                    dirty = True
+            elif aw.qmc.moisture_roasted != 0:
+                aw.qmc.moisture_roasted = 0
+                dirty = True
+# NOTE: all attributes in roast.sync_record_zero_supressed_attributes_unsynced are not send back from the server and thus not synced bi-directional
+            # we exclude the following attributes in roast.sync_record_zero_supressed_attributes_unsynced from the syncing as those are computed and
+            # cannot set directly by the user
+            # On syncing two Artisan versions with the same over the server, the readings generate those values cannot be updated
+            # as a consequence those attributes are only set once on initially sending a roast record and never updated
+
+            setSyncRecordHash()
+            # here the set sync record is taken form the profiles data after
+            # application of the received server updates
 
     except Exception as e:  # pylint: disable=broad-except
         _log.exception(e)
@@ -648,9 +748,11 @@ def applyServerUpdates(data):
 
 # internal function fetching the update from server and then unblock the
 # Properties Dialog and update the plus icon
-def fetchServerUpdate(uuid: str, file=None):
+# if return_data is set, the received data is not applied via applyServerUpdates, but returned instead
+def fetchServerUpdate(uuid: str, file:Optional[str]=None, return_data:bool = False) -> Optional[Dict[str, Any]]:
     aw = config.app_window
     import requests
+    import requests.exceptions
     try:
         _log.debug(
             ('fetchServerUpdate() -> requesting update'
@@ -658,7 +760,7 @@ def fetchServerUpdate(uuid: str, file=None):
             file,
         )
         last_modified = ''
-        if file is not None:
+        if aw is not None and file is not None:
             #file_last_modified = util.getModificationDate(file)
             # we now use the timestamp as set on loading the file and not of the file itself as the file might have been
             # modified, eg. by another Artisan instance, since this instance loaded it
@@ -697,71 +799,83 @@ def fetchServerUpdate(uuid: str, file=None):
                 fetchServerUpdate(uuid)
         elif status == 404:
             try:
-                data = res.json()
-                util.updateLimitsFromResponse(data) # update account limits
-                if 'success' in data and not data['success']:
-                    _log.debug(
-                        'fetchServerUpdate() ->'
-                         ' 404 roast record deleted on server'
-                    )
-                    # data not found on server, remove UUID from sync cache
-                    delSync(uuid)
-                # else there must be another cause of the 404
+                if res.headers['content-type'].strip().startswith('application/json'):
+                    data = res.json()
+                    util.updateLimitsFromResponse(data) # update account limits
+                    if 'success' in data and not data['success']:
+                        _log.debug(
+                            'fetchServerUpdate() ->'
+                             ' 404 roast record deleted on server'
+                        )
+                        # data not found on server, remove UUID from sync cache
+                        delSync(uuid)
+                    # else there must be another cause of the 404
+                    else:
+                        _log.debug(
+                            'fetchServerUpdate() -> 404 server error'
+                        )
+                _log.error('empty 404 response on fetchServerUpdate')
+            except json.decoder.JSONDecodeError as e:
+                if not e.doc:
+                    _log.error('Empty response.')
                 else:
-                    _log.debug(
-                        'fetchServerUpdate() -> 404 server error'
-                    )
-            except Exception:  # pylint: disable=broad-except
-                pass
+                    _log.error("Decoding error at char %s (line %s, col %s): '%s'", e.pos, e.lineno, e.colno, e.doc)
+            except Exception as e:  # pylint: disable=broad-except
+                _log.error(e)
         elif (
             status == 200
         ):  # data on server is newer than ours => update with data from server
             _log.debug(
                 'fetchServerUpdate() -> 200 data on server is newer'
             )
-            data = res.json()
-            util.updateLimitsFromResponse(data) # update account limits
-            if 'result' in data:
-                r = data['result']
-                _log.debug('-> fetch: %s', r)
+            if res.headers['content-type'].strip().startswith('application/json'):
+                data = res.json()
+    #            _log.info("PRINT data received: %s",data)
+                util.updateLimitsFromResponse(data) # update account limits
+                if 'result' in data:
+                    r:Dict[str, Any] = data['result']
+                    _log.debug('-> fetch: %s', r)
 
-                if getSync(uuid) is None and 'modified_at' in r:
-                    addSync(uuid, util.ISO86012epoch(r['modified_at']))
-                    _log.debug(
-                        '-> added profile automatically to sync cache'
-                    )
-
-                if file_last_modified is not None:
-                    _log.debug(
-                        '-> file last_modified date: %s',
-                        util.epoch2ISO8601(file_last_modified),
-                    )
-                if (
-                    'modified_at' in r
-                    and file_last_modified is not None
-                    and util.ISO86012epoch(r['modified_at'])
-                    > file_last_modified
-                ):
-                    applyServerUpdates(r)
-                    if aw.qmc.plus_file_last_modified is not None:
-                        # we update the loaded profile timestamp to avoid receiving the same update again
-                        aw.qmc.plus_file_last_modified = time.time()
-                else:
-                    _log.debug(
-                        '-> data received from server was older!?'
-                    )
-                    _log.debug(
-                        '-> file last_modified epoch: %s',
-                        file_last_modified,
-                    )
-                    _log.debug(
-                        '-> server last_modified epoch: %s',
-                        util.ISO86012epoch(r['modified_at']),
-                    )
-                    _log.debug(
-                        '-> server last_modified date: %s',
-                        r['modified_at'],
-                    )
+                    if getSync(uuid) is None and 'modified_at' in r:
+                        addSync(uuid, util.ISO86012epoch(r['modified_at']))
+                        _log.debug(
+                            '-> added profile automatically to sync cache'
+                        )
+                    if return_data:
+                        return r
+                    if file_last_modified is not None:
+                        _log.debug(
+                            '-> file last_modified date: %s',
+                            util.epoch2ISO8601(file_last_modified),
+                        )
+                    if (
+                        'modified_at' in r
+                        and file_last_modified is not None
+                        and util.ISO86012epoch(r['modified_at'])
+                        > file_last_modified
+                    ):
+                        applyServerUpdates(r)
+                        if aw is not None and aw.qmc.plus_file_last_modified is not None:
+                            # we update the loaded profile timestamp to avoid receiving the same update again
+                            aw.qmc.plus_file_last_modified = time.time()
+                    else:
+                        _log.debug(
+                            '-> data received from server was older!?'
+                        )
+                        _log.debug(
+                            '-> file last_modified epoch: %s',
+                            file_last_modified,
+                        )
+                        _log.debug(
+                            '-> server last_modified epoch: %s',
+                            util.ISO86012epoch(r['modified_at']),
+                        )
+                        _log.debug(
+                            '-> server last_modified date: %s',
+                            r['modified_at'],
+                        )
+            else:
+                _log.error('received empty response on fetchServerUpdate')
     except requests.exceptions.ConnectionError as e:
         # more general: requests.exceptions.RequestException
         _log.exception(e)
@@ -773,8 +887,10 @@ def fetchServerUpdate(uuid: str, file=None):
     finally:
         # stop block opening the Roast Properties dialog while
         # syncing from the server
-        aw.editgraphdialog = None
-        config.app_window.updatePlusStatusSignal.emit()  # @UndefinedVariable
+        if aw is not None:
+            aw.editgraphdialog = None
+            aw.updatePlusStatusSignal.emit()  # @UndefinedVariable
+    return None
 
 
 # updates from server are only requested if connected (the uuid does not have
@@ -786,49 +902,48 @@ def fetchServerUpdate(uuid: str, file=None):
 # it but there is already a record on the platform"
 
 # this function might be called from a thread (eg. via QTimer)
-def getUpdate(uuid: str, file=None):
-    _log.info('getUpdate(%s,%s)', uuid, file)
-    if uuid is not None:
+def getUpdate(uuid: Optional[str], file:Optional[str]=None) -> None:
+    _log.debug('getUpdate(%s,%s)', uuid, file)
+    if uuid is not None and config.app_window is not None:
         aw = config.app_window
-        if aw.editgraphdialog is None and controller.is_connected():
+        if aw is not None and aw.editgraphdialog is None and controller.is_connected():
             try:
                 # block opening the Roast Properties dialog
                 # while syncing from the server
                 aw.editgraphdialog = False
                 aw.updatePlusStatusSignal.emit()  # show syncing icon
-                QTimer.singleShot(2, lambda: fetchServerUpdate(uuid, file))
+                QTimer.singleShot(2, lambda: (fetchServerUpdate(uuid, file) if isinstance(uuid, str) else None))
             except Exception as e:  # pylint: disable=broad-except
                 _log.exception(e)
 
-
 # Sync Action as issued on profile load and turning plus on
-
-
-def sync():
+@pyqtSlot()
+def sync() -> None:
     try:
-        _log.info('sync()')
+        _log.debug('sync()')
         aw = config.app_window
-        rr = roast.getRoast()
-        computed_sync_record, computed_sync_record_hash = roast.getSyncRecord(
-            rr
-        )
-        if (
-            aw.qmc.plus_sync_record_hash is None
-            or aw.qmc.plus_sync_record_hash != computed_sync_record_hash
-        ):
-            # the sync record of the loaded profile is not consistent or
-            # missing, offline changes (might) have been applied
-            aw.qmc.fileDirty()  # set file dirty flag
-            clearSyncRecordHash()  # clear sync record hash cash to trigger
-            # an upload of the modified plus sync record on next save
-        else:
-            setSyncRecordHash(
-                sync_record=computed_sync_record, h=computed_sync_record_hash
+        if aw is not None:
+            rr = roast.getRoast()
+            computed_sync_record, computed_sync_record_hash = roast.getSyncRecord(
+                rr
             )
-            # we remember that consistent state to be able to detect
-            # future modifications
-        getUpdate(
-            aw.qmc.roastUUID, aw.curFile
-        )  # now we check for updates on the server side
+            if (
+                aw.qmc.plus_sync_record_hash is None
+                or aw.qmc.plus_sync_record_hash != computed_sync_record_hash
+            ):
+                # the sync record of the loaded profile is not consistent or
+                # missing, offline changes (might) have been applied
+                aw.qmc.fileDirty()  # set file dirty flag
+                clearSyncRecordHash()  # clear sync record hash cash to trigger
+                # an upload of the modified plus sync record on next save
+            else:
+                setSyncRecordHash(
+                    sync_record=computed_sync_record, h=computed_sync_record_hash
+                )
+                # we remember that consistent state to be able to detect
+                # future modifications
+            getUpdate(
+                aw.qmc.roastUUID, aw.curFile
+            )  # now we check for updates on the server side
     except Exception as e:  # pylint: disable=broad-except
         _log.exception(e)

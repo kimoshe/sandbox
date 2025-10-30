@@ -13,39 +13,46 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2022
+# Marko Luther, 2023
 
 
 import numpy as np
 from collections import deque
 from bisect import bisect_left, insort
 
+from typing import List, Optional, Deque, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import numpy.typing as npt # pylint: disable=unused-import
+
 # https://www.samproell.io/posts/yarppg/digital-filters-python/
 class LiveFilter:
     """Base class for live filters.
     """
-    def process(self, x):
+    def process(self, x:float) -> float:
         # do not process NaNs
         if np.isnan(x):
             return x
 
         return self._process(x)
 
-    def __call__(self, x):
+    def __call__(self, x:float) -> float:
         return self.process(x)
 
-    def _process(self, x):
+    def _process(self, x:float) -> float:
         raise NotImplementedError('Derived class must implement _process')
 
 
 class LiveLFilter(LiveFilter):
     """Live implementation of digital filter using difference equations.
 
+    (infinite impulse response IIR filter; digital version can have instabilites)
+
     The following is almost equivalent to calling scipy.lfilter(b, a, xs):
     >>> lfilter = LiveLFilter(b, a)
     >>> [lfilter(x) for x in xs]
     """
-    def __init__(self, b_, a_):
+    def __init__(self, b_:'npt.NDArray[np.float64]', a_:'npt.NDArray[np.float64]') -> None:
         """Initialize live filter based on difference equation.
 
         Args:
@@ -56,28 +63,30 @@ class LiveLFilter(LiveFilter):
         """
         self.b = b_
         self.a = a_
-        self._xs = deque([0] * len(b), maxlen=len(b))
-        self._ys = deque([0] * (len(a) - 1), maxlen=len(a)-1)
+        self._xs:Deque[float] = deque([0.0] * len(self.b), maxlen=len(self.b))         # pyrefly: ignore[bad-argument-type]
+        self._ys:Deque[float] = deque([0.0] * (len(self.a) - 1), maxlen=len(self.a)-1) # pyrefly: ignore[bad-argument-type]
 
-    def _process(self, x):
+    def _process(self, x:float) -> float:
         """Filter incoming data with standard difference equations.
         """
         self._xs.appendleft(x)
-        y = np.dot(self.b, self._xs) - np.dot(self.a[1:], self._ys)
+        y = np.dot(np.array(self.b), np.array(self._xs)) - np.dot(np.array(self.a[1:]), np.array(self._ys))
         y = y / self.a[0]
         self._ys.appendleft(y)
 
-        return y
+        return float(y)
 
 
 class LiveSosFilter(LiveFilter):
     """Live implementation of digital filter with second-order sections.
 
+    (usually to be preferred over lfilter as more stable)
+
     The following is equivalent to calling scipy.sosfilt(sos, xs):
     >>> sosfilter = LiveSosFilter(sos)
     >>> [sosfilter(x) for x in xs]
     """
-    def __init__(self, sos_):
+    def __init__(self, sos_:Any) -> None:
         """Initialize live second-order sections filter.
 
         Args:
@@ -89,9 +98,10 @@ class LiveSosFilter(LiveFilter):
         self.n_sections = self.sos.shape[0]
         self.state = np.zeros((self.n_sections, 2))
 
-    def _process(self, x):
+    def _process(self, x:float) -> float:
         """Filter incoming data with cascaded second-order sections.
         """
+        y:float = 0
         for s in range(self.n_sections):  # apply filter sections in sequence
             b0, b1, b2, _a0, a1, a2 = self.sos[s, :]
 
@@ -106,44 +116,86 @@ class LiveSosFilter(LiveFilter):
 class LiveMedian(LiveFilter):
     """Live implementation of a median low-pass filter.
     """
-    def __init__(self, k):
+    def __init__(self, k:int) -> None:
         """Initialize live median low-pass filter.
 
         Args:
             k (odd natural number): window size
         """
         assert k % 2 == 1, 'Median filter length must be odd.'
-        self.k = k
-        self.init_list = [] # collects first k readings until initialized
-        self.initialized = False
-        self.q = None
-        self.l = None
-        self.mididx = 0
+        self.k:int = k
+        self.init_list:List[float] = [] # collects first k readings until initialized
+        self.total:float = 0 # the sum of the last n<k readings
+        self.initialized:bool = False
+        self.q:Optional[Deque[float]] = None
+        self.l:Optional[List[float]] = None
+        self.mididx:int = 0
 
-    def init_queue(self):
-        self.q = q = deque(self.init_list)
-        self.l = l = list(q)
-        l.sort()
-        self.mididx = (len(q) - 1) // 2
-        self.initialized = True
-        del self.init_list
+    def init_queue(self) -> None:
+        self.q = deque(self.init_list)
+        if self.q is not None:
+            self.l = list(self.q)
+            self.l.sort()
+            self.mididx = (len(self.q) - 1) // 2
+            self.initialized = True
+            del self.init_list
+            del self.total
 
-    def _process(self, x):
+    def _process(self, x:float) -> float:
         """Filter incoming data with median low-pass filter.
         """
         if not self.initialized:
             if len(self.init_list) < self.k:
                 self.init_list.append(x)
-                return x
-            else:
-                self.init_queue()
-        q, l = self.q, self.l
-        old_elem = q.popleft()
-        q.append(x)
-        del l[bisect_left(l, old_elem)]
-        insort(l, x)
-        return l[self.mididx]
+                self.total += x
+#                return x
+                # for a smoother start we return the mean until the window is filled
+                return self.total / len(self.init_list)
+            self.init_queue()
+        if self.q is not None and self.l is not None:
+            old_elem = self.q.popleft()
+            self.q.append(x)
+            del self.l[bisect_left(self.l, old_elem)]
+            insort(self.l, x)
+            return self.l[self.mididx]
+        return x
 
+
+class LiveMean(LiveFilter):
+    def __init__(self, k:int) -> None:
+        """Initialize live mean low-pass filter.
+
+        Args:
+            k: window size
+        """
+        self.k:int = k
+        self.init_list:List[float] = [] # collects first k readings until initialized
+        self.total:float = 0 # the sum of the last n<=k readings
+        self.initialized:bool = False
+        self.window:Optional[Deque[float]] = None
+
+    def init_queue(self) -> None:
+        self.window = deque(self.init_list)
+        if self.window is not None:
+            self.initialized = True
+            del self.init_list
+
+    def _process(self, x:float) -> float:
+        """Filter incoming data with mean low-pass filter.
+        """
+        if not self.initialized:
+            if len(self.init_list) < self.k:
+                self.init_list.append(x)
+                self.total += x
+                return self.total / len(self.init_list)
+            self.init_queue()
+        if self.window is not None:
+
+            self.total -= self.window.popleft()
+            self.total += x
+            self.window.append(x)
+            return self.total / self.k
+        return x
 
 if __name__ == '__main__':
 
@@ -158,20 +210,21 @@ if __name__ == '__main__':
     yraw = ys + yerr
 
     # define the filters
-    import scipy.signal
-    # define lowpass filter with 2.5 Hz cutoff frequency of order 4
-    b, a = scipy.signal.iirfilter(4, Wn=2.5, fs=fs, btype='low', ftype='butter')
-    y_scipy_lfilter = scipy.signal.lfilter(b, a, yraw)
+    from scipy.signal import iirfilter, lfilter, sosfilt # type # ignore[import-untyped]
+    #
+    # define lowpass filter with 2.5 Hz cutoff frequency of order 4 (note: delay increases with order)
+    b, a = iirfilter(4, Wn=2.5, fs=fs, btype='low', ftype='butter') # pyrefly: ignore
+    y_scipy_lfilter = lfilter(b, a, yraw)
 
     live_lfilter = LiveLFilter(b, a)
     # simulate live filter - passing values one by one
     y_live_lfilter = [live_lfilter(y) for y in yraw]
 
 
-    # define lowpass filter with 2.5 Hz cutoff frequency if order 2
-    sos = scipy.signal.iirfilter(2, Wn=2.5, fs=fs, btype='low',
+    # define lowpass filter with 2.5 Hz cutoff frequency of order 2
+    sos = iirfilter(2, Wn=2.5, fs=fs, btype='low',
                                  ftype='butter', output='sos')
-    y_scipy_sosfilt = scipy.signal.sosfilt(sos, yraw)
+    y_scipy_sosfilt = sosfilt(sos, yraw)
 
     live_sosfilter = LiveSosFilter(sos)
     # simulate live filter - passing values one by one
@@ -186,19 +239,24 @@ if __name__ == '__main__':
     # simulate median filter - passing values one by one
     y_live_med9filt = [med9filter(y) for y in yraw]
 
+    avg9filter = LiveMean(9)
+    # simulate mean filter - passing values one by one
+    y_live_avg9filt = [avg9filter(y) for y in yraw]
+
     y_live_med5sosfilt = [live_sosfilter(med5filter(y)) for y in yraw]
 
 
     # plot the data
     import matplotlib.pyplot as plt
-    plt.figure(figsize=[6.4, 2.4])
+    plt.figure(figsize=(6.4, 2.4))
     plt.plot(ts, yraw, label='Noisy signal')
 #    plt.plot(ts, y_scipy_lfilter, lw=1, label="SciPy lfilter")
 #    plt.plot(ts, y_live_lfilter, lw=1, ls="dashed", label="LiveLFilter")
 #    plt.plot(ts, y_scipy_sosfilt, lw=1, label="SciPy SoS filter")
     plt.plot(ts, y_live_sosfilt, lw=1, label='LiveSoSFilter')
-    plt.plot(ts, y_live_med5filt, lw=1, label='LiveMed5Filter')
-#    plt.plot(ts, y_live_med9filt, lw=1, label="LiveMed9Filter")
+#    plt.plot(ts, y_live_med5filt, lw=1, label='LiveMed5Filter')
+    plt.plot(ts, y_live_med9filt, lw=1, label='LiveMed9Filter')
+    plt.plot(ts, y_live_avg9filt, lw=1, label='LiveAvg9Filter')
     plt.plot(ts, y_live_med5sosfilt, lw=1, label='LiveMed5SosFilter')
 
     plt.legend(loc='lower center', bbox_to_anchor=[0.5, 1], ncol=3,

@@ -1,8 +1,12 @@
 [General]
 Delay=1000
-ExtraEventSamplingDelay=20000
-Oversampling=false
+ExtraEventSamplingDelay=10000
 roastertype_setup=Probat Sample
+roastersize_setup=0.2
+roasterheating_setup=3
+
+[Units]
+weight=g
 
 [DefaultButtons]
 buttonactions=0, 21, 21, 21, 21, 21, 0, 0
@@ -56,14 +60,14 @@ extraeventsactions=22, 0, 22, 22, 0, 22, 22, 0, 22
 extraeventsactionstrings="send({{ \"command\": \"setControlParams\", \"params\": {{ \"burnerState\": True }}}})", , "send({{ \"command\": \"setControlParams\", \"params\": {{ \"burner\": {} }}}})", "send({{ \"command\": \"setControlParams\", \"params\": {{ \"burner\": {} }}}})", , "send({{ \"command\": \"setControlParams\", \"params\": {{ \"burner\": {} }}}})", "send({{ \"command\": \"setControlParams\", \"params\": {{ \"burner\": {} }}}})", , "send({{ \"command\": \"setControlParams\", \"params\": {{ \"burnerState\": False }}}})"
 extraeventsbuttonsflags=0, 1, 1
 extraeventsdescriptions=, , , , , , , , 
-extraeventslabels=ON\nBurner, , +10%\n\\t, +5%\n\\t, , -5%\n\\t, -10%\n\\t, , OFF\nBurner
+extraeventslabels=ON\n\\r, , +10%\n\\t, +5%\n\\t, , -5%\n\\t, -10%\n\\t, , OFF\n\\r
 extraeventstypes=4, 4, 8, 8, 4, 8, 8, 4, 4
 extraeventsvalues=0, 0, 2, 1.5, 0, -1.5, -2, 0, 0
 extraeventsvisibility=0, 0, 1, 1, 0, 1, 1, 0, 0
 
 [Quantifiers]
 clusterEventsFlag=false
-quantifieractive=0, 1, 0, 1
+quantifieractive=0, 0, 0, 1
 quantifiercoarse=0, 0, 0, 0
 quantifiermax=100, 100, 100, 100
 quantifiermin=0, 0, 0, 0
@@ -85,6 +89,7 @@ slideroffsets=0, 0, 0, 0
 slidervisibilities=0, 0, 0, 1
 
 [WebSocket]
+compression=true
 DRY_node=colorChangeEvent
 FCe_node=firstCrackEndEvent
 FCs_node=firstCrackBeginningEvent
@@ -94,7 +99,7 @@ SCs_node=secondCrackBeginningEvent
 STARTonCHARGE=false
 addEvent_message=addEvent
 channel_modes=1, 1, 0, 0, 0, 0, 0, 0, 0, 1
-channel_nodes=beanTemp, exhaustAirTemp, burner, airPressure, , , , , , rateOfRise
+channel_nodes=beanTemp, exhaustAirTemp, burner, airPressure, , , , , , exhaustAirTempRor
 channel_requests=, , , , , , , , , 
 charge_message=startRoasting
 command_node=command
@@ -115,4 +120,4 @@ request_data_command=getCurrentRoastingStep
 request_timeout=0.5
 
 [events]
-etypes=Air, Drum, Dumper, Burner, --
+default_etypes_set=0, 0, 0, 1, 0

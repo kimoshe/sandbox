@@ -13,23 +13,30 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2020
+# Marko Luther, 2023
 
+from typing import Optional, cast, TYPE_CHECKING
 from artisanlib.dialogs import ArtisanDialog
 
 try:
-    #ylint: disable = E, W, R, C
     from PyQt6.QtCore import Qt, pyqtSlot, QSettings # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtWidgets import (QApplication, QLabel, QPushButton, QDialogButtonBox,  # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QLineEdit) # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #plint: disable = E, W, R, C
-    from PyQt5.QtCore import Qt, pyqtSlot, QSettings # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QLabel, QPushButton, QDialogButtonBox,  # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt6.QtGui import QStandardItemModel # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import Qt, pyqtSlot, QSettings # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import (QApplication, QLabel, QPushButton, QDialogButtonBox, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QLineEdit) # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtGui import QStandardItemModel # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+
+
+if TYPE_CHECKING:
+    from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
+    from PyQt6.QtWidgets import QWidget # pylint: disable=unused-import
+    from PyQt6.QtGui import QStandardItem, QCloseEvent # pylint: disable=unused-import
 
 class autosaveDlg(ArtisanDialog):
-    def __init__(self, parent = None, aw = None):
+    def __init__(self, parent:'QWidget', aw:'ApplicationWindow') -> None:
         super().__init__(parent, aw)
         self.setModal(True)
         self.setWindowTitle(QApplication.translate('Form Caption','Autosave'))
@@ -55,7 +62,7 @@ class autosaveDlg(ArtisanDialog):
         autochecklabel = QLabel(QApplication.translate('CheckBox','Autosave [a]'))
         self.autocheckbox = QCheckBox()
         self.autocheckbox.setToolTip(QApplication.translate('Tooltip', 'ON/OFF of automatic saving when pressing keyboard letter [a]'))
-        self.autocheckbox.setChecked(self.aw.qmc.autosaveflag)
+        self.autocheckbox.setChecked(bool(self.aw.qmc.autosaveflag))
 
         addtorecentfileslabel = QLabel(QApplication.translate('CheckBox','Add to recent file list'))
         self.addtorecentfiles = QCheckBox()
@@ -71,7 +78,11 @@ class autosaveDlg(ArtisanDialog):
         try:
             if not self.aw.QtWebEngineSupport:
                 # disable "PDF Report" item if QtWebEngine Support is not available
-                self.imageTypesComboBox.model().item(self.aw.qmc.autoasaveimageformat_types.index('PDF Report')).setEnabled(False)
+                model = self.imageTypesComboBox.model()
+                if model is not None:
+                    item: Optional[QStandardItem] = cast(QStandardItemModel, model).item(self.aw.qmc.autoasaveimageformat_types.index('PDF Report'))
+                    if item is not None:
+                        item.setEnabled(False)
         except Exception: # pylint: disable=broad-except
             pass
         self.imageTypesComboBox.setCurrentIndex(self.aw.qmc.autoasaveimageformat_types.index(self.aw.qmc.autosaveimageformat))
@@ -81,10 +92,11 @@ class autosaveDlg(ArtisanDialog):
 
         # connect the ArtisanDialog standard OK/Cancel buttons
         self.dialogbuttons.accepted.connect(self.autoChanged)
-        self.dialogbuttons.rejected.connect(self.close)
+        self.dialogbuttons.rejected.connect(lambda : (None if self.close() else None)) # lambda to make mypy happy, turning close from None->bool into None->None
         self.helpButton = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.Help)
-        self.setButtonTranslations(self.helpButton,'Help',QApplication.translate('Button','Help'))
-        self.dialogbuttons.button(QDialogButtonBox.StandardButton.Help).clicked.connect(self.showautosavehelp)
+        if self.helpButton is not None:
+            self.setButtonTranslations(self.helpButton,'Help',QApplication.translate('Button','Help'))
+            self.helpButton.clicked.connect(self.showautosavehelp)
 
         pathButton = QPushButton(QApplication.translate('Button','Path'))
         pathButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -132,26 +144,36 @@ class autosaveDlg(ArtisanDialog):
         mainLayout.addSpacing(10)
         mainLayout.addLayout(buttonLayout)
         self.setLayout(mainLayout)
-        self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok).setFocus()
+        okButton: Optional[QPushButton] = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
+        if okButton is not None:
+            okButton.setFocus()
         self.setFixedHeight(self.sizeHint().height())
 
     @pyqtSlot(bool)
-    def showautosavehelp(self,_=False):
-        from help import autosave_help
+    def showautosavehelp(self,_:bool = False) -> None:
+        from help import autosave_help # pyright:ignore [attr-defined] # pylint: disable=no-name-in-module
         self.helpdialog = self.aw.showHelpDialog(
                 self,            # this dialog as parent
                 self.helpdialog, # the existing help dialog
                 QApplication.translate('Form Caption','Autosave Fields Help'),
-                autosave_help.content())
+                autosave_help.content()) # pyright:ignore # "content" in typed context  [no-untyped-call]
 
-    def closeHelp(self):
+    def closeHelp(self) -> None:
         self.aw.closeHelpDialog(self.helpdialog)
 
     @pyqtSlot()
-    def prefixChanged(self):
-        preview = self.aw.generateFilename(self.prefixEdit.text(),previewmode=2)
+    def prefixChanged(self) -> None:
+        autosaveprefix:str = self.prefixEdit.text()
+        prefix = ''
+        if autosaveprefix != '':
+            prefix = autosaveprefix
+        elif self.aw.qmc.batchcounter > -1 and self.aw.qmc.roastbatchnr > 0:
+            prefix += self.aw.qmc.batchprefix + str(self.aw.qmc.roastbatchnr)
+        elif self.aw.qmc.batchprefix != '':
+            prefix += self.aw.qmc.batchprefix
+        preview = self.aw.generateFilename(prefix, previewmode=2)
         self.prefixPreview.setText(preview)
-        previewrecording = self.aw.generateFilename(self.prefixEdit.text(),previewmode=1)
+        previewrecording = self.aw.generateFilename(prefix,previewmode=1)
         if previewrecording == preview:
             self.prefixpreviewrecordingLabel.setText('')
             self.prefixPreviewrecording.setText('')
@@ -160,17 +182,17 @@ class autosaveDlg(ArtisanDialog):
             self.prefixPreviewrecording.setText(previewrecording)
 
     @pyqtSlot(bool)
-    def getpath(self,_):
+    def getpath(self,_:bool) -> None:
         filename = self.aw.ArtisanExistingDirectoryDialog(msg=QApplication.translate('Form Caption','AutoSave Path'))
         self.pathEdit.setText(filename)
 
     @pyqtSlot(bool)
-    def getalsopath(self,_):
+    def getalsopath(self,_:bool) -> None:
         filename = self.aw.ArtisanExistingDirectoryDialog(msg=QApplication.translate('Form Caption','AutoSave Save Also Path'))
         self.pathAlsoEdit.setText(filename)
 
     @pyqtSlot()
-    def autoChanged(self):
+    def autoChanged(self) -> None:
         self.aw.qmc.autosavepath = self.pathEdit.text()
         self.aw.qmc.autosavealsopath = self.pathAlsoEdit.text()
         if self.autocheckbox.isChecked():
@@ -186,11 +208,10 @@ class autosaveDlg(ArtisanDialog):
         self.aw.qmc.autosaveimage = self.autopdfcheckbox.isChecked()
         self.aw.qmc.autosaveimageformat = self.imageTypesComboBox.currentText()
         self.aw.qmc.autosaveaddtorecentfilesflag = self.addtorecentfiles.isChecked()
-#        self.aw.closeEventSettings()
         self.close()
 
-    @pyqtSlot()
-    def closeEvent(self, _):
+    @pyqtSlot('QCloseEvent')
+    def closeEvent(self, _:Optional['QCloseEvent'] = None) -> None:
         self.closeHelp()
         settings = QSettings()
         #save window geometry

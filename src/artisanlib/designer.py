@@ -13,49 +13,53 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2020
+# Marko Luther, 2023
+
+from typing import Optional, List, Tuple, TYPE_CHECKING
 
 from artisanlib.util import stringfromseconds, stringtoseconds
 from artisanlib.dialogs import ArtisanDialog
 
 try:
-    #ylint: disable = E, W, R, C
     from PyQt6.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtWidgets import (QApplication, QLabel, # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QDialogButtonBox, QGridLayout, # @UnusedImport @Reimport  @UnresolvedImport
         QGroupBox, QLineEdit, QMessageBox, QLayout) # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import QIntValidator, QRegularExpressionValidator # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QLabel, # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtGui import QIntValidator, QRegularExpressionValidator # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import (QApplication, QLabel, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QDialogButtonBox, QGridLayout, # @UnusedImport @Reimport  @UnresolvedImport
         QGroupBox, QLineEdit, QMessageBox, QLayout) # @UnusedImport @Reimport  @UnresolvedImport
 
+if TYPE_CHECKING:
+    from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
+    from PyQt6.QtWidgets import QWidget, QPushButton # pylint: disable=unused-import
 
 #########################################################################
 #############  DESIGNER CONFIG DIALOG ###################################
 #########################################################################
 
 class designerconfigDlg(ArtisanDialog):
-    def __init__(self, parent = None, aw = None):
+    def __init__(self, parent:'QWidget', aw:'ApplicationWindow') -> None:
         super().__init__(parent, aw)
         self.setWindowTitle(QApplication.translate('Form Caption','Designer Config'))
         self.setModal(True)
+
         #landmarks
         charge = QLabel(QApplication.translate('Label', 'CHARGE'))
         charge.setAlignment(Qt.AlignmentFlag.AlignRight)
         charge.setStyleSheet('background-color: #f07800')
-        self.dryend = QCheckBox(QApplication.translate('CheckBox','DRY END'))
+        self.dryend = QCheckBox(QApplication.translate('Label','DRY END'))
         self.dryend.setStyleSheet('background-color: orange')
-        self.fcs = QCheckBox(QApplication.translate('CheckBox','FC START'))
+        self.fcs = QCheckBox(QApplication.translate('Label','FC START'))
         self.fcs.setStyleSheet('background-color: orange')
-        self.fce = QCheckBox(QApplication.translate('CheckBox','FC END'))
+        self.fce = QCheckBox(QApplication.translate('Label','FC END'))
         self.fce.setStyleSheet('background-color: orange')
-        self.scs = QCheckBox(QApplication.translate('CheckBox','SC START'))
+        self.scs = QCheckBox(QApplication.translate('Label','SC START'))
         self.scs.setStyleSheet('background-color: orange')
-        self.sce = QCheckBox(QApplication.translate('CheckBox','SC END'))
+        self.sce = QCheckBox(QApplication.translate('Label','SC END'))
         self.sce.setStyleSheet('background-color: orange')
         drop = QLabel(QApplication.translate('Label', 'DROP'))
         drop.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -79,16 +83,17 @@ class designerconfigDlg(ArtisanDialog):
         etsettinglabel = QLabel(QApplication.translate('Label', 'ET'))
         etsettinglabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.Edit0 = QLineEdit(stringfromseconds(0))
+
         self.Edit0.setEnabled(False)
-        self.Edit0bt = QLineEdit('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[0]])
-        self.Edit0et = QLineEdit('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[0]])
+        self.Edit0bt = QLineEdit(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[0]]:.1f}')
+        self.Edit0et = QLineEdit(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[0]]:.1f}')
         self.Edit0.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.Edit0bt.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.Edit0et.setAlignment(Qt.AlignmentFlag.AlignRight)
         if self.aw.qmc.timeindex[1]:
             self.Edit1 = QLineEdit(stringfromseconds(self.aw.qmc.timex[self.aw.qmc.timeindex[1]] - start))
-            self.Edit1bt = QLineEdit('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[1]])
-            self.Edit1et = QLineEdit('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[1]])
+            self.Edit1bt = QLineEdit(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[1]]:.1f}')
+            self.Edit1et = QLineEdit(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[1]]:.1f}')
         else:
             self.Edit1 = QLineEdit(stringfromseconds(0))
             self.Edit1bt = QLineEdit('0.0')
@@ -98,8 +103,8 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit1et.setAlignment(Qt.AlignmentFlag.AlignRight)
         if self.aw.qmc.timeindex[2]:
             self.Edit2 = QLineEdit(stringfromseconds(self.aw.qmc.timex[self.aw.qmc.timeindex[2]] - start))
-            self.Edit2bt = QLineEdit('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[2]])
-            self.Edit2et = QLineEdit('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[2]])
+            self.Edit2bt = QLineEdit(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[2]]:.1f}')
+            self.Edit2et = QLineEdit(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[2]]:.1f}')
         else:
             self.Edit2 = QLineEdit(stringfromseconds(0))
             self.Edit2bt = QLineEdit('0.0')
@@ -109,8 +114,8 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit2et.setAlignment(Qt.AlignmentFlag.AlignRight)
         if self.aw.qmc.timeindex[3]:
             self.Edit3 = QLineEdit(stringfromseconds(self.aw.qmc.timex[self.aw.qmc.timeindex[3]] - start))
-            self.Edit3bt = QLineEdit('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[3]])
-            self.Edit3et = QLineEdit('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[3]])
+            self.Edit3bt = QLineEdit(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[3]]:.1f}')
+            self.Edit3et = QLineEdit(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[3]]:.1f}')
         else:
             self.Edit3 = QLineEdit(stringfromseconds(0))
             self.Edit3bt = QLineEdit('0.0')
@@ -120,8 +125,8 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit3et.setAlignment(Qt.AlignmentFlag.AlignRight)
         if self.aw.qmc.timeindex[4]:
             self.Edit4 = QLineEdit(stringfromseconds(self.aw.qmc.timex[self.aw.qmc.timeindex[4]] - start))
-            self.Edit4bt = QLineEdit('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[4]])
-            self.Edit4et = QLineEdit('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[4]])
+            self.Edit4bt = QLineEdit(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[4]]:.1f}')
+            self.Edit4et = QLineEdit(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[4]]:.1f}')
         else:
             self.Edit4 = QLineEdit(stringfromseconds(0))
             self.Edit4bt = QLineEdit('0.0')
@@ -131,8 +136,8 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit4et.setAlignment(Qt.AlignmentFlag.AlignRight)
         if self.aw.qmc.timeindex[5]:
             self.Edit5 = QLineEdit(stringfromseconds(self.aw.qmc.timex[self.aw.qmc.timeindex[5]] - start))
-            self.Edit5bt = QLineEdit('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[5]])
-            self.Edit5et = QLineEdit('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[5]])
+            self.Edit5bt = QLineEdit(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[5]]:.1f}')
+            self.Edit5et = QLineEdit(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[5]]:.1f}')
         else:
             self.Edit5 = QLineEdit(stringfromseconds(0))
             self.Edit5bt = QLineEdit('0.0')
@@ -142,8 +147,8 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit5et.setAlignment(Qt.AlignmentFlag.AlignRight)
         if self.aw.qmc.timeindex[6]:
             self.Edit6 = QLineEdit(stringfromseconds(self.aw.qmc.timex[self.aw.qmc.timeindex[6]] - start))
-            self.Edit6bt = QLineEdit('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[6]])
-            self.Edit6et = QLineEdit('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[6]])
+            self.Edit6bt = QLineEdit(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[6]]:.1f}')
+            self.Edit6et = QLineEdit(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[6]]:.1f}')
         else:
             self.Edit6 = QLineEdit(stringfromseconds(0))
             self.Edit6bt = QLineEdit('0.0')
@@ -193,7 +198,7 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit4etcopy = self.Edit4et.text()
         self.Edit5etcopy = self.Edit5et.text()
         self.Edit6etcopy = self.Edit6et.text()
-        regextime = QRegularExpression(r'^-?[0-9]?[0-9]?[0-9]:[0-5][0-9]$')
+        regextime = QRegularExpression(r'^-?[0-9]?[0-9]?[0-9][:,h][0-5][0-9]$')
         self.Edit0.setValidator(QRegularExpressionValidator(regextime,self))
         self.Edit1.setValidator(QRegularExpressionValidator(regextime,self))
         self.Edit2.setValidator(QRegularExpressionValidator(regextime,self))
@@ -201,7 +206,7 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit4.setValidator(QRegularExpressionValidator(regextime,self))
         self.Edit5.setValidator(QRegularExpressionValidator(regextime,self))
         self.Edit6.setValidator(QRegularExpressionValidator(regextime,self))
-        regextemp = QRegularExpression(r'^-?[0-9]?[0-9]?[0-9]?\.?[0-9]?$')
+        regextemp = QRegularExpression(r'^[0-9]?[0-9]?[0-9]?\.?[0-9]$')
         self.Edit0bt.setValidator(QRegularExpressionValidator(regextemp,self))
         self.Edit1bt.setValidator(QRegularExpressionValidator(regextemp,self))
         self.Edit2bt.setValidator(QRegularExpressionValidator(regextemp,self))
@@ -234,16 +239,19 @@ class designerconfigDlg(ArtisanDialog):
         self.dialogbuttons.removeButton(self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok))
         self.dialogbuttons.removeButton(self.dialogbuttons.button(QDialogButtonBox.StandardButton.Cancel))
 
-        self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.Close)
-        self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.Apply)
-        self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.RestoreDefaults)
-        self.setButtonTranslations(self.dialogbuttons.button(QDialogButtonBox.StandardButton.Close),'Close',QApplication.translate('Button','Close'))
-        self.setButtonTranslations(self.dialogbuttons.button(QDialogButtonBox.StandardButton.Apply),'Apply',QApplication.translate('Button','Apply'))
-        self.setButtonTranslations(self.dialogbuttons.button(QDialogButtonBox.StandardButton.RestoreDefaults),'Restore Defaults',QApplication.translate('Button','Restore Defaults'))
+        close_button: Optional[QPushButton] = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.Close)
+        apply_button: Optional[QPushButton] = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.Apply)
+        defaults_button: Optional[QPushButton] = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.RestoreDefaults)
+        if close_button is not None:
+            self.setButtonTranslations(close_button,'Close',QApplication.translate('Button','Close'))
+        if apply_button is not None:
+            self.setButtonTranslations(apply_button,'Apply',QApplication.translate('Button','Apply'))
+            apply_button.clicked.connect(self.settimes)
+        if defaults_button is not None:
+            self.setButtonTranslations(defaults_button,'Restore Defaults',QApplication.translate('Button','Restore Defaults'))
+            defaults_button.clicked.connect(self.reset)
 
         self.dialogbuttons.rejected.connect(self.accept)
-        self.dialogbuttons.button(QDialogButtonBox.StandardButton.RestoreDefaults).clicked.connect(self.reset)
-        self.dialogbuttons.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.settimes)
 
         buttonLayout = QHBoxLayout()
         buttonLayout.addStretch()
@@ -298,7 +306,8 @@ class designerconfigDlg(ArtisanDialog):
         mainLayout.addLayout(modLayout)
         mainLayout.addLayout(buttonLayout)
         self.setLayout(mainLayout)
-        self.dialogbuttons.button(QDialogButtonBox.StandardButton.Close).setFocus()
+        if close_button is not None:
+            close_button.setFocus()
 
         settings = QSettings()
         if settings.contains('DesignerPosition'):
@@ -307,9 +316,15 @@ class designerconfigDlg(ArtisanDialog):
         mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
     @pyqtSlot(int)
-    def redrawcurviness(self,_):
-        ETcurviness = int(str(self.ETsplineComboBox.currentText()))
-        BTcurviness = int(str(self.BTsplineComboBox.currentText()))
+    def redrawcurviness(self, _:int) -> None:
+        try:
+            ETcurviness = int(str(self.ETsplineComboBox.currentText()))
+        except Exception:  # pylint: disable=broad-except
+            ETcurviness = self.aw.qmc.ETsplinedegree
+        try:
+            BTcurviness = int(str(self.BTsplineComboBox.currentText()))
+        except Exception:  # pylint: disable=broad-except
+            BTcurviness = self.aw.qmc.BTsplinedegree
         timepoints = len(self.aw.qmc.timex)
         if (timepoints - ETcurviness) >= 1:
             self.aw.qmc.ETsplinedegree = ETcurviness
@@ -328,142 +343,202 @@ class designerconfigDlg(ArtisanDialog):
         self.aw.qmc.redrawdesigner()
 
     @pyqtSlot(bool)
-    def settimes(self,_):
+    def settimes(self, _:bool = False) -> None:
         #check input
-        strings = [QApplication.translate('Message','CHARGE'),
-                   QApplication.translate('Message','DRY END'),
-                   QApplication.translate('Message','FC START'),
-                   QApplication.translate('Message','FC END'),
-                   QApplication.translate('Message','SC START'),
-                   QApplication.translate('Message','SC END'),
-                   QApplication.translate('Message','DROP')]
+        strings = [QApplication.translate('Label','CHARGE'),
+                   QApplication.translate('Label','DRY END'),
+                   QApplication.translate('Label','FC START'),
+                   QApplication.translate('Label','FC END'),
+                   QApplication.translate('Label','SC START'),
+                   QApplication.translate('Label','SC END'),
+                   QApplication.translate('Label','DROP')]
         timecheck = self.validatetime()
         if timecheck != 1000:
             st = QApplication.translate('Message','Incorrect time format. Please recheck {0} time').format(strings[timecheck])
             QMessageBox.information(self,QApplication.translate('Message','Designer Config'),st)
-            return 1
+            return
         checkvalue = self.validatetimeorder()
         if checkvalue != 1000:
             st = QApplication.translate('Message','Times need to be in ascending order. Please recheck {0} time').format(strings[checkvalue+1])
             QMessageBox.information(self,QApplication.translate('Message','Designer Config'),st)
-            return 1
+            return
         if self.Edit0bt.text() != self.Edit0btcopy:
-            self.aw.qmc.temp2[self.aw.qmc.timeindex[0]] = float(str(self.Edit0bt.text()))
-            self.Edit0btcopy = self.Edit0bt.text()
+            try:
+                self.aw.qmc.temp2[self.aw.qmc.timeindex[0]] = float(str(self.Edit0bt.text()))
+                self.Edit0btcopy = self.Edit0bt.text()
+            except Exception: # pylint: disable=broad-except
+                self.Edit0bt.setText(self.Edit0btcopy)
         if self.Edit0et.text() != self.Edit0etcopy:
-            self.aw.qmc.temp1[self.aw.qmc.timeindex[0]] = float(str(self.Edit0et.text()))
-            self.Edit0etcopy = self.Edit0et.text()
+            try:
+                self.aw.qmc.temp1[self.aw.qmc.timeindex[0]] = float(str(self.Edit0et.text()))
+                self.Edit0etcopy = self.Edit0et.text()
+            except Exception: # pylint: disable=broad-except
+                self.Edit0et.setText(self.Edit0etcopy)
         if self.dryend.isChecked():
             if self.Edit1.text() != self.Edit1copy:
-                if stringtoseconds(str(self.Edit1.text())):
+                try:
                     timez = stringtoseconds(str(self.Edit1.text()))+ self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
                     self.aw.qmc.timex[self.aw.qmc.timeindex[1]] = timez
                     self.Edit1copy = self.Edit1.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit1.setText(self.Edit1copy)
             if self.Edit1bt.text() != self.Edit1btcopy:
-                self.aw.qmc.temp2[self.aw.qmc.timeindex[1]] = float(str(self.Edit1bt.text()))
-                self.Edit1btcopy = self.Edit1bt.text()
+                try:
+                    self.aw.qmc.temp2[self.aw.qmc.timeindex[1]] = float(self.Edit1bt.text())
+                    self.Edit1btcopy = self.Edit1bt.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit1bt.setText(self.Edit1btcopy)
             if self.Edit1et.text() != self.Edit1etcopy:
-                self.aw.qmc.temp1[self.aw.qmc.timeindex[1]] = float(str(self.Edit1et.text()))
-                self.Edit1etcopy = self.Edit1et.text()
+                try:
+                    self.aw.qmc.temp1[self.aw.qmc.timeindex[1]] = float(self.Edit1et.text())
+                    self.Edit1etcopy = self.Edit1et.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit1et.setText(self.Edit1etcopy)
         if self.fcs.isChecked():
             if self.Edit2.text() != self.Edit2copy:
-                if stringtoseconds(str(self.Edit2.text())):
+                try:
                     timez = stringtoseconds(str(self.Edit2.text()))+ self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
                     self.aw.qmc.timex[self.aw.qmc.timeindex[2]] = timez
                     self.Edit2copy = self.Edit2.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit2.setText(self.Edit2copy)
             if self.Edit2bt.text() != self.Edit2btcopy:
-                self.aw.qmc.temp2[self.aw.qmc.timeindex[2]] = float(str(self.Edit2bt.text()))
-                self.Edit2btcopy = self.Edit2bt.text()
+                try:
+                    self.aw.qmc.temp2[self.aw.qmc.timeindex[2]] = float(self.Edit2bt.text())
+                    self.Edit2btcopy = self.Edit2bt.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit2bt.setText(self.Edit2btcopy)
             if self.Edit2et.text() != self.Edit2etcopy:
-                self.aw.qmc.temp1[self.aw.qmc.timeindex[2]] = float(str(self.Edit2et.text()))
-                self.Edit2etcopy = self.Edit2et.text()
+                try:
+                    self.aw.qmc.temp1[self.aw.qmc.timeindex[2]] = float(self.Edit2et.text())
+                    self.Edit2etcopy = self.Edit2et.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit2et.setText(self.Edit2etcopy)
         if self.fce.isChecked():
             if self.Edit3.text() != self.Edit3copy:
-                if stringtoseconds(str(self.Edit3.text())):
+                try:
                     timez = stringtoseconds(str(self.Edit3.text()))+ self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
                     self.aw.qmc.timex[self.aw.qmc.timeindex[3]] = timez
                     self.Edit3copy = self.Edit3.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit3.setText(self.Edit3copy)
             if self.Edit3bt.text() != self.Edit3btcopy:
-                self.aw.qmc.temp2[self.aw.qmc.timeindex[3]] = float(str(self.Edit3bt.text()))
-                self.Edit3btcopy = self.Edit3bt.text()
+                try:
+                    self.aw.qmc.temp2[self.aw.qmc.timeindex[3]] = float(self.Edit3bt.text())
+                    self.Edit3btcopy = self.Edit3bt.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit3bt.setText(self.Edit3btcopy)
             if self.Edit3et.text() != self.Edit3etcopy:
-                self.aw.qmc.temp1[self.aw.qmc.timeindex[3]] = float(str(self.Edit3et.text()))
-                self.Edit3etcopy = self.Edit3et.text()
+                try:
+                    self.aw.qmc.temp1[self.aw.qmc.timeindex[3]] = float(self.Edit3et.text())
+                    self.Edit3etcopy = self.Edit3et.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit3et.setText(self.Edit3etcopy)
         if self.scs.isChecked():
             if self.Edit4.text() != self.Edit4copy:
-                if stringtoseconds(str(self.Edit4.text())):
+                try:
                     timez = stringtoseconds(str(self.Edit4.text()))+ self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
                     self.aw.qmc.timex[self.aw.qmc.timeindex[4]] = timez
                     self.Edit4copy = self.Edit4.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit4.setText(self.Edit4copy)
             if self.Edit4bt.text() != self.Edit4btcopy:
-                self.aw.qmc.temp2[self.aw.qmc.timeindex[4]] = float(str(self.Edit4bt.text()))
-                self.Edit4btcopy = self.Edit4bt.text()
+                try:
+                    self.aw.qmc.temp2[self.aw.qmc.timeindex[4]] = float(self.Edit4bt.text())
+                    self.Edit4btcopy = self.Edit4bt.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit4bt.setText(self.Edit4btcopy)
             if self.Edit4et.text() != self.Edit4etcopy:
-                self.aw.qmc.temp1[self.aw.qmc.timeindex[4]] = float(str(self.Edit4et.text()))
-                self.Edit4etcopy = self.Edit4et.text()
+                try:
+                    self.aw.qmc.temp1[self.aw.qmc.timeindex[4]] = float(self.Edit4et.text())
+                    self.Edit4etcopy = self.Edit4et.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit4et.setText(self.Edit4etcopy)
         if self.sce.isChecked():
             if self.Edit5.text() != self.Edit5copy:
-                if stringtoseconds(str(self.Edit5.text())):
+                try:
                     timez = stringtoseconds(str(self.Edit5.text()))+ self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
                     self.aw.qmc.timex[self.aw.qmc.timeindex[5]] = timez
                     self.Edit5copy = self.Edit5.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit5.setText(self.Edit5copy)
             if self.Edit5bt.text() != self.Edit5btcopy:
-                self.aw.qmc.temp2[self.aw.qmc.timeindex[5]] = float(str(self.Edit5bt.text()))
-                self.Edit5btcopy = self.Edit5bt.text()
+                try:
+                    self.aw.qmc.temp2[self.aw.qmc.timeindex[5]] = float(self.Edit5bt.text())
+                    self.Edit5btcopy = self.Edit5bt.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit5bt.setText(self.Edit5btcopy)
             if self.Edit5et.text() != self.Edit5etcopy:
-                self.aw.qmc.temp1[self.aw.qmc.timeindex[5]] = float(str(self.Edit5et.text()))
-                self.Edit5etcopy = self.Edit5et.text()
+                try:
+                    self.aw.qmc.temp1[self.aw.qmc.timeindex[5]] = float(self.Edit5et.text())
+                    self.Edit5etcopy = self.Edit5et.text()
+                except Exception: # pylint: disable=broad-except
+                    self.Edit5et.setText(self.Edit5etcopy)
         if self.Edit6.text() != self.Edit6copy:
-            if stringtoseconds(str(self.Edit6.text())):
+            try:
                 timez = stringtoseconds(str(self.Edit6.text()))+ self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
                 self.aw.qmc.timex[self.aw.qmc.timeindex[6]] = timez
                 self.Edit6copy = self.Edit6.text()
+            except Exception: # pylint: disable=broad-except
+                self.Edit6.setText(self.Edit6copy)
         if self.Edit6bt.text() != self.Edit6btcopy:
-            self.aw.qmc.temp2[self.aw.qmc.timeindex[6]] = float(str(self.Edit6bt.text()))
-            self.Edit6btcopy = self.Edit6bt.text()
+            try:
+                self.aw.qmc.temp2[self.aw.qmc.timeindex[6]] = float(self.Edit6bt.text())
+                self.Edit6btcopy = self.Edit6bt.text()
+            except Exception: # pylint: disable=broad-except
+                self.Edit6bt.setText(self.Edit6btcopy)
         if self.Edit6et.text() != self.Edit6etcopy:
-            self.aw.qmc.temp1[self.aw.qmc.timeindex[6]] = float(str(self.Edit6et.text()))
-            self.Edit6etcopy = self.Edit6et.text()
+            try:
+                self.aw.qmc.temp1[self.aw.qmc.timeindex[6]] = float(self.Edit6et.text())
+                self.Edit6etcopy = self.Edit6et.text()
+            except Exception: # pylint: disable=broad-except
+                self.Edit6et.setText(self.Edit6etcopy)
         for i in range(1,6): #1-5
             self.aw.qmc.designertimeinit[i] = self.aw.qmc.timex[self.aw.qmc.timeindex[i]]
         self.aw.qmc.xaxistosm(redraw=False)
-        self.aw.qmc.redrawdesigner()
-        return 0
+        self.aw.qmc.redrawdesigner(force=True)
 
     #supporting function for settimes()
-    def validatetimeorder(self):
-        time = []
-        checks = self.readchecks()
-        time.append(stringtoseconds(str(self.Edit0.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]])
-        time.append(stringtoseconds(str(self.Edit1.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]])
-        time.append(stringtoseconds(str(self.Edit2.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]])
-        time.append(stringtoseconds(str(self.Edit3.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]])
-        time.append(stringtoseconds(str(self.Edit4.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]])
-        time.append(stringtoseconds(str(self.Edit5.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]])
-        time.append(stringtoseconds(str(self.Edit6.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]])
-        for i in range(len(time)-1):
-            if time[i+1] <= time[i] and checks[i+1] != 0:
+    def validatetimeorder(self) -> int:
+        try:
+            time = []
+            checks = self.readchecks()
+            time.append(stringtoseconds(str(self.Edit0.text())))
+            time.append(stringtoseconds(str(self.Edit1.text())))
+            time.append(stringtoseconds(str(self.Edit2.text())))
+            time.append(stringtoseconds(str(self.Edit3.text())))
+            time.append(stringtoseconds(str(self.Edit4.text())))
+            time.append(stringtoseconds(str(self.Edit5.text())))
+            time.append(stringtoseconds(str(self.Edit6.text())))
+            for i in range(len(time)-1):
+                if time[i+1] <= time[i] and checks[i+1] != 0:
+                    return i
+        except Exception: # pylint: disable=broad-except
+            pass
+        return 1000
+
+    def validatetime(self) -> int:
+        strings:List[Tuple[int, str]] = []
+#        strings.append(self.Edit0.text()) # CHARGE cannot be edited
+        if self.dryend.isChecked():
+            strings.append((1, self.Edit1.text()))
+        if self.fcs.isChecked():
+            strings.append((2, self.Edit2.text()))
+        if self.fce.isChecked():
+            strings.append((3, self.Edit3.text()))
+        if self.scs.isChecked():
+            strings.append((4, self.Edit4.text()))
+        if self.scs.isChecked():
+            strings.append((5, self.Edit5.text()))
+        strings.append((6, self.Edit6.text()))
+        for (i, s) in strings:
+            if len(s) < 4 or len(s) > 5:
                 return i
         return 1000
 
-    def validatetime(self):
-        strings = []
-        strings.append(self.Edit0.text())
-        strings.append(self.Edit1.text())
-        strings.append(self.Edit2.text())
-        strings.append(self.Edit3.text())
-        strings.append(self.Edit4.text())
-        strings.append(self.Edit5.text())
-        strings.append(self.Edit6.text())
-        for i in range(len(strings)):
-            if len(str(strings[i])) < 5:
-                return i
-            return 1000
-
     #supporting function for settimes()
-    @pyqtSlot(bool)
-    def readchecks(self,_=False):
-        checks = [0,0,0,0,0,0,0]
+    def readchecks(self) -> List[int]:
+        checks = [0,0,0,0,0,0,1]
         if self.dryend.isChecked():
             checks[1] = 1
         if self.fcs.isChecked():
@@ -476,12 +551,12 @@ class designerconfigDlg(ArtisanDialog):
             checks[5] = 1
         return checks
 
-    def create(self):
-        self.close()
-        self.aw.qmc.convert_designer()
+#    def create(self) -> None:
+#        self.close()
+#        self.aw.qmc.convert_designer()
 
     @pyqtSlot()
-    def accept(self):
+    def accept(self) -> None:
         #save window position (only; not size!)
         settings = QSettings()
         settings.setValue('DesignerPosition',self.frameGeometry().topLeft())
@@ -489,7 +564,7 @@ class designerconfigDlg(ArtisanDialog):
 
     #reset
     @pyqtSlot(bool)
-    def reset(self,_):
+    def reset(self, _:bool = False) -> None:
         self.dryend.setChecked(True)
         self.fcs.setChecked(True)
         self.fce.setChecked(True)
@@ -505,32 +580,32 @@ class designerconfigDlg(ArtisanDialog):
         self.Edit4.setText(stringfromseconds(self.aw.qmc.designertimeinit[4]))
         self.Edit5.setText(stringfromseconds(self.aw.qmc.designertimeinit[5]))
         self.Edit6.setText(stringfromseconds(self.aw.qmc.designertimeinit[6]))
-        self.Edit0bt.setText('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[0]])
-        self.Edit1bt.setText('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[1]])
-        self.Edit2bt.setText('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[2]])
-        self.Edit3bt.setText('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[3]])
-        self.Edit4bt.setText('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[4]])
-        self.Edit5bt.setText('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[5]])
-        self.Edit6bt.setText('%.1f'%self.aw.qmc.temp2[self.aw.qmc.timeindex[6]])
-        self.Edit0et.setText('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[0]])
-        self.Edit1et.setText('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[1]])
-        self.Edit2et.setText('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[2]])
-        self.Edit3et.setText('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[3]])
-        self.Edit4et.setText('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[4]])
-        self.Edit5et.setText('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[5]])
-        self.Edit6et.setText('%.1f'%self.aw.qmc.temp1[self.aw.qmc.timeindex[6]])
+        self.Edit0bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[0]]:.1f}')
+        self.Edit1bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[1]]:.1f}')
+        self.Edit2bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[2]]:.1f}')
+        self.Edit3bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[3]]:.1f}')
+        self.Edit4bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[4]]:.1f}')
+        self.Edit5bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[5]]:.1f}')
+        self.Edit6bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[6]]:.1f}')
+        self.Edit0et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[0]]:.1f}')
+        self.Edit1et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[1]]:.1f}')
+        self.Edit2et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[2]]:.1f}')
+        self.Edit3et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[3]]:.1f}')
+        self.Edit4et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[4]]:.1f}')
+        self.Edit5et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[5]]:.1f}')
+        self.Edit6et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[6]]:.1f}')
         self.aw.sendmessage(QApplication.translate('Message','Designer has been reset'))
 
-    def loadconfigflags(self):
-        self.dryend.setChecked(self.aw.qmc.timeindex[1])
-        self.fcs.setChecked(self.aw.qmc.timeindex[2])
-        self.fce.setChecked(self.aw.qmc.timeindex[3])
-        self.scs.setChecked(self.aw.qmc.timeindex[4])
-        self.sce.setChecked(self.aw.qmc.timeindex[5])
+    def loadconfigflags(self) -> None:
+        self.dryend.setChecked(bool(self.aw.qmc.timeindex[1]))
+        self.fcs.setChecked(bool(self.aw.qmc.timeindex[2]))
+        self.fce.setChecked(bool(self.aw.qmc.timeindex[3]))
+        self.scs.setChecked(bool(self.aw.qmc.timeindex[4]))
+        self.sce.setChecked(bool(self.aw.qmc.timeindex[5]))
 
     #adds deletes landmarks
     @pyqtSlot(bool)
-    def changeflags(self,_):
+    def changeflags(self, _:bool = False) -> None:
         sender = self.sender()
         if sender == self.dryend:
             idi = 1
@@ -545,29 +620,24 @@ class designerconfigDlg(ArtisanDialog):
         else:
             return
         if self.validatetimeorder() != 1000:
-            if idi == 1:
-                if self.dryend.isChecked():
-                    self.dryend.setChecked(False)
-            elif idi == 2:
-                if self.fcs.isChecked():
-                    self.fcs.setChecked(False)
-            elif idi == 3:
-                if self.fce.isChecked():
-                    self.fce.setChecked(False)
-            elif idi == 4:
-                if self.scs.isChecked():
-                    self.scs.setChecked(False)
-            elif idi == 5:
-                if self.sce.isChecked():
-                    self.sce.setChecked(False)
+            if idi == 1 and self.dryend.isChecked():
+                self.dryend.setChecked(False)
+            elif idi == 2 and self.fcs.isChecked():
+                self.fcs.setChecked(False)
+            elif idi == 3 and self.fce.isChecked():
+                self.fce.setChecked(False)
+            elif idi == 4 and self.scs.isChecked():
+                self.scs.setChecked(False)
+            elif idi == 5 and self.sce.isChecked():
+                self.sce.setChecked(False)
             #ERROR time from edit boxes is not in ascending order
-            strings = [QApplication.translate('Message','CHARGE'),
-                       QApplication.translate('Message','DRY END'),
-                       QApplication.translate('Message','FC START'),
-                       QApplication.translate('Message','FC END'),
-                       QApplication.translate('Message','SC START'),
-                       QApplication.translate('Message','SC END'),
-                       QApplication.translate('Message','DROP')]
+            strings = [QApplication.translate('Label','CHARGE'),
+                       QApplication.translate('Label','DRY END'),
+                       QApplication.translate('Label','FC START'),
+                       QApplication.translate('Label','FC END'),
+                       QApplication.translate('Label','SC START'),
+                       QApplication.translate('Label','SC END'),
+                       QApplication.translate('Label','DROP')]
             st = QApplication.translate('Message','Times need to be in ascending order. Please recheck {0} time').format(strings[idi])
             QMessageBox.information(self,QApplication.translate('Message','Designer Config'),st)
             return
@@ -579,37 +649,68 @@ class designerconfigDlg(ArtisanDialog):
             self.aw.qmc.removepoint()
         else:
             #ADD mark point
+            timez:Optional[float] = None
+            bt:Optional[float] = None
+            et:Optional[float] = None
             if idi == 1:
-                timez = stringtoseconds(str(self.Edit1.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
-                bt = float(str(self.Edit1bt.text()))
-                et = float(str(self.Edit1et.text()))
+                try:
+                    timez = stringtoseconds(self.Edit1.text()) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
+                    bt = float(self.Edit1bt.text())
+                    et = float(self.Edit1et.text())
+                except Exception: # pylint: disable=broad-except
+                    self.Edit1.setText(stringfromseconds(self.aw.qmc.designertimeinit[1]))
+                    self.Edit1et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[1]]:.1f}')
+                    self.Edit1bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[1]]:.1f}')
             if idi == 2:
-                timez = stringtoseconds(str(self.Edit2.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
-                bt = float(str(self.Edit2bt.text()))
-                et = float(str(self.Edit2et.text()))
+                try:
+                    timez = stringtoseconds(str(self.Edit2.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
+                    bt = float(str(self.Edit2bt.text()))
+                    et = float(str(self.Edit2et.text()))
+                except Exception: # pylint: disable=broad-except
+                    self.Edit2.setText(stringfromseconds(self.aw.qmc.designertimeinit[2]))
+                    self.Edit2et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[2]]:.1f}')
+                    self.Edit2bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[2]]:.1f}')
             if idi == 3:
-                timez = stringtoseconds(str(self.Edit3.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
-                bt = float(str(self.Edit3bt.text()))
-                et = float(str(self.Edit3et.text()))
+                try:
+                    timez = stringtoseconds(self.Edit3.text()) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
+                    bt = float(self.Edit3bt.text())
+                    et = float(self.Edit3et.text())
+                except Exception: # pylint: disable=broad-except
+                    self.Edit3.setText(stringfromseconds(self.aw.qmc.designertimeinit[3]))
+                    self.Edit3et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[3]]:.1f}')
+                    self.Edit3bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[3]]:.1f}')
             if idi == 4:
-                timez = stringtoseconds(str(self.Edit4.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
-                bt = float(str(self.Edit4bt.text()))
-                et = float(str(self.Edit4et.text()))
+                try:
+                    timez = stringtoseconds(self.Edit4.text()) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
+                    bt = float(self.Edit4bt.text())
+                    et = float(self.Edit4et.text())
+                except Exception: # pylint: disable=broad-except
+                    self.Edit4.setText(stringfromseconds(self.aw.qmc.designertimeinit[4]))
+                    self.Edit4et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[4]]:.1f}')
+                    self.Edit4bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[4]]:.1f}')
             if idi == 5:
-                timez = stringtoseconds(str(self.Edit5.text())) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
-                bt = float(str(self.Edit5bt.text()))
-                et = float(str(self.Edit5et.text()))
-            self.aw.qmc.currentx = timez
-            self.aw.qmc.currenty = bt
-            newindex = self.aw.qmc.addpoint(manual=False)
-            self.aw.qmc.timeindex[idi] = newindex
-            self.aw.qmc.temp2[self.aw.qmc.timeindex[idi]] = bt
-            self.aw.qmc.temp1[self.aw.qmc.timeindex[idi]] = et
-            self.aw.qmc.xaxistosm(redraw=False)
-            self.aw.qmc.redrawdesigner()
+                try:
+                    timez = stringtoseconds(self.Edit5.text()) + self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
+                    bt = float(self.Edit5bt.text())
+                    et = float(self.Edit5et.text())
+                except Exception: # pylint: disable=broad-except
+                    self.Edit5.setText(stringfromseconds(self.aw.qmc.designertimeinit[5]))
+                    self.Edit5et.setText(f'{self.aw.qmc.temp1[self.aw.qmc.timeindex[5]]:.1f}')
+                    self.Edit5bt.setText(f'{self.aw.qmc.temp2[self.aw.qmc.timeindex[5]]:.1f}')
+            if timez is not None and bt is not None and et is not None:
+                self.aw.qmc.currentx = timez
+                self.aw.qmc.currenty = bt
+                newindex = self.aw.qmc.addpoint(manual=False)
+                if newindex is not None:
+                    self.aw.qmc.timeindex[idi] = newindex
+                    self.aw.qmc.temp2[self.aw.qmc.timeindex[idi]] = bt
+                    self.aw.qmc.temp1[self.aw.qmc.timeindex[idi]] = et
+                    self.aw.qmc.xaxistosm(redraw=False)
+                    self.aw.qmc.redrawdesigner()
+
 
 class pointDlg(ArtisanDialog):
-    def __init__(self,parent = None, aw = None, values = None):
+    def __init__(self, parent:'QWidget', aw:'ApplicationWindow', values:Optional[List[float]] = None) -> None:
         super().__init__(parent, aw)
         if values is None:
             values = [0,0]
@@ -644,10 +745,12 @@ class pointDlg(ArtisanDialog):
         mainLayout.addStretch()
         mainLayout.addLayout(buttonLayout)
         self.setLayout(mainLayout)
-        self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok).setFocus()
+        ok_button: Optional[QPushButton] = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setFocus()
 
     @pyqtSlot()
-    def return_values(self):
+    def return_values(self) -> None:
         self.values[0] = stringtoseconds(str(self.timeEdit.text()))
         self.values[1] = float(self.tempEdit.text())
         self.accept()

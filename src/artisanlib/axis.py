@@ -13,30 +13,35 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2020
+# Marko Luther, 2023
 
 import platform
+from typing import Optional, TYPE_CHECKING
+
 
 from artisanlib.util import deltaLabelUTF8, stringfromseconds, stringtoseconds
 from artisanlib.dialogs import ArtisanDialog
 
 try:
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import QIntValidator, QRegularExpressionValidator # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QLabel, QDialogButtonBox, QFrame, # @UnusedImport @Reimport  @UnresolvedImport
-        QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QGroupBox, QLineEdit, QLayout, # @UnusedImport @Reimport  @UnresolvedImport
-        QSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
-    #ylint: disable = E, W, R, C
-except Exception: # pylint: disable=broad-except
     from PyQt6.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtWidgets import (QApplication, QLabel, QDialogButtonBox, QFrame, # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QGroupBox, QLineEdit, QLayout, # @UnusedImport @Reimport  @UnresolvedImport
         QSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtGui import QIntValidator, QRegularExpressionValidator # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import (QApplication, QLabel, QDialogButtonBox, QFrame, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+        QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QGroupBox, QLineEdit, QLayout, # @UnusedImport @Reimport  @UnresolvedImport
+        QSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
+
+if TYPE_CHECKING:
+    from artisanlib.main import ApplicationWindow # pylint: disable=unused-import
+    from PyQt6.QtWidgets import QPushButton, QWidget # pylint: disable=unused-import
+    from PyQt6.QtGui import QCloseEvent # pylint: disable=unused-import
 
 class WindowsDlg(ArtisanDialog):
-    def __init__(self, parent = None, aw = None):
+    def __init__(self, parent:'QWidget', aw:'ApplicationWindow') -> None:
         super().__init__(parent, aw)
 
         # remember previous original settings
@@ -80,7 +85,7 @@ class WindowsDlg(ArtisanDialog):
         step100Label = QLabel(QApplication.translate('Label', '100% Event Step'))
         self.step100Edit = QLineEdit()
         self.step100Edit.setMaximumWidth(55)
-        self.step100Edit.setValidator(QIntValidator(self.aw.qmc.ylimit_min_max, 999999, self.step100Edit))
+        self.step100Edit.setValidator(QIntValidator(int(self.aw.qmc.ylimit_min_max), 999999, self.step100Edit))
         self.step100Edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.step100Edit.setToolTip(QApplication.translate('Tooltip', '100% event values in step mode are aligned with the given y-axis value or the lowest phases limit if left empty'))
         self.step100Edit.editingFinished.connect(self.step100Changed)
@@ -92,32 +97,32 @@ class WindowsDlg(ArtisanDialog):
         self.xlimitEdit_min.setMaximumWidth(55)
         self.xlimitEdit_min.setMinimumWidth(55)
         self.xlimitEdit_min.setAlignment(Qt.AlignmentFlag.AlignRight)
-        regextime = QRegularExpression(r'^-?[0-9]?[0-9]?[0-9]:[0-5][0-9]$')
+        regextime = QRegularExpression(r'^-?[0-9]?[0-9]?[0-9][:,h][0-5][0-9]$')
         self.xlimitEdit.setValidator(QRegularExpressionValidator(regextime,self))
         self.xlimitEdit_min.setValidator(QRegularExpressionValidator(regextime,self))
         self.ylimitEdit = QLineEdit()
         self.ylimitEdit.setMaximumWidth(60)
         self.ylimitEdit_min = QLineEdit()
         self.ylimitEdit_min.setMaximumWidth(60)
-        self.ylimitEdit.setValidator(QIntValidator(self.aw.qmc.ylimit_min_max, self.aw.qmc.ylimit_max, self.ylimitEdit))
-        self.ylimitEdit_min.setValidator(QIntValidator(self.aw.qmc.ylimit_min_max, self.aw.qmc.ylimit_max, self.ylimitEdit_min))
+        self.ylimitEdit.setValidator(QIntValidator(int(self.aw.qmc.ylimit_min_max), int(self.aw.qmc.ylimit_max), self.ylimitEdit))
+        self.ylimitEdit_min.setValidator(QIntValidator(int(self.aw.qmc.ylimit_min_max), int(self.aw.qmc.ylimit_max), self.ylimitEdit_min))
         self.ylimitEdit.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.ylimitEdit_min.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.zlimitEdit = QLineEdit()
         self.zlimitEdit.setMaximumWidth(60)
         self.zlimitEdit_min = QLineEdit()
         self.zlimitEdit_min.setMaximumWidth(60)
-        self.zlimitEdit.setValidator(QIntValidator(self.aw.qmc.zlimit_min_max, self.aw.qmc.zlimit_max, self.zlimitEdit))
-        self.zlimitEdit_min.setValidator(QIntValidator(self.aw.qmc.zlimit_min_max, self.aw.qmc.zlimit_max, self.zlimitEdit_min))
+        self.zlimitEdit.setValidator(QIntValidator(int(self.aw.qmc.zlimit_min_max), int(self.aw.qmc.zlimit_max), self.zlimitEdit))
+        self.zlimitEdit_min.setValidator(QIntValidator(int(self.aw.qmc.zlimit_min_max), int(self.aw.qmc.zlimit_max), self.zlimitEdit_min))
         self.zlimitEdit.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.zlimitEdit_min.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.xlimitEdit.setText(stringfromseconds(self.aw.qmc.endofx))
+        self.xlimitEdit.setText(stringfromseconds(self.aw.qmc.endofx, leadingzero=False))
 
         self.xlimitEdit.editingFinished.connect(self.xlimitChanged)
         if self.aw.qmc.timeindex[0] != -1:
-            self.xlimitEdit_min.setText(stringfromseconds(self.aw.qmc.startofx - self.aw.qmc.timex[self.aw.qmc.timeindex[0]]))
+            self.xlimitEdit_min.setText(stringfromseconds(self.aw.qmc.startofx - self.aw.qmc.timex[self.aw.qmc.timeindex[0]], leadingzero=False))
         else:
-            self.xlimitEdit_min.setText(stringfromseconds(self.aw.qmc.startofx))
+            self.xlimitEdit_min.setText(stringfromseconds(self.aw.qmc.startofx, leadingzero=False))
         self.xlimitEdit_min.editingFinished.connect(self.xlimitMinChanged)
         self.ylimitEdit.setText(str(self.aw.qmc.ylimit))
         self.ylimitEdit.editingFinished.connect(self.ylimitChanged)
@@ -152,9 +157,8 @@ class WindowsDlg(ArtisanDialog):
         self.resetEdit.setMaximumWidth(50)
         self.resetEdit.setMinimumWidth(50)
         self.resetEdit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        regextime = QRegularExpression(r'^-?[0-9]?[0-9]?[0-9]:[0-5][0-9]$')
         self.resetEdit.setValidator(QRegularExpressionValidator(regextime,self))
-        self.resetEdit.setText(stringfromseconds(self.aw.qmc.resetmaxtime))
+        self.resetEdit.setText(stringfromseconds(self.aw.qmc.resetmaxtime, leadingzero=False))
         self.resetEdit.setToolTip(QApplication.translate('Tooltip', 'Time axis max on start of a recording'))
         # CHARGE min
         chargeminlabel = QLabel(QApplication.translate('Label', 'RECORD') + '   ' + QApplication.translate('Label', 'Min'))
@@ -163,13 +167,13 @@ class WindowsDlg(ArtisanDialog):
         self.chargeminEdit.setMinimumWidth(50)
         self.chargeminEdit.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.chargeminEdit.setValidator(QRegularExpressionValidator(regextime,self))
-        self.chargeminEdit.setText(stringfromseconds(self.aw.qmc.chargemintime))
+        self.chargeminEdit.setText(stringfromseconds(self.aw.qmc.chargemintime, leadingzero=False))
         self.chargeminEdit.setToolTip(QApplication.translate('Tooltip', 'Time axis min on start of a recording'))
 
         # fixmaxtime flag
         self.fixmaxtimeFlag = QCheckBox(QApplication.translate('CheckBox', 'Expand'))
         self.fixmaxtimeFlag.setChecked(not self.aw.qmc.fixmaxtime)
-        self.fixmaxtimeFlag.setToolTip(QApplication.translate('Tooltip', 'Automatically extend the time axis by 3min on need'))
+        self.fixmaxtimeFlag.setToolTip(QApplication.translate('Tooltip', 'Automatically extend the timeline as needed'))
         # locktimex flag
         self.locktimexFlag = QCheckBox(QApplication.translate('CheckBox', 'Lock'))
         self.locktimexFlag.setChecked(self.aw.qmc.locktimex)
@@ -217,7 +221,8 @@ class WindowsDlg(ArtisanDialog):
                       QApplication.translate('ComboBox', '5 minutes'),
                       QApplication.translate('ComboBox', '10 minutes'),
                       QApplication.translate('ComboBox', '30 minutes'),
-                      QApplication.translate('ComboBox', '1 hour')]
+                      QApplication.translate('ComboBox', '1 hour'),
+                      QApplication.translate('ComboBox', '1 day')]
         self.xaxislencombobox.addItems(timelocs)
 
         self.xaxislencombobox.setMinimumContentsLength(6)
@@ -227,7 +232,7 @@ class WindowsDlg(ArtisanDialog):
             self.xaxislencombobox.setMaximumWidth(width)
 #        self.xaxislencombobox.setMaximumWidth(120)
 
-        self.timeconversion = [0,60,120,180,240,300,600,1800,3600]
+        self.timeconversion = [0,60,120,180,240,300,600,1800,3600,86400]
         try:
             self.xaxislencombobox.setCurrentIndex(self.timeconversion.index(self.aw.qmc.xgrid))
         except Exception: # pylint: disable=broad-except
@@ -311,11 +316,12 @@ class WindowsDlg(ArtisanDialog):
         self.dialogbuttons.accepted.connect(self.updatewindow)
         self.dialogbuttons.rejected.connect(self.restoreState)
 
-        resetButton = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.RestoreDefaults)
-        resetButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        resetButton.clicked.connect(self.reset)
-        self.setButtonTranslations(resetButton,'Restore Defaults',QApplication.translate('Button','Restore Defaults'))
-        resetButton.setToolTip(QApplication.translate('Tooltip', 'Reset axis settings to their defaults'))
+        resetButton: Optional[QPushButton] = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.RestoreDefaults)
+        if resetButton is not None:
+            resetButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            resetButton.clicked.connect(self.reset)
+            self.setButtonTranslations(resetButton,'Restore Defaults',QApplication.translate('Button','Restore Defaults'))
+            resetButton.setToolTip(QApplication.translate('Tooltip', 'Reset axis settings to their defaults'))
 
         self.loadAxisFromProfile = QCheckBox(QApplication.translate('CheckBox', 'Load from profile'))
         self.loadAxisFromProfile.setChecked(self.aw.qmc.loadaxisfromprofile)
@@ -452,10 +458,10 @@ class WindowsDlg(ArtisanDialog):
         mainLayout.addStretch()
         mainLayout.addLayout(buttonLayout)
         self.setLayout(mainLayout)
-        if platform.system() == 'Windows':
-            self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
-        else:
-            self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok).setFocus()
+        if platform.system() != 'Windows':
+            ok_button: Optional[QPushButton] = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
+            if ok_button is not None:
+                ok_button.setFocus()
 
         if self.aw.qmc.locktimex:
             self.disableXAxisControls()
@@ -469,32 +475,32 @@ class WindowsDlg(ArtisanDialog):
         mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
 
-    def enableXAxisControls(self):
+    def enableXAxisControls(self) -> None:
         self.xlimitEdit.setEnabled(True)
         self.xlimitEdit_min.setEnabled(True)
         self.chargeminEdit.setEnabled(True)
         self.resetEdit.setEnabled(True)
         self.fixmaxtimeFlag.setEnabled(True)
 
-    def disableXAxisControls(self):
+    def disableXAxisControls(self) -> None:
         self.xlimitEdit.setEnabled(False)
         self.xlimitEdit_min.setEnabled(False)
         self.chargeminEdit.setEnabled(False)
         self.resetEdit.setEnabled(False)
         self.fixmaxtimeFlag.setEnabled(False)
 
-    def enableAutoControls(self):
+    def enableAutoControls(self) -> None:
         self.autotimexModeCombobox.setEnabled(True)
 #        if not self.aw.qmc.flagon:
 #            self.autoButton.setEnabled(True)
 
-    def disableAutoControls(self):
+    def disableAutoControls(self) -> None:
         self.autotimexModeCombobox.setEnabled(False)
 #        self.autoButton.setEnabled(False)
 
 
     @pyqtSlot()
-    def step100Changed(self):
+    def step100Changed(self) -> None:
         try:
             step100 = self.step100Edit.text().strip()
             if step100 == '':
@@ -506,7 +512,7 @@ class WindowsDlg(ArtisanDialog):
             pass
 
     @pyqtSlot()
-    def xlimitChanged(self):
+    def xlimitChanged(self) -> None:
         try:
             endedittime_str = str(self.xlimitEdit.text())
             if endedittime_str is not None and endedittime_str != '':
@@ -521,7 +527,7 @@ class WindowsDlg(ArtisanDialog):
             pass
 
     @pyqtSlot()
-    def xlimitMinChanged(self):
+    def xlimitMinChanged(self) -> None:
         try:
             startedittime_str = str(self.xlimitEdit_min.text())
             if startedittime_str is not None and startedittime_str != '':
@@ -542,7 +548,7 @@ class WindowsDlg(ArtisanDialog):
             pass
 
     @pyqtSlot()
-    def ylimitChanged(self):
+    def ylimitChanged(self) -> None:
         try:
             yl = int(str(self.ylimitEdit.text()))
             yl_min = int(str(self.ylimitEdit_min.text()))
@@ -559,26 +565,28 @@ class WindowsDlg(ArtisanDialog):
             self.ylimitEdit_min.setText(str(self.aw.qmc.ylimit_min))
 
     @pyqtSlot()
-    def zlimitChanged(self):
+    def zlimitChanged(self) -> None:
         try:
-            self.aw.qmc.autodeltaxET = False
-            self.aw.qmc.autodeltaxBT = False
-            self.autodeltaxETFlag.blockSignals(True)
-            self.autodeltaxBTFlag.blockSignals(True)
-            self.autodeltaxETFlag.setChecked(self.aw.qmc.autodeltaxET)
-            self.autodeltaxBTFlag.setChecked(self.aw.qmc.autodeltaxBT)
-            self.autodeltaxETFlag.blockSignals(False)
-            self.autodeltaxBTFlag.blockSignals(False)
-            self.aw.qmc.zlimit = int(self.zlimitEdit.text().strip())
-            if bool(self.aw.comparator):
-                self.aw.comparator.redraw()
-            else:
-                self.aw.qmc.redraw(recomputeAllDeltas=False)
+            new_value = int(self.zlimitEdit.text().strip())
+            if self.aw.qmc.zlimit != new_value:
+                self.aw.qmc.autodeltaxET = False
+                self.aw.qmc.autodeltaxBT = False
+                self.autodeltaxETFlag.blockSignals(True)
+                self.autodeltaxBTFlag.blockSignals(True)
+                self.autodeltaxETFlag.setChecked(self.aw.qmc.autodeltaxET)
+                self.autodeltaxBTFlag.setChecked(self.aw.qmc.autodeltaxBT)
+                self.autodeltaxETFlag.blockSignals(False)
+                self.autodeltaxBTFlag.blockSignals(False)
+                self.aw.qmc.zlimit = new_value
+                if self.aw.comparator is not None:
+                    self.aw.comparator.redraw()
+                else:
+                    self.aw.qmc.redraw(recomputeAllDeltas=False)
         except Exception: # pylint: disable=broad-except
             self.zlimitEdit.setText(str(self.aw.qmc.zlimit))
 
     @pyqtSlot()
-    def zlimitMinChanged(self):
+    def zlimitMinChanged(self) -> None:
         try:
             self.aw.qmc.zlimit_min = int(self.zlimitEdit_min.text().strip())
             self.aw.qmc.redraw(recomputeAllDeltas=False)
@@ -586,7 +594,7 @@ class WindowsDlg(ArtisanDialog):
             self.zlimitEdit_min.setText(str(self.aw.qmc.zlimit_min))
 
     @pyqtSlot(int)
-    def lockTimexFlagChanged(self,n):
+    def lockTimexFlagChanged(self, n:int) -> None:
         if n:
             self.autotimexFlag.setChecked(False)
             self.disableXAxisControls()
@@ -594,24 +602,24 @@ class WindowsDlg(ArtisanDialog):
             self.enableXAxisControls()
 
     @pyqtSlot(int)
-    def autoDeltaxFlagChanged(self,_):
+    def autoDeltaxFlagChanged(self, _:int) -> None:
         self.aw.qmc.autodeltaxET = self.autodeltaxETFlag.isChecked()
         self.aw.qmc.autodeltaxBT = self.autodeltaxBTFlag.isChecked()
         if not self.aw.qmc.flagon and (self.autodeltaxETFlag or self.autodeltaxBTFlag):
-            if bool(self.aw.comparator):
+            if self.aw.comparator is not None:
                 self.aw.comparator.redraw()
                 self.zlimitEdit.setText(str(self.aw.qmc.zlimit))
             else:
                 self.autoDeltaAxis()
 
     @pyqtSlot(int)
-    def autoTimexFlagChanged(self,n):
+    def autoTimexFlagChanged(self, n:int) -> None:
         if n:
             self.aw.qmc.autotimex = True
             self.locktimexFlag.setChecked(False)
             self.enableAutoControls()
             self.enableXAxisControls()
-            if bool(self.aw.comparator):
+            if self.aw.comparator is not None:
                 self.aw.comparator.redraw()
             elif not self.aw.qmc.flagon:
                 self.autoAxis()
@@ -619,48 +627,56 @@ class WindowsDlg(ArtisanDialog):
             self.disableAutoControls()
 
     @pyqtSlot(bool)
-    def autoAxis(self,_=False):
+    def autoAxis(self, _:bool = False) -> None:
         changed = False
         if self.aw.qmc.backgroundpath and (self.aw.qmc.flagon or len(self.aw.qmc.timex)<2):
             # no foreground profile
             t_min,t_max = self.aw.calcAutoAxisBackground()
-            t_min = min(-30,t_min)
+            t_min = min(-30.0, t_min)
         else:
             t_min,t_max = self.aw.calcAutoAxisForeground()
         if self.aw.qmc.timeindex[0] != -1:
-            self.xlimitEdit_min.setText(stringfromseconds(t_min - self.aw.qmc.timex[self.aw.qmc.timeindex[0]]))
-            self.xlimitEdit.setText(stringfromseconds(t_max - self.aw.qmc.timex[self.aw.qmc.timeindex[0]]))
+            self.xlimitEdit_min.setText(stringfromseconds(t_min - self.aw.qmc.timex[self.aw.qmc.timeindex[0]], leadingzero=False))
+            self.xlimitEdit.setText(stringfromseconds(t_max - self.aw.qmc.timex[self.aw.qmc.timeindex[0]], leadingzero=False))
         else:
-            self.xlimitEdit_min.setText(stringfromseconds(t_min))
-            self.xlimitEdit.setText(stringfromseconds(t_max))
+            self.xlimitEdit_min.setText(stringfromseconds(t_min, leadingzero=False))
+            self.xlimitEdit.setText(stringfromseconds(t_max, leadingzero=False))
         self.xlimitEdit_min.repaint()
         self.xlimitEdit.repaint()
 
-        endedittime_str = str(self.xlimitEdit.text())
-        if endedittime_str is not None and endedittime_str != '':
-            endeditime = stringtoseconds(endedittime_str)
-            if self.aw.qmc.endofx != endeditime:
-                self.aw.qmc.endofx = endeditime
-                self.aw.qmc.locktimex_end = endeditime
+        try:
+            endedittime_str = str(self.xlimitEdit.text())
+            if endedittime_str is not None and endedittime_str != '':
+                endeditime = stringtoseconds(endedittime_str)
+                if self.aw.qmc.endofx != endeditime:
+                    self.aw.qmc.endofx = endeditime
+                    self.aw.qmc.locktimex_end = endeditime
+                    changed = True
+        except Exception: # pylint: disable=broad-except
+            pass # stringtoseconds raises exception on malformed input
+
+        try:
+            startedittime_str = str(self.xlimitEdit_min.text())
+            if startedittime_str is not None and startedittime_str != '':
+                starteditime = stringtoseconds(startedittime_str)
+                if starteditime >= 0 and self.aw.qmc.timeindex[0] != -1:
+                    self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]] + starteditime
+                elif starteditime >= 0 and self.aw.qmc.timeindex[0] == -1:
+                    self.aw.qmc.startofx = starteditime
+                elif starteditime < 0 and self.aw.qmc.timeindex[0] != -1:
+                    self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]]-abs(starteditime)
+                else:
+                    self.aw.qmc.startofx = starteditime
+                self.aw.qmc.locktimex_start = starteditime
                 changed = True
-        startedittime_str = str(self.xlimitEdit_min.text())
-        if startedittime_str is not None and startedittime_str != '':
-            starteditime = stringtoseconds(startedittime_str)
-            if starteditime >= 0 and self.aw.qmc.timeindex[0] != -1:
-                self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]] + starteditime
-            elif starteditime >= 0 and self.aw.qmc.timeindex[0] == -1:
-                self.aw.qmc.startofx = starteditime
-            elif starteditime < 0 and self.aw.qmc.timeindex[0] != -1:
-                self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]]-abs(starteditime)
-            else:
-                self.aw.qmc.startofx = starteditime
-            self.aw.qmc.locktimex_start = starteditime
-            changed = True
+        except Exception: # pylint: disable=broad-except
+            pass # stringtoseconds raises exception on malformed input
+
         if changed:
             self.aw.qmc.redraw(recomputeAllDeltas=False)
 
     @pyqtSlot(bool)
-    def autoDeltaAxis(self,_=False):
+    def autoDeltaAxis(self, _:bool = False) -> None:
         changed = False
         autodeltaxET_org = self.aw.qmc.autodeltaxET
         autodeltaxBT_org = self.aw.qmc.autodeltaxBT
@@ -673,7 +689,10 @@ class WindowsDlg(ArtisanDialog):
             if self.aw.qmc.backgroundpath:
                 dmax_b = self.aw.calcAutoDeltaAxisBackground()
                 dmax = max(dmax,dmax_b)
-        zlimit_min = int(str(self.zlimitEdit_min.text()))
+        try:
+            zlimit_min = int(str(self.zlimitEdit_min.text()))
+        except Exception: # pylint: disable=broad-except
+            zlimit_min = self.aw.qmc.ylimit_min
         if dmax > zlimit_min and dmax+1 != self.aw.qmc.zlimit:
             self.zlimitEdit.setText(str(int(dmax) + 1))
             self.zlimitEdit.repaint()
@@ -682,7 +701,10 @@ class WindowsDlg(ArtisanDialog):
         self.aw.qmc.autodeltaxBT = autodeltaxBT_org
         # adjust zgrid
         if self.zgridSpinBox.value() != 0 and (self.autodeltaxETFlag.isChecked() or self.autodeltaxBTFlag.isChecked()):
-            zlimit_max = int(str(self.zlimitEdit.text()))
+            try:
+                zlimit_max = int(str(self.zlimitEdit.text()))
+            except Exception: # pylint: disable=broad-except
+                zlimit_max = self.aw.qmc.ylimit
             d = zlimit_max - zlimit_min
             steps = int(round(d/5))
             if steps > 50:
@@ -712,7 +734,7 @@ class WindowsDlg(ArtisanDialog):
 #        self.xrotationSpinBox.setFocus()
 
     @pyqtSlot(int)
-    def changegridalpha(self,_):
+    def changegridalpha(self, _:int) -> None:
         self.aw.qmc.gridalpha = self.gridalphaSpinBox.value()/10.
         self.gridalphaSpinBox.setDisabled(True)
         self.aw.qmc.redraw(recomputeAllDeltas=False)
@@ -720,7 +742,7 @@ class WindowsDlg(ArtisanDialog):
         self.gridalphaSpinBox.setFocus()
 
     @pyqtSlot(int)
-    def changegridwidth(self,_):
+    def changegridwidth(self, _:int) -> None:
         self.aw.qmc.gridthickness = self.gridwidthSpinBox.value()
         self.gridwidthSpinBox.setDisabled(True)
         self.aw.qmc.redraw(recomputeAllDeltas=False)
@@ -728,24 +750,24 @@ class WindowsDlg(ArtisanDialog):
         self.gridwidthSpinBox.setFocus()
 
     @pyqtSlot(int)
-    def changetimeGridCheckBox(self,_):
+    def changetimeGridCheckBox(self, _:int) -> None:
         self.aw.qmc.time_grid = not self.aw.qmc.time_grid
         self.aw.qmc.redraw(recomputeAllDeltas=False)
 
     @pyqtSlot(int)
-    def changetempGridCheckBox(self,_):
+    def changetempGridCheckBox(self, _:int) -> None:
         self.aw.qmc.temp_grid = not self.aw.qmc.temp_grid
         self.aw.qmc.redraw(recomputeAllDeltas=False)
 
     @pyqtSlot(int)
-    def changegridstyle(self,_):
+    def changegridstyle(self, _:int) -> None:
         self.aw.qmc.gridlinestyle = self.gridstylecombobox.currentIndex()
         self.aw.qmc.redraw(recomputeAllDeltas=False)
 
     @pyqtSlot(int)
-    def changelegendloc(self,_):
+    def changelegendloc(self, _:int) -> None:
         self.aw.qmc.legendloc = self.legendComboBox.currentIndex()
-        if bool(self.aw.comparator):
+        if self.aw.comparator is not None:
             self.aw.comparator.legend = None
             self.aw.comparator.redraw()
         else:
@@ -753,21 +775,21 @@ class WindowsDlg(ArtisanDialog):
             self.aw.qmc.redraw(recomputeAllDeltas=False)
 
     @pyqtSlot(int)
-    def changeAutoTimexMode(self,_):
+    def changeAutoTimexMode(self, _:int) -> None:
         self.aw.qmc.autotimexMode = self.autotimexModeCombobox.currentIndex()
-        if bool(self.aw.comparator):
+        if self.aw.comparator is not None:
             self.aw.comparator.modeComboBox.setCurrentIndex(self.aw.qmc.autotimexMode)
         elif not self.aw.qmc.flagon:
             self.autoAxis()
 
     @pyqtSlot(int)
-    def xaxislenloc(self,_):
+    def xaxislenloc(self, _:int) -> None:
         self.aw.qmc.xgrid = self.timeconversion[self.xaxislencombobox.currentIndex()]
         self.aw.qmc.xaxistosm(redraw=False)
         self.aw.qmc.redraw(recomputeAllDeltas=False)
 
     @pyqtSlot()
-    def changeygrid(self):
+    def changeygrid(self) -> None:
         self.aw.qmc.ygrid = self.ygridSpinBox.value()
 #        self.ygridSpinBox.setDisabled(True)
         self.aw.qmc.redraw(recomputeAllDeltas=False)
@@ -775,13 +797,13 @@ class WindowsDlg(ArtisanDialog):
 #        self.ygridSpinBox.setFocus()
 
     @pyqtSlot()
-    def changezgrid(self):
+    def changezgrid(self) -> None:
         self.aw.qmc.zgrid = self.zgridSpinBox.value()
         self.aw.qmc.redraw(recomputeAllDeltas=False)
 
     # exit dialog with OK
     @pyqtSlot()
-    def updatewindow(self):
+    def updatewindow(self) -> None:
         limits_changed = False
         # trigger auto limits on leaving the dialog if active
         if not self.aw.qmc.flagon and self.autotimexFlag.isChecked():
@@ -811,7 +833,7 @@ class WindowsDlg(ArtisanDialog):
         except Exception: # pylint: disable=broad-except
             pass
 
-        if limits_changed and self.aw.qmc.crossmarker == True:
+        if limits_changed and self.aw.qmc.crossmarker:
             # switch crosslines off and on again to adjust for changed axis limits
             self.aw.qmc.togglecrosslines()
             self.aw.qmc.togglecrosslines()
@@ -819,25 +841,33 @@ class WindowsDlg(ArtisanDialog):
 
         endedittime_str = str(self.xlimitEdit.text())
         if endedittime_str is not None and endedittime_str != '':
-            endeditime = stringtoseconds(endedittime_str)
-            self.aw.qmc.endofx = endeditime
-            self.aw.qmc.locktimex_end = endeditime
+            try:
+                endeditime = stringtoseconds(endedittime_str)
+                self.aw.qmc.endofx = endeditime
+                self.aw.qmc.locktimex_end = endeditime
+            except Exception: # pylint: disable=broad-except
+                self.aw.qmc.endofx = self.aw.qmc.endofx_default
+                self.aw.qmc.locktimex_end = self.aw.qmc.endofx_default
         else:
             self.aw.qmc.endofx = self.aw.qmc.endofx_default
             self.aw.qmc.locktimex_end = self.aw.qmc.endofx_default
 
         startedittime_str = str(self.xlimitEdit_min.text())
         if startedittime_str is not None and startedittime_str != '':
-            starteditime = stringtoseconds(startedittime_str)
-            if starteditime >= 0 and self.aw.qmc.timeindex[0] != -1:
-                self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]] + starteditime
-            elif starteditime >= 0 and self.aw.qmc.timeindex[0] == -1:
-                self.aw.qmc.startofx = starteditime
-            elif starteditime < 0 and self.aw.qmc.timeindex[0] != -1:
-                self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]]-abs(starteditime)
-            else:
-                self.aw.qmc.startofx = starteditime
-            self.aw.qmc.locktimex_start = starteditime
+            try:
+                starteditime = stringtoseconds(startedittime_str)
+                if starteditime >= 0 and self.aw.qmc.timeindex[0] != -1:
+                    self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]] + starteditime
+                elif starteditime >= 0 and self.aw.qmc.timeindex[0] == -1:
+                    self.aw.qmc.startofx = starteditime
+                elif starteditime < 0 and self.aw.qmc.timeindex[0] != -1:
+                    self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]]-abs(starteditime)
+                else:
+                    self.aw.qmc.startofx = starteditime
+                self.aw.qmc.locktimex_start = starteditime
+            except Exception: # pylint: disable=broad-except
+                self.aw.qmc.startofx = self.aw.qmc.startofx_default
+                self.aw.qmc.locktimex_start = self.aw.qmc.startofx_default
         else:
             self.aw.qmc.startofx = self.aw.qmc.startofx_default
             self.aw.qmc.locktimex_start = self.aw.qmc.startofx_default
@@ -851,13 +881,19 @@ class WindowsDlg(ArtisanDialog):
         except Exception: # pylint: disable=broad-except
             pass
 
-        resettime = stringtoseconds(str(self.resetEdit.text()))
-        if resettime > 0:
-            self.aw.qmc.resetmaxtime = resettime
+        try:
+            resettime = stringtoseconds(str(self.resetEdit.text()))
+            if resettime > 0:
+                self.aw.qmc.resetmaxtime = resettime
+        except Exception: # pylint: disable=broad-except
+            pass
 
-        chargetime = stringtoseconds(str(self.chargeminEdit.text()))
-        if chargetime <= 0:
-            self.aw.qmc.chargemintime = chargetime
+        try:
+            chargetime = stringtoseconds(str(self.chargeminEdit.text()))
+            if chargetime <= 0:
+                self.aw.qmc.chargemintime = chargetime
+        except Exception: # pylint: disable=broad-except
+            pass
 
         self.aw.qmc.fixmaxtime = not self.fixmaxtimeFlag.isChecked()
         self.aw.qmc.locktimex = self.locktimexFlag.isChecked()
@@ -867,12 +903,16 @@ class WindowsDlg(ArtisanDialog):
         if not self.aw.qmc.flagon:
             self.aw.autoAdjustAxis(background=(bool(self.aw.qmc.backgroundpath) and not len(self.aw.qmc.timex) > 3)) # align background if no foreground
         self.aw.qmc.redraw(recomputeAllDeltas=False)
+        try:
+            self.aw.ntb.update() # reset the MPL navigation history
+        except Exception: # pylint: disable=broad-except
+            pass
         string = QApplication.translate('Message','xlimit = ({2},{3}) ylimit = ({0},{1}) zlimit = ({4},{5})').format(str(self.ylimitEdit_min.text()),str(self.ylimitEdit.text()),str(self.xlimitEdit_min.text()),str(self.xlimitEdit.text()),str(self.zlimitEdit_min.text()),str(self.zlimitEdit.text()))
         self.aw.sendmessage(string)
         self.close()
 
     # on Cancel
-    def restoreState(self):
+    def restoreState(self) -> None:
         self.aw.qmc.time_grid = self.time_grid_org
         self.aw.qmc.temp_grid = self.temp_grid_org
         self.aw.qmc.gridlinestyle = self.gridlinestyle_org
@@ -905,13 +945,13 @@ class WindowsDlg(ArtisanDialog):
         self.close()
 
     @pyqtSlot('QCloseEvent')
-    def closeEvent(self,_):
+    def closeEvent(self, _:Optional['QCloseEvent'] = None) -> None:
         #save window position (only; not size!)
         settings = QSettings()
         settings.setValue('AxisPosition',self.frameGeometry().topLeft())
 
     @pyqtSlot(bool)
-    def reset(self,_):
+    def reset(self, _:bool = False) -> None:
         self.locktimexFlag.setChecked(False)
         self.autotimexFlag.setChecked(True)
         self.autotimexModeCombobox.setCurrentIndex(0)
@@ -928,10 +968,10 @@ class WindowsDlg(ArtisanDialog):
         self.timeGridCheckBox.setChecked(False)
         self.tempGridCheckBox.setChecked(False)
         if len(self.aw.qmc.timex) > 1:
-            self.xlimitEdit.setText(stringfromseconds(self.aw.qmc.timex[-1]))
+            self.xlimitEdit.setText(stringfromseconds(self.aw.qmc.timex[-1], leadingzero=False))
         else:
-            self.xlimitEdit.setText(stringfromseconds(self.aw.qmc.endofx_default))
-        self.xlimitEdit_min.setText(stringfromseconds(self.aw.qmc.startofx_default))
+            self.xlimitEdit.setText(stringfromseconds(self.aw.qmc.endofx_default, leadingzero=False))
+        self.xlimitEdit_min.setText(stringfromseconds(self.aw.qmc.startofx_default, leadingzero=False))
 
         try:
             self.xaxislencombobox.setCurrentIndex(self.timeconversion.index(self.aw.qmc.xgrid_default))
@@ -953,7 +993,7 @@ class WindowsDlg(ArtisanDialog):
             self.zlimitEdit.setText(str(self.aw.qmc.zlimit_C_default))
             self.zlimitEdit_min.setText(str(self.aw.qmc.zlimit_min_C_default))
             self.zgridSpinBox.setValue(int(self.aw.qmc.zgrid_C_default))
-        if bool(self.aw.comparator):
+        if self.aw.comparator is not None:
             self.aw.comparator.redraw()
         else:
             self.aw.qmc.redraw(recomputeAllDeltas=False)

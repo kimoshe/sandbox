@@ -11,12 +11,24 @@
             <td>Turns ON/OFF Keyboard Shortcuts</td>
         </tr>
         <tr>
+            <td>⌘-ENTER [Mac]<br>CTRL+ENTER [Win]</td>
+            <td>Starts recording</td>
+        </tr>
+        <tr>
+            <td>SHIFT-ENTER</td>
+            <td>Turns Artisan OFF</td>
+        </tr>
+        <tr>
             <td>SPACE</td>
-            <td>When Keyboard Shortcuts are ON chooses the current button<br>When Keyboard Shortcuts are OFF adds a custom event</td>
+            <td>When Keyboard Shortcuts are ON chooses the current button<br>When Keyboard Shortcuts are OFF adds a custom event<br>When Meter=NONE opens dialog to manually enter temperatures during roast</td>
+        </tr>
+        <tr>
+            <td>LEFT,RIGHT</td>
+            <td>Change roast event key focus</td>
         </tr>
         <tr>
             <td>LEFT,RIGHT,UP,DOWN</td>
-            <td>Move background or key focus</td>
+            <td>Move background (when sliders not visible or when Config&gt;&gt; Events&gt;&gt; Sliders tab&gt;&gt; Keyboard Control is not selected)</td>
         </tr>
         <tr>
             <td>A</td>
@@ -91,7 +103,7 @@
             <td>Toggle foreground curves “show full”</td>
         </tr>
         <tr>
-            <td>OPTION+H [Mac]<br>CTRL+SHIFT+H [Win]</td>
+            <td>O</td>
             <td>Toggle background curves “show full”</td>
         </tr>
         <tr>
@@ -120,11 +132,11 @@
         </tr>
         <tr>
             <td>Q,W,E,R + &lt;value&gt;</td>
-            <td>Quick Special Event Entry.  The keys q,w,e, and r correspond to special events 1,2,3 and 4.  A two digit numeric value must follow the shortcut letter, e.g. &#39;q75&#39;, when the correspoding event slider max value is 100 or less (default setting).   When the slider max value is greater than 100, three digits must be entered and for values less that 100 a leading zero is required, e.g. &#39;q075&#39;.  </td>
+            <td>Quick Special Event Entry.  The keys q,w,e, and r correspond to special events 1,2,3 and 4. The new &lt;value&gt; is established using the ENTER/RETURN key. The last digit can be removed by using the backspace key.</td>
         </tr>
         <tr>
             <td>V +  &lt;value&gt;</td>
-            <td>Quick PID SV Entry.  Value is a three digit number.  For values less than 100 must be entered with a leading zero, e.g. &#39;v075&#39;.</td>
+            <td>Quick PID SV Entry. The new &lt;value&gt; is established using the ENTER/RETURN key. The last digit can be removed by using the backspace key.</td>
         </tr>
         <tr>
             <td>OPTION+B + &lt;value&gt; [Mac]<br>CTRL+SHIFT+B + &lt;value&gt; [Win]</td>
@@ -146,14 +158,20 @@
     </thead>
     <tbody>
         <tr>
+            <td>⌘+F [Mac]<br>CTRL+F [Win]</td>
+            <td>Help</td>
+            <td>Move cursor to the Search box</td>
+            <td>Return/Enter key to execute the search</td>
+        </tr>
+        <tr>
             <td>Double click on Roast Title</td>
             <td>Graph</td>
             <td>Open the roast in artisan.plus</td>
             <td>Requires an artisan.plus account</td>
         </tr>
         <tr>
-            <td>Click on Background Profile Title</td>
-            <td>Graph</td>
+            <td>Double Click on Background Profile Title</td>
+            <td>Graph & Designer</td>
             <td>Toggle Show/Hide Background Profile</td>
             <td>Only when a Background profile is loaded</td>
         </tr>
@@ -206,24 +224,6 @@
             <td>&#160;</td>
         </tr>
         <tr>
-            <td>Click on timer</td>
-            <td>Simulator</td>
-            <td>Toggle Pause/Continue Simulation</td>
-            <td>Simulator speed may be changd while paused.  See next two shortcuts.</td>
-        </tr>
-        <tr>
-            <td>OPTION Tools&gt;&gt;Simulator [Mac]<br>ALT Tools&gt;&gt;Simulator [Win]</td>
-            <td>Graph/Simulator</td>
-            <td>Start or change Simulator speed to 2x mode</td>
-            <td>&#160;</td>
-        </tr>
-        <tr>
-            <td>⌘ Tools&gt;&gt;Simulator [Mac]<br>CTRL Tools&gt;&gt;Simulator [Win]</td>
-            <td>Graph/Simulator</td>
-            <td>Start or change Simulator speed to 4x mode</td>
-            <td>&#160;</td>
-        </tr>
-        <tr>
             <td>Click on LCD</td>
             <td>Graph</td>
             <td>Hide or Show corresponding Curve</td>
@@ -242,27 +242,69 @@
             <td>&#160;</td>
         </tr>
         <tr>
-            <td>⌘ click &#39;Control&#39; Button [Mac]<br>CTRL click &#39;Control&#39; Button [Win]</td>
+            <td>⌘ click &#39;CONTROL&#39; Button [Mac]<br>CTRL click &#39;CONTROL&#39; Button [Win]</td>
             <td>Graph</td>
             <td>Toggle PID Standby on and off</td>
             <td>Device = Fuji or Delta</td>
         </tr>
         <tr>
-            <td>⌘ click &#39;Control&#39; Button [Mac]<br>CTRL click &#39;Control&#39; Button [Win]</td>
+            <td>⌘ click &#39;CONTROL&#39; Button [Mac]<br>CTRL click &#39;CONTROL&#39; Button [Win]</td>
             <td>Graph</td>
             <td>Opens PID dialog</td>
             <td>Device = Hottop</td>
         </tr>
         <tr>
-            <td>⌘ click &#39;Control&#39; Button [Mac]<br>CTRL click &#39;Control&#39; Button [Win]</td>
+            <td>⌘ click &#39;CONTROL&#39; Button [Mac]<br>CTRL click &#39;CONTROL&#39; Button [Win]</td>
             <td>Graph</td>
             <td>Toggle PID</td>
             <td>Device = &lt;all others&gt;, Control enabled in Config&gt;&gt; Device</td>
         </tr>
         <tr>
-            <td>⌘+C [Mac]<br>CTRL+C [Win]</td>
-            <td>Roast Properties Data tab</td>
-            <td>Copy table</td>
+            <td>⌘+PLUS, ⌘+MINUS [Mac]<br>CTRL+SHIFT+PLUS, CTRL+MINUS [Win]</td>
+            <td>Graph</td>
+            <td>Increase or Decrease Graph Resolution %</td>
+            <td>Same as Config&gt;&gt; Curves&gt;&gt; UI tab&gt;&gt; Graph % +/-</td>
+        </tr>
+        <tr>
+            <td>TAB</td>
+            <td>Graph when Sliders visible</td>
+            <td>Sequence slider select</td>
+            <td>Requires Keyboard Control enabled in Config&gt;&gt; Events<br>Keyboard Shortcuts must be turned off (ENTER)</td>
+        </tr>
+        <tr>
+            <td>UP,DOWN,RIGHT,LEFT</td>
+            <td>Graph when Sliders visible</td>
+            <td>Increment selected slider up or down by step amount</td>
+            <td>Requires Keyboard Control enabled in Config&gt;&gt; Events<br>Keyboard Shortcuts must be turned off (ENTER)</td>
+        </tr>
+        <tr>
+            <td>OPTION+UP, OPTION+DOWN [Mac]<br>PAGEUP,PAGEDOWN [Win]</td>
+            <td>Graph when Sliders visible</td>
+            <td>Increment selected slider up or down by 10</td>
+            <td>Requires Keyboard Control enabled in Config&gt;&gt; Events<br>Keyboard Shortcuts must be turned off (ENTER)</td>
+        </tr>
+        <tr>
+            <td>HOME,END</td>
+            <td>Graph when Sliders visible</td>
+            <td>Set selected slider to minimum or maximum value</td>
+            <td>Requires Keyboard Control enabled in Config&gt;&gt; Events<br>Keyboard Shortcuts must be disabled (ENTER)</td>
+        </tr>
+        <tr>
+            <td>Click on timer</td>
+            <td>Simulator</td>
+            <td>Toggle Pause/Continue Simulation</td>
+            <td>Simulator speed may be changd while paused (hold shift  (1x), OPTION/ALT (2x) or COMMAND/CTRL (4x) on restart).</td>
+        </tr>
+        <tr>
+            <td>OPTION Tools&gt;&gt;Simulator [Mac]<br>ALT Tools&gt;&gt;Simulator [Win]</td>
+            <td>Graph/Simulator</td>
+            <td>Start or change Simulator speed to 2x mode</td>
+            <td>&#160;</td>
+        </tr>
+        <tr>
+            <td>⌘ Tools&gt;&gt;Simulator [Mac]<br>CTRL Tools&gt;&gt;Simulator [Win]</td>
+            <td>Graph/Simulator</td>
+            <td>Start or change Simulator speed to 4x mode</td>
             <td>&#160;</td>
         </tr>
         <tr>
@@ -272,16 +314,22 @@
             <td>&#160;</td>
         </tr>
         <tr>
-            <td>Enter</td>
-            <td>Roast Properties Roast Tab<br>Volume Calculator Unit, Green Unit  Weight or Roasted Unit Weight field</td>
-            <td>Overwrite with current scale weight (same action as &#39;unit&#39;, &#39;in&#39;, &#39;out&#39; buttons)</td>
-            <td>Requires a connected scale</td>
+            <td>OPTION click Stock [Mac]<br>ALT click Stock [Win]</td>
+            <td>Roast Properties Roast tab</td>
+            <td>Show plus Stock in alternate weight unit from Artisan setting (imperial &lt;-&gt; metric)</td>
+            <td>Requires a connection to plus</td>
         </tr>
         <tr>
-            <td>Enter</td>
-            <td>Roast Properties Roast tab<br>Green Weight  or Roasted Weight field</td>
-            <td>Overwrite with current scale weight</td>
-            <td>Requires a connected scale</td>
+            <td>OPTION click  &#39;+&#39;  button [Mac]<br>ALT click  &#39;+&#39;  button [Win]</td>
+            <td>Roast Properties Roast tab</td>
+            <td>Adds Weight Roasted, Volume Roasted, Moisture Roasted, ColorWhole, and Color Ground to the recent roast</td>
+            <td>&#160;</td>
+        </tr>
+        <tr>
+            <td>OPTION File&gt;&gt; New&gt;&gt; &lt;recent-roast&gt; [Mac]<br>ALT File&gt;&gt; New&gt;&gt; &lt;recent-roast&gt; [Win]</td>
+            <td>Roast Properties Roast tab</td>
+            <td>Sets roast properties to &lt;recent-roast&gt; without starting a new roast</td>
+            <td>&#160;</td>
         </tr>
         <tr>
             <td>⌘+I [Mac]<br>CTRL+I [Win]</td>
@@ -302,21 +350,57 @@
             <td>Requires a connected scale</td>
         </tr>
         <tr>
-            <td>OPTION click  &#39;+&#39;  button [Mac]<br>ALT click  &#39;+&#39;  button [Win]</td>
-            <td>Roast Properties Roast tab</td>
-            <td>Adds Weight Roasted, Volume Roasted, Moisture Roasted, ColorWhole, and Color Ground to the recent roast</td>
+            <td>Enter</td>
+            <td>Roast Properties Roast Tab<br>Volume Calculator Unit, Green Unit  Weight or Roasted Unit Weight field</td>
+            <td>Overwrite with current scale weight (same action as &#39;unit&#39;, &#39;in&#39;, &#39;out&#39; buttons)</td>
+            <td>Requires a connected scale</td>
+        </tr>
+        <tr>
+            <td>Enter</td>
+            <td>Roast Properties Roast tab<br>Green Weight  or Roasted Weight field</td>
+            <td>Overwrite with current scale weight</td>
+            <td>Requires a connected scale</td>
+        </tr>
+        <tr>
+            <td>⌘+C [Mac]<br>CTRL+C [Win]</td>
+            <td>Roast Properties Data tab</td>
+            <td>Copy table</td>
             <td>&#160;</td>
         </tr>
         <tr>
-            <td>OPTION File&gt;&gt; New&gt;&gt; &lt;recent-roast&gt; [Mac]<br>ALT File&gt;&gt; New&gt;&gt; &lt;recent-roast&gt; [Win]</td>
-            <td>Roast Properties Roast tab</td>
-            <td>Sets roast properties to &lt;recent-roast&gt; without starting a new roast</td>
+            <td>Click on Energy / CO2 result area</td>
+            <td>Roast Properties Energy tab</td>
+            <td>Toggle &#39;per kg green coffee&#39; result for Batch or Roast</td>
             <td>&#160;</td>
         </tr>
         <tr>
             <td>OPTION click &#39;Copy Table&#39; Button [Mac]<br>ALT click &#39;Copy Table&#39; Button [Win]</td>
             <td>Various</td>
             <td>For various tables this copies the table in tabular form</td>
+            <td>&#160;</td>
+        </tr>
+        <tr>
+            <td>Click on Home Icon<br>While recording only</td>
+            <td>Navigation Toolbar</td>
+            <td>Toggle Zoom Follow (automatic panning)</td>
+            <td>Zoom action while recording sets Follow ON</td>
+        </tr>
+        <tr>
+            <td>Hold Shift+Option [Mac]<br>Hold Shift+Alt [Win]</td>
+            <td>When starting Artisan</td>
+            <td>Skip Settings Load</td>
+            <td>&#160;</td>
+        </tr>
+        <tr>
+            <td>Hold Shift+Option [Mac]<br>Hold Shift+Alt [Win]</td>
+            <td>When quitting Artisan</td>
+            <td>Skip Settings Save</td>
+            <td>&#160;</td>
+        </tr>
+        <tr>
+            <td>Hold Shift+Option [Mac]<br>Hold Shift+Alt [Win]</td>
+            <td>When opening a profile (.alog file)</td>
+            <td>Skip creating settings cache and ask user to apply existing settings or settings from profile</td>
             <td>&#160;</td>
         </tr>
     </tbody>
@@ -370,7 +454,7 @@
             <td>Open Profile Background dialog</td>
         </tr>
         <tr>
-            <td>⌘+F4 [Mac]<br>CTRL+F4 [Win]</td>
+            <td>⌘+W [Mac]<br>CTRL+F4 [Win]</td>
             <td>Roast</td>
             <td>Switch Profiles (Foreground&lt;=&gt;Background)</td>
         </tr>

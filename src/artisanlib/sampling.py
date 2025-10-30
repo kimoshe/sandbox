@@ -13,31 +13,34 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2020
+# Marko Luther, 2023
+
+from typing import Optional, TYPE_CHECKING
+from babel.units import get_unit_name
 
 from artisanlib.dialogs import ArtisanDialog
 from artisanlib.widgets import MyQDoubleSpinBox
 
 try:
-    #ylint: disable = E, W, R, C
     from PyQt6.QtCore import Qt, pyqtSlot, QSettings # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtWidgets import (QApplication, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt6.QtWidgets import (QMessageBox, QApplication, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, # @UnusedImport @Reimport  @UnresolvedImport
                                  QDialogButtonBox, QLayout) # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import Qt, pyqtSlot, QSettings # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import Qt, pyqtSlot, QSettings # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import (QMessageBox, QApplication, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
                                  QDialogButtonBox, QLayout) # @UnusedImport @Reimport  @UnresolvedImport
+
+if TYPE_CHECKING:
+    from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
+    from PyQt6.QtWidgets import QWidget, QPushButton # pylint: disable=unused-import
+    from PyQt6.QtGui import QCloseEvent # pylint: disable=unused-import
 
 class SamplingDlg(ArtisanDialog):
-    def __init__(self, parent = None, aw = None):
+    def __init__(self, parent:'QWidget', aw:'ApplicationWindow') -> None:
         super().__init__(parent, aw)
+        self.aw = aw
         self.setWindowTitle(QApplication.translate('Message','Sampling'))
         self.setModal(True)
-
-        self.org_delay = self.aw.qmc.delay
-        self.org_flagKeepON = self.aw.qmc.flagKeepON
-        self.org_flagOpenCompleted = self.aw.qmc.flagOpenCompleted
 
         self.keepOnFlag = QCheckBox(QApplication.translate('Label','Keep ON'))
         self.keepOnFlag.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -49,11 +52,18 @@ class SamplingDlg(ArtisanDialog):
 
         self.interval = MyQDoubleSpinBox()
         self.interval.setSingleStep(1)
-        self.interval.setValue(self.aw.qmc.delay/1000.)
-        self.interval.setRange(self.aw.qmc.min_delay/1000.,40.)
+        self.interval.setRange(self.aw.qmc.min_delay/1000.,999.99)
+        interval = self.aw.qmc.delay/1000.
+        if self.aw.qmc.xgrid < 3600:
+            unit_name = get_unit_name('duration-second', length='short', locale=self.aw.locale_str)
+            self.interval.setSuffix(f" {unit_name if unit_name is not None else 'sec'}")
+        else:
+            unit_name = get_unit_name('duration-minute', length='short', locale=self.aw.locale_str)
+            self.interval.setSuffix(f" {unit_name if unit_name is not None else 'min'}")
+            interval = interval / 60
+        self.interval.setValue(interval)
         self.interval.setDecimals(2)
         self.interval.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.interval.setSuffix('s')
 
         intervalLayout = QHBoxLayout()
         intervalLayout.addStretch()
@@ -83,7 +93,9 @@ class SamplingDlg(ArtisanDialog):
         layout.addStretch()
         layout.addLayout(buttonsLayout)
         self.setLayout(layout)
-        self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok).setFocus()
+        ok_button: Optional[QPushButton] = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setFocus()
 
         settings = QSettings()
         if settings.contains('SamplingPosition'):
@@ -92,31 +104,34 @@ class SamplingDlg(ArtisanDialog):
         layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
     #window close box
-    def closeEvent(self,_):
+    @pyqtSlot('QCloseEvent')
+    def closeEvent(self,_:Optional['QCloseEvent'] = None) -> None:
         self.close()
 
     #cancel button
     @pyqtSlot()
-    def close(self):
-        self.aw.qmc.delay = self.org_delay
-        self.aw.qmc.flagKeepON = self.org_flagKeepON
-        self.aw.qmc.flagOpenCompleted = self.org_flagOpenCompleted
+    def close(self) -> bool:
         self.storeSettings()
         self.reject()
+        return True
 
-    def storeSettings(self):
+    def storeSettings(self) -> None:
         #save window position (only; not size!)
         settings = QSettings()
         settings.setValue('SamplingPosition',self.frameGeometry().topLeft())
 
     #ok button
     @pyqtSlot()
-    def ok(self):
+    def ok(self) -> None:
         self.aw.qmc.flagKeepON = bool(self.keepOnFlag.isChecked())
         self.aw.qmc.flagOpenCompleted = bool(self.openCompletedFlag.isChecked())
-        self.aw.qmc.delay = int(self.interval.value()*1000.)
-#        if self.aw.qmc.delay < self.aw.qmc.default_delay:
-#            QMessageBox.warning(self.aw,QApplication.translate("Message", "Warning",None),QApplication.translate("Message", "A tight sampling interval might lead to instability on some machines. We suggest a minimum of 3s."))
+        interval = self.interval.value()*1000.
+        if self.aw.qmc.xgrid >= 3600:
+            interval = interval * 60
+        self.aw.setSamplingRate(int(interval))
+        if self.aw.qmc.delay < self.aw.qmc.default_delay:
+            QMessageBox.warning(None, #self.aw, # only without super this one shows the native dialog on macOS under Qt 6.6.2 and later
+                QApplication.translate('Message', 'Warning', None),
+                QApplication.translate('Message', 'A tight sampling interval might lead to instability on some machines. We suggest a minimum of 1s.'))
         self.storeSettings()
-#        self.aw.closeEventSettings()
         self.accept()

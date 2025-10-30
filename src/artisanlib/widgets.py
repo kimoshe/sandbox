@@ -13,255 +13,391 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2020
+# Marko Luther, 2023
 
+from contextlib import contextmanager
+from typing import Optional, Dict, Any, Iterator, TYPE_CHECKING
 from artisanlib.util import stringtoseconds, createGradient
-from typing import Optional
+
+if TYPE_CHECKING:
+    from PyQt6.QtCore import QCoreApplication, QObject # pylint: disable=unused-import
+    from PyQt6.QtGui import QWheelEvent, QMouseEvent, QFocusEvent, QResizeEvent, QKeyEvent # pylint: disable=unused-import
+    from PyQt6.QtWidgets import QWidget, QTimeEdit, QCheckBox, QComboBox # pylint: disable=unused-import
 
 try:
-    #ylint: disable = E, W, R, C
-    from PyQt6.QtCore import (Qt, pyqtSignal, pyqtSlot, pyqtProperty, # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt6.QtCore import (Qt, pyqtSignal, pyqtSlot, pyqtProperty, QLine, QEvent, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
         QByteArray, QPropertyAnimation, QEasingCurve, QLocale) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtWidgets import (QLabel, QComboBox, QTextEdit, QDoubleSpinBox, QPushButton, # @UnusedImport @Reimport  @UnresolvedImport
-        QTableWidgetItem, QSizePolicy, QLCDNumber, QGroupBox, QFrame) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtGui import QFontMetrics, QColor, QCursor # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import (Qt, pyqtSignal, pyqtSlot, pyqtProperty, # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt6.QtWidgets import (QApplication, QSplitter, QSplitterHandle, QLabel, QComboBox, QLineEdit, QTextEdit, QDoubleSpinBox, QPushButton, # @UnusedImport @Reimport  @UnresolvedImport
+        QTableWidget, QTableWidgetItem, QSizePolicy, QLCDNumber, QGroupBox, QFrame, QSlider, QStyle, QStyleOptionSlider) # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt6.QtGui import QPen, QPainter, QFontMetrics, QColor, QCursor, QEnterEvent, QPaintEvent # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import (Qt, pyqtSignal, pyqtSlot, pyqtProperty, QLine, QEvent, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
         QByteArray, QPropertyAnimation, QEasingCurve, QLocale) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QLabel, QComboBox, QTextEdit, QDoubleSpinBox, QPushButton, # @UnusedImport @Reimport  @UnresolvedImport
-        QTableWidgetItem, QSizePolicy, QLCDNumber, QGroupBox, QFrame) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import QFontMetrics, QColor, QCursor # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import (QApplication, QSplitter, QSplitterHandle, QLabel, QComboBox, QLineEdit, QTextEdit, QDoubleSpinBox, QPushButton, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+        QTableWidget, QTableWidgetItem, QSizePolicy, QLCDNumber, QGroupBox, QFrame, QSlider, QStyle, QStyleOptionSlider) # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtGui import QPen, QPainter, QFontMetrics, QColor, QCursor, QEnterEvent, QPaintEvent # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
 
-class MyQComboBox(QComboBox): # pylint: disable=too-few-public-methods
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+
+
+@contextmanager
+def wait_cursor() -> Iterator[None]:
+    try:
+        QApplication.setOverrideCursor(Qt.CursorShape.BusyCursor)
+        yield
+    finally:
+        QApplication.restoreOverrideCursor()
+
+class MyQComboBox(QComboBox): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods  # pyright: ignore [reportGeneralTypeIssues]# Argument to class must be a base class
+    def __init__(self, parent:Optional['QWidget'] = None, **kwargs:Dict[Any,Any]) -> None:
+        super().__init__(parent, **kwargs) # pyrefly: ignore
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
-    def wheelEvent(self, *args, **kwargs):
+    def wheelEvent(self, event:'Optional[QWheelEvent]') -> None:
         if self.hasFocus():
-            return QComboBox.wheelEvent(self, *args, **kwargs)
-        return None
+            super().wheelEvent(event)
 
-class MyQDoubleSpinBox(QDoubleSpinBox):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class MyContentLimitedQComboBox(MyQComboBox): # pylint: disable=too-few-public-methods  # pyright: ignore [reportGeneralTypeIssues]# Argument to class must be a base class
+    def __init__(self, parent:Optional['QWidget'] = None, **kwargs:Dict[Any,Any]) -> None:
+        super().__init__(parent, **kwargs) # pyrefly: ignore
+        # setting max number visible limit
+        self.setMaxVisibleItems(20)
+        # ensure Qt style for this widget
+        self.setStyleSheet('combobox-popup: 0;')
+        # add scroll barspacer
+        view = self.view()
+        if view is not None:
+            view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+class MyQDoubleSpinBox(QDoubleSpinBox): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+    def __init__(self, parent:Optional['QWidget'] = None, **kwargs:Dict[str,Any]) -> None:
+        super().__init__(parent, **kwargs) # pyrefly: ignore
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setLocale(QLocale('C'))
 
-    def wheelEvent(self, *args, **kwargs):
+    def wheelEvent(self, event:'Optional[QWheelEvent]') -> None:
         if self.hasFocus():
-            return QDoubleSpinBox.wheelEvent(self, *args, **kwargs)
-        return None
+            super().wheelEvent(event)
 
     # we re-direct the mouse double-click event to the standard mouse press event and add
     # the (at least in PyQt 5.12.2/5.12.3) missing mouse release event
     # which had the effect that a double click an DoubleSpinBox arrow in the Cup Profile dialog
     # leads to a non-terminating sequence of setvalue() calls until the end of the spinner is reached.
     # Note: a triple click still has this effect
-    def mouseDoubleClickEvent(self, event):
+    def mouseDoubleClickEvent(self, event:'Optional[QMouseEvent]') -> None:
         super().mouseReleaseEvent(event)
         super().mouseDoubleClickEvent(event)
         super().mouseReleaseEvent(event)
 
-class MyTableWidgetItemQLineEdit(QTableWidgetItem): # pylint: disable= too-few-public-methods
+class MyQTableWidget(QTableWidget): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+    def __init__(self, parent:Optional['QWidget'] = None, **kwargs:Dict[Any,Any]) -> None:
+        super().__init__(parent, **kwargs) # pyrefly: ignore
+        self.installEventFilter(self)
+        self.cursor_navigation:bool = True
+
+    #keyboard presses. There must not be widgets (pushbuttons, comboboxes, etc) in focus in order to work
+    def keyPressEvent(self, event: 'Optional[QKeyEvent]') -> None:
+        if event is not None and event.key() == Qt.Key.Key_Tab and self.cursor_navigation:
+            self.cursor_navigation = False
+            self.setCurrentCell(max(-1,self.currentRow()-1), 0)
+        super().keyPressEvent(event)
+
+    def eventFilter(self, obj:'Optional[QObject]', event:'Optional[QEvent]') -> bool:
+        # pylint: disable=c-extension-no-member
+        try:
+            if event is not None and event.type() == QEvent.Type.KeyPress:
+                key = event.key()  # type:ignore[attr-defined] # "QEvent" has no attribute "key"
+                if key == Qt.Key.Key_Left:
+                    self.cursor_navigation = True
+                    vheader = self.verticalHeader()
+                    if vheader is not None:
+                        vheader.setFocus()
+                elif key == Qt.Key.Key_Right:
+                    self.cursor_navigation = False
+                    current_row = self.currentRow()
+                    cellWidget = self.cellWidget(current_row,0)
+                    if cellWidget is not None:
+                        cellWidget.setFocus()
+        except Exception: # pylint: disable=broad-except
+            pass
+        return super().eventFilter(obj, event)
+
+
+
+class MyTableWidgetItemQLineEdit(QTableWidgetItem): # pyrefly:ignore[invalid-inheritance] # pylint: disable= too-few-public-methods  # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     __slots__ = ['sortKey'] # save some memory by using slots
-    def __init__(self, sortKey):
+    def __init__(self, sortKey:QLineEdit) -> None:
         #call custom constructor with UserType item type
-        super().__init__('', 1001) #QTableWidgetItem.ItemType.UserType)
+        super().__init__('', 1001) #QTableWidgetItem.ItemType.UserType) # pyrefly: ignore
         self.sortKey = sortKey
 
     #Qt uses a simple < check for sorting items, override this to use the sortKey
-    def __lt__(self, other):
+    def __lt__(self, other:'MyTableWidgetItemQLineEdit') -> bool: # type: ignore[override]
         a = self.sortKey.text()
         b = other.sortKey.text()
-        if len(a) == 5 and len(b) == 5 and a[2] == ':' and b[2] == ':':
-            # we compare times
-            return stringtoseconds(a) < stringtoseconds(b)
         try:
+            if len(a) == 5 and len(b) == 5 and a[2] == ':' and b[2] == ':':
+                # we compare times (not that stringtoseconds can still throw an exception on malformed input)
+                return stringtoseconds(a) < stringtoseconds(b)
             # if those are numbers
             return int(a) < int(b)
         except Exception: # pylint: disable=broad-except
             # else we do a string compare
             return a < b
 
-class MyTableWidgetItemQTime(QTableWidgetItem): # pylint: disable= too-few-public-methods
+class MyTableWidgetItemQTime(QTableWidgetItem): # pyrefly:ignore[invalid-inheritance] # pylint: disable= too-few-public-methods  # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     __slots__ = ['sortKey'] # save some memory by using slots
-    def __init__(self, sortKey):
+    def __init__(self, sortKey:'QTimeEdit') -> None:
         #call custom constructor with UserType item type
-        super().__init__('', 1002) #QTableWidgetItem.ItemType.UserType)
+        super().__init__('', 1002) #QTableWidgetItem.ItemType.UserType) # pyrefly: ignore
         self.sortKey = sortKey
 
     #Qt uses a simple < check for sorting items, override this to use the sortKey
-    def __lt__(self, other):
+    def __lt__(self, other:'MyTableWidgetItemQTime') -> bool: # type: ignore[override]
         a = self.sortKey.time().minute() * 60 + self.sortKey.time().second()
         b = other.sortKey.time().minute() * 60 + other.sortKey.time().second()
         return a < b
 
-class MyTableWidgetItemNumber(QTableWidgetItem): # pylint: disable= too-few-public-methods
+class MyTableWidgetItemNumber(QTableWidgetItem): # pyrefly:ignore[invalid-inheritance] # pylint: disable= too-few-public-methods  # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     __slots__ = ['sortKey'] # save some memory by using slots
-    def __init__(self, text, sortKey):
-        super().__init__(text, 1003) #QTableWidgetItem.ItemType.UserType)
+    def __init__(self, text:str, sortKey:float) -> None:
+        super().__init__(text, 1003) #QTableWidgetItem.ItemType.UserType) # pyrefly: ignore
         self.sortKey = sortKey
 
     #Qt uses a simple < check for sorting items, override this to use the sortKey
-    def __lt__(self, other):
+    def __lt__(self, other:'MyTableWidgetItemNumber') -> bool: # type: ignore[override]
         return self.sortKey < other.sortKey
 
-class MyTableWidgetItemQCheckBox(QTableWidgetItem): # pylint: disable= too-few-public-methods
+class MyTableWidgetItemQCheckBox(QTableWidgetItem): # pyrefly:ignore[invalid-inheritance] # pylint: disable= too-few-public-methods  # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base clas
     __slots__ = ['sortKey'] # save some memory by using slots
-    def __init__(self, sortKey):
+    def __init__(self, sortKey:'QCheckBox') -> None:
         #call custom constructor with UserType item type
-        super().__init__('', 1004) #QTableWidgetItem.ItemType.UserType)
+        super().__init__('', 1004) #QTableWidgetItem.ItemType.UserType) # pyrefly: ignore
         self.sortKey = sortKey
 
     #Qt uses a simple < check for sorting items, override this to use the sortKey
-    def __lt__(self, other):
+    def __lt__(self, other:'MyTableWidgetItemQCheckBox') -> bool: # type: ignore[override]
         return self.sortKey.isChecked() < other.sortKey.isChecked()
 
-class MyTableWidgetItemQComboBox(QTableWidgetItem): # pylint: disable= too-few-public-methods
+class MyTableWidgetItemQComboBox(QTableWidgetItem): # pyrefly:ignore[invalid-inheritance] # pylint: disable= too-few-public-methods  # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     __slots__ = ['sortKey'] # save some memory by using slots
-    def __init__(self, sortKey):
+    def __init__(self, sortKey:'QComboBox') -> None:
         #call custom constructor with UserType item type
-        super().__init__('', 1005) # QTableWidgetItem.ItemType.UserType)
+        super().__init__('', 1005) # QTableWidgetItem.ItemType.UserType) # pyrefly: ignore
         self.sortKey = sortKey
 
     #Qt uses a simple < check for sorting items, override this to use the sortKey
-    def __lt__(self, other):
+    def __lt__(self, other:'MyTableWidgetItemQComboBox') -> bool: # type: ignore[override]
         return str(self.sortKey.currentText()) < str(other.sortKey.currentText())
 
+
+# Slider which does not move if slider widget is clicked, only if slider bar is clicked
+class SliderUnclickable(QSlider): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+    focus_in = pyqtSignal()
+    focus_out = pyqtSignal()
+
+    def mousePressEvent(self, event:'Optional[QMouseEvent]') -> None:
+        opt = QStyleOptionSlider()
+        self.initStyleOption(opt)
+        slider_style:Optional[QStyle] = self.style()
+        if event is not None and slider_style is not None:
+            pressedControl = slider_style.hitTestComplexControl(QStyle.ComplexControl.CC_Slider, opt, event.pos(), self)
+            #if pressedControl in {QStyle.SubControl.SC_SliderGroove, QStyle.SubControl.SC_SliderHandle, QStyle.SubControl.SC_ScrollBarSubLine}:
+            if pressedControl is not QStyle.SubControl.SC_None:
+                super().mousePressEvent(event)
+
+    def focusInEvent(self, event:'Optional[QFocusEvent]') -> None:
+        super().focusInEvent(event)
+        if event is not None:
+            self.focus_in.emit()
+
+    def focusOutEvent(self, event:'Optional[QFocusEvent]') -> None:
+        super().focusOutEvent(event)
+        if event is not None:
+            self.focus_out.emit()
+
+
 # QLabel that automatically resizes its text font
-class MyQLabel(QLabel):
-    def __init__(self, *args, **kargs):
-        super().__init__(*args, **kargs)
+class MyQLabel(QLabel): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+    def __init__(self, text: Optional[str] = None, parent: Optional['QWidget'] = None, flags: Qt.WindowType = Qt.WindowType.Widget) -> None:
+        super().__init__(text, parent, flags) # pyrefly: ignore
         self.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Ignored,QSizePolicy.Policy.Ignored))
         self.setMinSize(14)
 
-    def setMinSize(self, minfs):
+    def setMinSize(self, minfs:int) -> None:
         f = self.font()
         f.setPixelSize(minfs)
         br = QFontMetrics(f).boundingRect(self.text())
         self.setMinimumSize(br.width(), br.height())
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event:'Optional[QResizeEvent]') -> None:
         super().resizeEvent(event)
-        if not self.text():
-            return
-        #--- fetch current parameters ----
-        f = self.font()
-        cr = self.contentsRect()
-        #--- iterate to find the font size that fits the contentsRect ---
-        dw = event.size().width() - event.oldSize().width()   # width change
-        dh = event.size().height() - event.oldSize().height() # height change
-        fs = max(f.pixelSize(), 1)
-        while True:
-            f.setPixelSize(fs)
-            br =  QFontMetrics(f).boundingRect(self.text())
-            if dw >= 0 and dh >= 0: # label is expanding
-                if br.height() <= cr.height() and br.width() <= cr.width():
-                    fs += 1
-                else:
-                    f.setPixelSize(max(fs - 1, 1)) # backtrack
-                    break
-            else: # label is shrinking
-                if br.height() > cr.height() or br.width() > cr.width():
+        if event is not None:
+            if not self.text():
+                return
+            #--- fetch current parameters ----
+            f = self.font()
+            cr = self.contentsRect()
+            #--- iterate to find the font size that fits the contentsRect ---
+            dw = event.size().width() - event.oldSize().width()   # width change
+            dh = event.size().height() - event.oldSize().height() # height change
+            fs = max(f.pixelSize(), 1)
+            while True:
+                f.setPixelSize(fs)
+                br =  QFontMetrics(f).boundingRect(self.text())
+                if dw >= 0 and dh >= 0: # label is expanding
+                    if br.height() <= cr.height() and br.width() <= cr.width():
+                        fs += 1
+                    else:
+                        f.setPixelSize(max(fs - 1, 1)) # backtrack
+                        break
+                # label is shrinking
+                elif br.height() > cr.height() or br.width() > cr.width():
                     fs -= 1
                 else:
                     break
-            if fs < 1: break
-        #--- update font size ---
-        self.setFont(f)
+                if fs < 1:
+                    break
+            #--- update font size ---
+            self.setFont(f)
 
 
-class ClickableQLabel(QLabel): # pylint: disable=too-few-public-methods
+class ClickableQLabel(QLabel): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     clicked = pyqtSignal()
     left_clicked = pyqtSignal()
     right_clicked = pyqtSignal()
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event:'Optional[QMouseEvent]') -> None:
         super().mousePressEvent(event)
-        self.clicked.emit()
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.left_clicked.emit()
-        elif event.button() == Qt.MouseButton.RightButton:
-            self.right_clicked.emit()
+        if event is not None:
+            self.clicked.emit()
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.left_clicked.emit()
+            elif event.button() == Qt.MouseButton.RightButton:
+                self.right_clicked.emit()
 
-class ClickableQGroupBox(QGroupBox): # pylint: disable=too-few-public-methods
+class ClickableQGroupBox(QGroupBox): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     clicked = pyqtSignal()
     left_clicked = pyqtSignal()
     right_clicked = pyqtSignal()
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event:'Optional[QMouseEvent]') -> None:
         super().mousePressEvent(event)
-        self.clicked.emit()
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.left_clicked.emit()
-        elif event.button() == Qt.MouseButton.RightButton:
-            self.right_clicked.emit()
+        if event is not None:
+            self.clicked.emit()
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.left_clicked.emit()
+            elif event.button() == Qt.MouseButton.RightButton:
+                self.right_clicked.emit()
 
-class MyQLCDNumber(QLCDNumber): # pylint: disable=too-few-public-methods
+class MyQLCDNumber(QLCDNumber): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+    clicked = pyqtSignal()
+    left_clicked = pyqtSignal()
+    right_clicked = pyqtSignal()
+    double_clicked = pyqtSignal()
+
+    def mousePressEvent(self, event:'Optional[QMouseEvent]') -> None:
+        super().mousePressEvent(event)
+        if event is not None:
+            self.clicked.emit()
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.left_clicked.emit()
+            elif event.button() == Qt.MouseButton.RightButton:
+                self.right_clicked.emit()
+
+    def mouseDoubleClickEvent(self, event:'Optional[QMouseEvent]') -> None:
+        super().mousePressEvent(event)
+        if event is not None:
+            self.double_clicked.emit()
+
+class ClickableLCDFrame(QFrame): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     clicked = pyqtSignal()
     left_clicked = pyqtSignal()
     right_clicked = pyqtSignal()
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event:'Optional[QMouseEvent]') -> None:
         super().mousePressEvent(event)
-        self.clicked.emit()
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.left_clicked.emit()
-        elif event.button() == Qt.MouseButton.RightButton:
-            self.right_clicked.emit()
-
-class ClickableLCDFrame(QFrame): # pylint: disable=too-few-public-methods
-    clicked = pyqtSignal()
-    left_clicked = pyqtSignal()
-    right_clicked = pyqtSignal()
-
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        self.clicked.emit()
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.left_clicked.emit()
-        elif event.button() == Qt.MouseButton.RightButton:
-            self.right_clicked.emit()
+        if event is not None:
+            self.clicked.emit()
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.left_clicked.emit()
+            elif event.button() == Qt.MouseButton.RightButton:
+                self.right_clicked.emit()
 
 
 # this one emits a clicked event on right-clicks and an editingFinished event when the text was changed and the focus got lost
-class ClickableTextEdit(QTextEdit): # ylint: disable=too-few-public-methods
+class ClickableTextEdit(QTextEdit): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     clicked = pyqtSignal()
     editingFinished = pyqtSignal()
     receivedFocus = pyqtSignal()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent:Optional['QWidget'] = None, **kwargs:Dict[str,Any]) -> None:
+        super().__init__(parent, **kwargs) # pyrefly: ignore
         self._changed = False
         self.setTabChangesFocus(True)
         self.textChanged.connect(self._handle_text_changed)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event:'Optional[QMouseEvent]') -> None:
         super().mousePressEvent(event)
-        if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+        if event is not None and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self.clicked.emit()
 
-    def focusInEvent(self, event):
+    def focusInEvent(self, event:'Optional[QFocusEvent]') -> None:
         super().focusInEvent(event)
-        self.receivedFocus.emit()
+        if event is not None:
+            self.receivedFocus.emit()
 
-    def focusOutEvent(self, event):
-        if self._changed:
+    def focusOutEvent(self, event:'Optional[QFocusEvent]') -> None:
+        if event is not None and self._changed:
             self.editingFinished.emit()
         super().focusOutEvent(event)
 
     @pyqtSlot()
-    def _handle_text_changed(self):
+    def _handle_text_changed(self) -> None:
         self._changed = True
 
-    def setTextChanged(self, state=True):
+    def setTextChanged(self, state:bool = True) -> None:
         self._changed = state
 
-    def setNewPlainText(self, text):
+    def setNewPlainText(self, text:str) -> None:
         QTextEdit.setPlainText(self, text)
+        self._changed = False
+
+# this one emits a clicked event on right-clicks and an editingFinished event when the text was changed and the focus got lost
+class ClickableQLineEdit(QLineEdit): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+    clicked = pyqtSignal()
+    editingFinished = pyqtSignal()
+    receivedFocus = pyqtSignal()
+
+    def __init__(self, parent:Optional['QWidget'] = None, **kwargs:Dict[str,Any]) -> None:
+        super().__init__(parent, **kwargs) # pyrefly: ignore
+        self._changed = False
+        self.textChanged.connect(self._handle_text_changed)
+
+    def mousePressEvent(self, event:'Optional[QMouseEvent]') -> None:
+        super().mousePressEvent(event)
+        if event is not None and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            self.clicked.emit()
+
+    def focusInEvent(self, event:'Optional[QFocusEvent]') -> None:
+        super().focusInEvent(event)
+        if event is not None:
+            self.receivedFocus.emit()
+
+    def focusOutEvent(self, event:'Optional[QFocusEvent]') -> None:
+        if event is not None and self._changed:
+            self.editingFinished.emit()
+        super().focusOutEvent(event)
+
+    @pyqtSlot()
+    def _handle_text_changed(self) -> None:
+        self._changed = True
+
+    def setTextChanged(self, state:bool = True) -> None:
+        self._changed = state
+
+    def setNewText(self, text:str) -> None:
+        QLineEdit.setText(self, text)
         self._changed = False
 
 
@@ -278,15 +414,15 @@ def pushButtonColorStyle(
         state: str='',
         color:Optional[str]=None,
         background:Optional[str]=None,
-        font_size:Optional[int]=None):
+        font_size:Optional[int]=None) -> str:
     color = ('' if color is None else f'color:{color};')
     background = ('' if background is None else f'background-color:{background};')
-    font_size = ('' if font_size is None else f'font-size:{font_size}pt;')
-    return f'{class_name}{selector}{state}{{{color}{background}{font_size}}}'
+    font_size_str = ('' if font_size is None else f'font-size:{font_size}pt;')
+    return f'{class_name}{selector}{state}{{{color}{background}{font_size_str}}}'
 
-class EventPushButton(QPushButton): # pylint: disable=too-few-public-methods
-    def __init__(self, background_color, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class EventPushButton(QPushButton): # pyrefly:ignore[invalid-inheritance] # pylint: disable=too-few-public-methods # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+    def __init__(self, text:str, parent:Optional['QWidget'] = None, background_color:str = '#777777') -> None:
+        super().__init__(text, parent) # pyrefly: ignore
         self.default_background_color = background_color
         self.default_style = pushButtonColorStyle('*',
             selector='[Selected=false]',
@@ -297,20 +433,21 @@ class EventPushButton(QPushButton): # pylint: disable=too-few-public-methods
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.setProperty('Selected', False)
 
-    def setSelected(self, b):
+    def setSelected(self, b:bool) -> None:
         self.setProperty('Selected', b)
         # Update the style
-        self.setStyle(self.style())
+#        self.setStyle(self.style()) # this seems not to work any longer to update selected style of buttons in Qt 6.9.2
+        self.setStyleSheet(self.styleSheet()) # this works in Qt 6.9.2 to update the selected style of buttons
 
 
 class MajorEventPushButton(EventPushButton): # pylint: disable=too-few-public-methods
-    def __init__(self, *args, background_color = '#147bb3', **kwargs):
-        super().__init__(background_color, *args, **kwargs)
+    def __init__(self, text:str, parent:Optional['QWidget'] = None, background_color:str = '#147bb3') -> None:
+        super().__init__(text, parent, background_color)
 
 
 class AnimatedMajorEventPushButton(MajorEventPushButton):
-    def __init__(self, *args, background_color = '#147bb3', **kwargs):
-        super().__init__(*args, background_color=background_color, **kwargs)
+    def __init__(self, text:str, parent:Optional['QWidget'] = None, background_color:str = '#147bb3') -> None:
+        super().__init__(text, parent, background_color)
 
         # we make the dark animation color slightly darker than the background:
         anim_dark_color = QColor(background_color).lighter(80)
@@ -357,42 +494,99 @@ class AnimatedMajorEventPushButton(MajorEventPushButton):
         self.selected_animation.setLoopCount(-1)
         self.selected_animation.setEasingCurve(QEasingCurve.Type.OutInCubic)
 
-        self.current_style = None
 
-    def setSelected(self, b):
+    def setSelected(self, b:bool) -> None:
         super().setSelected(b)
         if self.animating:
             # we stop the running animation and restart it to adjust to the changed selected state
             self.stopAnimation()
             self.startAnimation()
 
-    def startAnimation(self):
-        self.current_style = self.styleSheet()
+    def startAnimation(self) -> None:
         if self.property('Selected'):
             self.selected_animation.start()
         else:
             self.animation.start()
         self.animating = True
 
-    def stopAnimation(self):
+    def stopAnimation(self) -> None:
         self.animation.stop()
         self.selected_animation.stop()
-        self.setStyleSheet(self.current_style)
+        self.setStyleSheet(self.styleSheet())
         self.animating = False
 
     # pylint: disable=no-self-use
-    def getBackColor(self):
+    def getBackColor(self) -> QColor:
         return QColor()
 
-    def setBackColor(self, color):
+    def setBackColor(self, color:QColor) -> None:
         self.setStyleSheet(f'QPushButton:!flat:!pressed{{background-color:{color.name()};}}')
 
     zcolor = pyqtProperty(QColor, getBackColor, setBackColor)
 
 class MinorEventPushButton(EventPushButton): # pylint: disable=too-few-public-methods
-    def __init__(self, *args, background_color = '#66b8d7', **kwargs):
-        super().__init__(background_color, *args, **kwargs)
+    def __init__(self, text:str, parent:Optional['QWidget'] = None, background_color:str = '#4c97c3') -> None:
+        super().__init__(text, parent, background_color)
 
 class AuxEventPushButton(EventPushButton): # pylint: disable=too-few-public-methods
-    def __init__(self, *args, background_color = '#bdbdbd', **kwargs):
-        super().__init__(background_color, *args, **kwargs)
+    def __init__(self, text:str, parent:Optional['QWidget'] = None, background_color:str = '#bdbdbd') -> None:
+        super().__init__(text, parent, background_color)
+
+
+
+###
+
+# only vertical mode supported by SplitterHandler for now
+class SplitterHandle(QSplitterHandle): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues]# Argument to class must be a base class
+
+    def __init__(self, *args:Any, **kwargs:Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.pen_color_normal = QColor(150, 150, 150)
+        self.pen_color_hover_lightmode = QColor(110, 110, 110)
+        self.pen_color_hover_darkmode = QColor(190, 190, 190)
+        self.pen_color = self.pen_color_normal
+
+    def enterEvent(self, event:Optional[QEnterEvent]) -> None:
+        if event is not None:
+            app:Optional[QCoreApplication] = QApplication.instance()
+            if app is not None and app.darkmode: # type:ignore[attr-defined]
+                self.pen_color = self.pen_color_hover_darkmode
+            else:
+                self.pen_color = self.pen_color_hover_lightmode
+            self.repaint()
+
+    def leaveEvent(self, event:Optional[QEvent]) -> None:
+        if event is not None:
+            self.pen_color = self.pen_color_normal
+            self.repaint()
+
+    def paintEvent(self, event:Optional[QPaintEvent]) -> None:
+        super().paintEvent(event)
+        painter = QPainter(self)
+        pen = QPen()
+        pen.setColor(self.pen_color)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setWidth(2)
+        painter.setPen(pen)
+        painter.setRenderHint(painter.RenderHint.Antialiasing)
+
+        h = self.height()
+        hh = int(round(h/2))
+        ww = int(round(self.width()/2))
+
+        x0 = ww - h
+        x1 = ww + h
+
+        painter.drawLines(
+            QLine(x0, hh + 2, x1, hh + 2),
+            QLine(x0, hh - 2, x1, hh - 2))
+
+
+# only vertical mode supported by SplitterHandler for now
+class Splitter(QSplitter):  # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues]# Argument to class must be a base class
+    def __init__(self, *args:Any, **kwargs:Any):
+        super().__init__(*args, *kwargs)
+        self.setHandleWidth(10)
+
+    def createHandle(self) -> QSplitterHandle:
+        return SplitterHandle(self.orientation(), self)

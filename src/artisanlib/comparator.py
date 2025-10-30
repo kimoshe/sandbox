@@ -13,234 +13,307 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2020
+# Marko Luther, 2023
 
 import sys
 import platform
 import numpy
 from matplotlib import ticker, transforms
-import matplotlib.patheffects as PathEffects
 from matplotlib import rcParams
-if sys.platform.startswith('darwin'):
-    # import module to detect if OS X dark mode is active or not
-    import darkdetect # @UnresolvedImport # plint: disable=import-error
 import logging
-try:
-    from typing import Final
-except ImportError:
-    # for Python 3.7:
-    from typing_extensions import Final
+from typing import Final, TypedDict, Sequence, List, Union, Tuple, Optional, Literal, Callable, cast, TYPE_CHECKING
 
-from artisanlib.util import deltaLabelUTF8, decodeLocal, stringfromseconds, appFrozen, fromFtoC, fromCtoF, fill_gaps
+if TYPE_CHECKING:
+    from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
+    from artisanlib.atypes import ProfileData # pylint: disable=unused-import
+    from matplotlib.lines import Line2D # pylint: disable=unused-import
+    from matplotlib.backend_bases import PickEvent # pylint: disable=unused-import
+    from matplotlib.legend import Legend # pylint: disable=unused-import
+    from PyQt6.QtWidgets import QLayoutItem, QLayout, QScrollBar # pylint: disable=unused-import
+    from PyQt6.QtGui import QStandardItem, QKeyEvent, QDropEvent, QDragEnterEvent, QCloseEvent # pylint: disable=unused-import
+    from PyQt6.QtCore import QMimeData # pylint: disable=unused-import
+
+from artisanlib.util import (deltaLabelUTF8, decodeLocal, decodeLocalStrict, stringfromseconds, fromFtoCstrict,
+        fromCtoFstrict, fill_gaps, float2float, deserialize, float2str)
 from artisanlib.suppress_errors import suppress_stdout_stderr
 from artisanlib.dialogs import ArtisanDialog
 from artisanlib.widgets import MyQComboBox
 from artisanlib.qcheckcombobox import CheckComboBox
 
 with suppress_stdout_stderr():
-    from matplotlib import cm
+    from matplotlib import colormaps
 
 try:
-    #ylint: disable = E, W, R, C
     from PyQt6.QtCore import (Qt, pyqtSignal, pyqtSlot, QSettings, QFile, QTextStream, QUrl,  # @UnusedImport @Reimport  @UnresolvedImport
-        QCoreApplication, QFileInfo, QDate, QTime, QDateTime) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtGui import (QColor, QDesktopServices) # @UnusedImport @Reimport  @UnresolvedImport
+        QFileInfo, QDate, QTime, QDateTime) # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt6.QtGui import (QColor, QDesktopServices, QStandardItemModel) # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QTableWidget, QPushButton,  # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QSizePolicy, QHBoxLayout, QVBoxLayout, QHeaderView, QTableWidgetItem, QCheckBox) # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import (Qt, pyqtSignal, pyqtSlot, QSettings, QFile, QTextStream, QUrl,  # @UnusedImport @Reimport  @UnresolvedImport
-        QCoreApplication, QFileInfo, QDate, QTime, QDateTime) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import (QColor, QDesktopServices) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QTableWidget, QPushButton,  # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import (Qt, pyqtSignal, pyqtSlot, QSettings, QFile, QTextStream, QUrl, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+        QFileInfo, QDate, QTime, QDateTime) # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtGui import (QColor, QDesktopServices, QStandardItemModel) # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QTableWidget, QPushButton, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QSizePolicy, QHBoxLayout, QVBoxLayout, QHeaderView, QTableWidgetItem, QCheckBox) # @UnusedImport @Reimport  @UnresolvedImport
 
 
-_log: Final = logging.getLogger(__name__)
+_log: Final[logging.Logger] = logging.getLogger(__name__)
 
-class RoastProfile():
+class Metadata(TypedDict, total=False):
+    roastdate: QDateTime
+    roastoftheday: str
+    beans: str
+    weight: str
+    moisture_greens: float
+    ambientTemp: str
+    ambient_humidity: str
+    ambient_pressure: str
+    weight_loss: str
+    ground_color: str
+    AUC: str
+    roastingnotes: str
+    cuppingnotes: str
+
+
+class RoastProfile:
     __slots__ = ['aw', 'visible', 'aligned', 'active', 'color', 'gray', 'label', 'title', 'curve_visibilities', 'event_visibility', 'zorder',
-        'zorder_offsets', 'alpha', 'alpha_dim_factor', 'timeoffset', 'max_DeltaET', 'max_DeltaBT', 'startTimeIdx', 'endTimeIdx', 'min_time', 'max_time',
-        'UUID', 'filepath', 'timeindex', 'timex', 'temp1', 'temp2', 'E1', 'E2', 'E3', 'E4', 'stemp1', 'stemp2', 'delta1', 'delta2', 'events1',
-        'events2', 'events_timex', 'l_temp1', 'l_temp2', 'l_delta1', 'l_delta2', 'l_mainEvents1', 'l_mainEvents2', 'l_events1', 'l_events2',
-        'l_events3', 'l_events4', 'ambientTemp', 'metadata', 'specialevents', 'specialeventstype', 'specialeventsvalue', 'TP']
+        'zorder_offsets', 'alpha', 'alpha_dim_factor', 'timeoffset', 'max_DeltaET', 'max_DeltaBT',
+        'startTimeIdx', 'endTimeIdx', 'min_time', 'max_time', 'filepath', 'extraname1', 'extraname2', 'extra1_curve_visibilities', 'extra2_curve_visibilities',
+        'timeindex', 'timex', 'temp1', 'temp2', 'extratimex', 'extratemp1', 'extratemp2', 'extrastemp1', 'extrastemp2',
+        'E1', 'E2', 'E3', 'E4', 'stemp1', 'stemp2', 'delta1', 'delta2', 'etypes', 'events1', 'extraDelta1', 'extraDelta2',
+        'events2', 'events_timex', 'l_temp1', 'l_temp2', 'l_extratemp1', 'l_extratemp2', 'l_delta1', 'l_delta2',
+        'l_mainEvents1', 'l_mainEvents2', 'l_events1', 'l_events2', 'l_events3', 'l_events4',
+        'ambientTemp', 'metadata', 'specialevents', 'specialeventstype', 'specialeventsvalue', 'TP']
 
     # NOTE: filepath/filename can also be a URL string
-    def __init__(self, aw, profile, filepath, color):
+    def __init__(self, aw:'ApplicationWindow', profile:'ProfileData', filepath:str, color: Tuple[float, float, float, float]) -> None:
         self.aw = aw
         # state:
-        self.visible = True
-        self.aligned = True # if the profile could not be aligned it is not drawn
-        self.active = True # if selected or all are unselected; active profiles are drawn in color, inactive profiles in gray
-        self.color = color
-        hslf = QColor.fromRgbF(*color).getHslF()
-        self.gray = QColor.fromHslF(hslf[0],0,hslf[2],hslf[3]).getRgbF() # saturation set to 0
-        self.label = ''
-        self.title = ''
+        self.visible:bool = True
+        self.aligned:bool = True # if the profile could not be aligned it is not drawn
+        self.active:bool = True # if selected or all are unselected; active profiles are drawn in color, inactive profiles in gray
+        self.color:Tuple[float, float, float, float] = color
+        hslf:Tuple[Optional[float], Optional[float], Optional[float], Optional[float]] = QColor.fromRgbF(*color).getHslF() # ty:ignore[missing-argument]
+        self.gray:Tuple[float, float, float, float]
+        ch:Optional[float] = hslf[0]
+        cl:Optional[float] = hslf[2]
+        ca:Optional[float] = hslf[3]
+        if ch is not None and cl is not None and ca is not None:
+            g0 = QColor.fromHslF(ch,0,cl,ca)
+        else:
+            g0 = QColor.fromHslF(0.5,0,0.5,0.5) # saturation set to 0
+        self.gray = (
+                (0 if g0.redF() is None else g0.redF()),
+                (0 if g0.greenF() is None else g0.greenF()),
+                (0 if g0.blueF() is None else g0.blueF()),
+                (0 if g0.alphaF() is None else g0.alphaF()))
+        self.label:str = ''
+        self.title:str = ''
         #
-        self.curve_visibilities = [True]* 5 # visibility of ET, BT, DeltaET, DeltaBT, events curves
-        self.event_visibility = 0 # either 0, or the number of the event line that is to be shown
+        self.curve_visibilities:List[bool] = [True]*5 # visibility of ET, BT, DeltaET, DeltaBT, events curves
+        self.extra1_curve_visibilities:List[bool] = [True]*self.aw.nLCDS # extra1 curve visibilities
+        self.extra2_curve_visibilities:List[bool] = [True]*self.aw.nLCDS # extra2 curve visibilities
+        self.event_visibility:int = 0 # either 0, or the number of the event line that is to be shown
         #
         self.zorder = 0 # artists with higher zorders are drawn on top of others (0-9)
-        # zorder offset is added per curve type: events1, events2, BT, ET, DeltaBT, DeltaET, custom events (only one of events1/events2 active!)
-        self.zorder_offsets = [80,60,80,60,40,20,0]
+        # zorder offset is added per curve type: events1, events2, BT, ET, DeltaBT, DeltaET, custom events, extra curves (only one of events1/events2 active!)
+        self.zorder_offsets = [100,80,100,80,60,30,10,0]
         #
-        self.alpha = [1, 0.7, 0.5, 0.4, 0.6] # color alpha per curve: BT, ET, DeltaBT, DeltaET, custom event (alpha of main events taken from the corresponding curve)
-        self.alpha_dim_factor = 0.3 # factor to be multiplied to current alpha values for inactive curves
+        self.alpha:List[float] = [1, 0.7, 0.5, 0.4, 0.6, 0.5] # color alpha per curve: BT, ET, DeltaBT, DeltaET, custom events, extra curves (alpha of main events taken from the corresponding curve)
+        self.alpha_dim_factor:float = 0.3 # factor to be multiplied to current alpha values for inactive curves
         #
-        self.timeoffset = 0 # in seconds
-        self.max_DeltaET = 1
-        self.max_DeltaBT = 1
-        self.startTimeIdx = 0 # start index: either index of CHARGE if set or 0, set by recompute()
-        self.endTimeIdx = 0   # end index: either index of DROP or last index, set by recompute()
-        self.min_time = 0 # the minimum display time of this profile after alignment
-        self.max_time = 0 # the maximum display time of this profile after alignment
+        self.timeoffset:float = 0 # in seconds
+        self.max_DeltaET:float = 1
+        self.max_DeltaBT:float = 1
+        self.startTimeIdx:int = 0 # start index: either index of CHARGE if set or 0, set by recompute()
+        self.endTimeIdx:int = 0   # end index: either index of DROP or last index, set by recompute()
+        self.min_time:float = 0 # the minimum display time of this profile after alignment
+        self.max_time:float = 0 # the maximum display time of this profile after alignment
         # profile data:
-        self.UUID = None
         self.filepath = filepath
-        self.timeindex = [-1,0,0,0,0,0,0,0]
-        self.timex = None
-        self.temp1 = None # holds raw data with gaps filled on loading
-        self.temp2 = None # holds raw data with gaps filled on loading
+        self.timeindex:List[int] = [-1,0,0,0,0,0,0,0]
+        self.timex:List[float] = []
+        self.temp1:List[float] = [] # holds raw data with gaps filled on loading
+        self.temp2:List[float] = [] # holds raw data with gaps filled on loading
+        # extra device data
+        self.extratimex:List[List[float]] = []
+        self.extratemp1:List[List[float]] = [] # holds raw data with gaps filled on loading
+        self.extratemp2:List[List[float]] = [] # holds raw data with gaps filled on loading
+        self.extraname1:List[str] = []
+        self.extraname2:List[str] = []
+        self.extraDelta1: List[bool] = []
+        self.extraDelta2: List[bool] = []
         # events as list of timeidx/value pairs per event type
-        self.E1 = []
-        self.E2 = []
-        self.E3 = []
-        self.E4 = []
+        self.E1:List[Tuple[float, float]] = []
+        self.E2:List[Tuple[float, float]] = []
+        self.E3:List[Tuple[float, float]] = []
+        self.E4:List[Tuple[float, float]] = []
         # (re-)computed data:
-        self.stemp1 = None # smoothed from temp1 and cut to visible data only on recompute
-        self.stemp2 = None
-        self.delta1 = None # based on smoothed stemp1, but not yet cut data as computed in recompute, and RoR smoothing applied, then cut to visible data
-        self.delta2 = None
-        self.events1 = None # ET temperatures of main events [CHARGE, DRY, FCs, FCe, SCs, SCe, DROP], None if not set
-        self.events2 = None # BT temperatures of main events [CHARGE, DRY, FCs, FCe, SCs, SCe, DROP], None if not set
-        self.events_timex = None # roast times of main events [CHARGE, DRY, FCs, FCe, SCs, SCe, DROP] in seconds, None if not set
-        # artists
-        self.l_temp1 = None
-        self.l_temp2 = None
-        self.l_delta1 = None
-        self.l_delta2 = None
-        self.l_mainEvents1 = None
-        self.l_mainEvents2 = None
-        self.l_events1 = None
-        self.l_events2 = None
-        self.l_events3 = None
-        self.l_events4 = None
-#        # delta clipping paths
-#        self.l_delta1_clipping = None
-#        self.l_delta2_clipping = None
+        self.stemp1:Optional[Sequence[Optional[float]]] = None # smoothed from temp1 and cut to visible data only on recompute
+        self.stemp2:Optional[Sequence[Optional[float]]] = None
+        self.extrastemp1:List[Optional[Sequence[Optional[float]]]] = [] # smoothed from temp1 and cut to visible data only on recompute
+        self.extrastemp2:List[Optional[Sequence[Optional[float]]]] = []
+        self.delta1:Optional[Sequence[Optional[float]]] = None # based on smoothed stemp1, but not yet cut data as computed in recompute, and RoR smoothing applied, then cut to visible data
+        self.delta2:Optional[Sequence[Optional[float]]] = None
+        self.events1:Optional[Sequence[Optional[float]]] = None # ET temperatures of main events [CHARGE, DRY, FCs, FCe, SCs, SCe, DROP], None if not set
+        self.events2:Optional[Sequence[Optional[float]]] = None # BT temperatures of main events [CHARGE, DRY, FCs, FCe, SCs, SCe, DROP], None if not set
+        self.events_timex:Optional[Sequence[Optional[float]]] = None # roast times of main events [CHARGE, DRY, FCs, FCe, SCs, SCe, DROP] in seconds, None if not set
+        self.specialevents:Optional[List[int]] = None
+        self.specialeventstype:Optional[List[int]] = None
+        self.specialeventsvalue:Optional[List[float]] = None
+        #
+        self.etypes:List[str] = self.aw.get_profile_etypes(profile)[:-1]
+#        self.etypes:List[str] = self.aw.qmc.etypes[:-1]
+#        if 'etypes' in profile:
+#            self.etypes = [decodeLocalStrict(et) for et in profile['etypes'][:4]]
+#            if 'default_etypes' in profile:
+#                default_etypes = profile['default_etypes']
+#                for i, _ in enumerate(self.etypes):
+#                    if default_etypes[i]:
+#                        self.etypes[i] = self.aw.qmc.etypesdefault[i]
         #
         # fill profile data:
-        if 'roastUUID' in profile:
-            self.UUID = profile['roastUUID']
         if 'timex' in profile:
             self.timex = profile['timex']
         if 'temp1' in profile:
-            self.temp1 = fill_gaps(profile['temp1'])
+            self.temp1 = (fill_gaps(profile['temp1']) if self.aw.qmc.interpolateDropsflag else profile['temp1'])
         if 'temp2' in profile:
-            self.temp2 = fill_gaps(profile['temp2'])
+            self.temp2 = (fill_gaps(profile['temp2']) if self.aw.qmc.interpolateDropsflag else profile['temp2'])
         if 'timeindex' in profile:
             for i,ti in enumerate(profile['timeindex']):
                 if i < len(self.timeindex):
                     self.timeindex[i] = ti
-        elif len(profile) > 0 and ('startend' in profile or 'dryend' in profile or 'cracks' in profile):
-            try:
-                ###########      OLD PROFILE FORMAT
-                if 'startend' in profile:
-                    startend = [float(fl) for fl in profile['startend']]
-                else:
-                    startend = [0.,0.,0.,0.]
-                if 'dryend' in profile:
-                    dryend = profile['dryend']
-                else:
-                    dryend = [0.,0.]
-                if 'cracks' in profile:
-                    varC = [float(fl) for fl in profile['cracks']]
-                else:
-                    varC = [0.,0.,0.,0.,0.,0.,0.,0.]
-                times = []
-                times.append(startend[0])
-                times.append(dryend[0])
-                times.append(varC[0])
-                times.append(varC[2])
-                times.append(varC[4])
-                times.append(varC[6])
-                times.append(startend[2])
-                #convert to new profile
-                for i in range(len(times)):
-                    if times[i]:
-                        self.timeindex[i] = self.aw.qmc.timearray2index(self.timex,times[i])
-                    else:
-                        self.timeindex[i] = 0
-            except Exception as e: # pylint: disable=broad-except
-                _log.exception(e)
-            ###########      END OLD PROFILE FORMAT
-
+        if 'extradevices' in profile and isinstance(profile['extradevices'], list):
+            l = len(profile['extradevices'])
+            if ('extratimex' in profile and 'extratemp1' in profile and 'extratemp2' in profile and
+                'extraname1' in profile and 'extraname2' in profile and 'extraDelta1' in profile and
+                'extraDelta2' in profile):
+                xtimex = profile['extratimex'][:l]
+                xtemp1 = profile['extratemp1'][:l]
+                xtemp2 = profile['extratemp2'][:l]
+                xname1 = profile['extraname1'][:l]
+                xname2 = profile['extraname2'][:l]
+                delta1 = profile['extraDelta1'][:l]
+                delta2 = profile['extraDelta2'][:l]
+                if (isinstance(xtimex, list) and isinstance(xtemp1, list) and isinstance(xtemp2, list) and
+                        isinstance(xname1, list) and isinstance(xname2, list) and
+                        isinstance(delta1, list) and isinstance(delta2, list) and
+                        len(xtimex) == len(xtemp1) == len(xtemp2) == len(xname1) == len(xname2) == len(delta1) == len(delta2) == l):
+                    # ensure that all extra timex and temp lists are of the same length as self.timex
+                    for i, timex in enumerate(xtimex):
+                        if len(timex) == len(self.timex):
+                            self.extratimex.append(timex)
+                        else:
+                            self.extratimex.append(self.timex)
+                        if len(xtemp1[i]) == len(self.timex):
+                            self.extratemp1.append(fill_gaps(xtemp1[i]) if self.aw.qmc.interpolateDropsflag else xtemp1[i])
+                        else:
+                            self.extratemp1.append([-1.]*len(self.timex))
+                        if len(xtemp2[i]) == len(self.timex):
+                            self.extratemp2.append(fill_gaps(xtemp2[i]) if self.aw.qmc.interpolateDropsflag else xtemp2[i])
+                        else:
+                            self.extratemp2.append([-1.]*len(self.timex))
+                    self.extraname1 = [self.aw.qmc.device_name_subst(decodeLocalStrict(n)) for n in xname1] # we apply event name substitutions
+                    self.extraname2 = [self.aw.qmc.device_name_subst(decodeLocalStrict(n)) for n in xname2] # we apply event name substitutions
+                    self.extraDelta1 = delta1
+                    self.extraDelta2 = delta2
         # temperature conversion
-        if 'mode' in profile:
-            m = str(profile['mode'])
-        else:
-            m = self.aw.qmc.mode
+        m = str(profile['mode']) if 'mode' in profile else self.aw.qmc.mode
+        self.ambientTemp: float
         if 'ambientTemp' in profile:
             self.ambientTemp = profile['ambientTemp']
+        elif m == 'C':
+            self.ambientTemp = 20
         else:
-            if m == 'C':
-                self.ambientTemp = 20
-            else:
-                self.ambientTemp = 68
+            self.ambientTemp = 68
         if self.aw.qmc.mode == 'C' and m == 'F':
-            self.temp1 = [fromFtoC(t) for t in self.temp1]
-            self.temp2 = [fromFtoC(t) for t in self.temp2]
-            self.ambientTemp = fromFtoC(self.ambientTemp)
+            self.temp1 = [fromFtoCstrict(t) for t in self.temp1]
+            self.temp2 = [fromFtoCstrict(t) for t in self.temp2]
+            self.extratemp1 = [[fromFtoCstrict(t) for t in tl] for tl in self.extratemp1]
+            self.extratemp2 = [[fromFtoCstrict(t) for t in tl] for tl in self.extratemp2]
+            self.ambientTemp = fromFtoCstrict(self.ambientTemp)
         elif self.aw.qmc.mode == 'F' and m == 'C':
-            self.temp1 = [fromCtoF(t) for t in self.temp1]
-            self.temp2 = [fromCtoF(t) for t in self.temp2]
-            self.ambientTemp = fromCtoF(self.ambientTemp)
+            self.temp1 = [fromCtoFstrict(t) for t in self.temp1]
+            self.temp2 = [fromCtoFstrict(t) for t in self.temp2]
+            self.extratemp1 = [[fromCtoFstrict(t) for t in tl] for tl in self.extratemp1]
+            self.extratemp2 = [[fromCtoFstrict(t) for t in tl] for tl in self.extratemp2]
+            self.ambientTemp = fromCtoFstrict(self.ambientTemp)
         if 'title' in profile:
-            self.title = decodeLocal(profile['title'])
+            title:Optional[str] = decodeLocal(profile['title'])
+            if title is not None:
+                self.title = title
         if 'roastbatchnr' in profile and profile['roastbatchnr'] != 0:
             try:
-                self.label = decodeLocal(profile['roastbatchprefix']) + str(int(profile['roastbatchnr']))[:10]
+                batchprefix:Optional[str] = decodeLocal(profile['roastbatchprefix']) # pyright:ignore[reportTypedDictNotRequiredAccess]
+                if batchprefix is not None:
+                    self.label = batchprefix + str(int(profile['roastbatchnr']))[:10] # pyright:ignore[reportTypedDictNotRequiredAccess]
             except Exception: # pylint: disable=broad-except
                 pass
-        self.specialevents = None
-        self.specialeventstype = None
-        self.specialeventsvalue = None
         if 'specialevents' in profile:
             self.specialevents = profile['specialevents']
         if 'specialeventstype' in profile:
             self.specialeventstype = profile['specialeventstype']
         if 'specialeventsvalue' in profile:
             self.specialeventsvalue = profile['specialeventsvalue']
+        # artists
+        self.l_temp1:Optional[Line2D] = None
+        self.l_temp2:Optional[Line2D] = None
+        self.l_extratemp1:List[Optional[Line2D]] = [None]*len(self.extratimex)
+        self.l_extratemp2:List[Optional[Line2D]] = [None]*len(self.extratimex)
+        self.l_delta1:Optional[Line2D] = None
+        self.l_delta2:Optional[Line2D] = None
+        self.l_mainEvents1:Optional[Line2D] = None
+        self.l_mainEvents2:Optional[Line2D] = None
+        self.l_events1:Optional[Line2D] = None
+        self.l_events2:Optional[Line2D] = None
+        self.l_events3:Optional[Line2D] = None
+        self.l_events4:Optional[Line2D] = None
+#        # delta clipping paths
+#        self.l_delta1_clipping = None
+#        self.l_delta2_clipping = None
         # add metadata
-        self.metadata = {}
+        self.metadata:Metadata = {}
         if 'roastdate' in profile:
             try:
-                date = QDate.fromString(decodeLocal(profile['roastdate']))
-                if not date.isValid():
+                roastdate_str:Optional[str] = decodeLocal(profile['roastdate'])
+                if roastdate_str is not None:
+                    date = QDate.fromString(roastdate_str)
+                    if not date.isValid(): # ty:ignore[no-matching-overload]
+                        date = QDate.currentDate()
+                else:
                     date = QDate.currentDate()
                 if 'roasttime' in profile:
                     try:
-                        time = QTime.fromString(decodeLocal(profile['roasttime']))
-                        self.metadata['roastdate'] = QDateTime(date,time)
+                        time_str:Optional[str] = decodeLocal(profile['roasttime'])
+                        if time_str is not None:
+                            time = QTime.fromString(time_str)
+                            self.metadata['roastdate'] = QDateTime(date,time)
+                        else:
+                            self.metadata['roastdate'] = QDateTime(date, QTime())
                     except Exception: # pylint: disable=broad-except
-                        self.metadata['roastdate'] = QDateTime(date)
+                        self.metadata['roastdate'] = QDateTime(date, QTime())
                 else:
-                    self.metadata['roastdate'] = QDateTime(date)
+                    self.metadata['roastdate'] = QDateTime(date, QTime())
             except Exception: # pylint: disable=broad-except
                 pass
         # the new dates have the locale independent isodate format:
         if 'roastisodate' in profile:
             try:
-                date = QDate.fromString(decodeLocal(profile['roastisodate']),Qt.DateFormat.ISODate)
-                if 'roasttime' in profile:
-                    try:
-                        time = QTime.fromString(decodeLocal(profile['roasttime']))
-                        self.metadata['roastdate'] = QDateTime(date,time)
-                    except Exception: # pylint: disable=broad-except
-                        self.metadata['roastdate'] = QDateTime(date)
-                else:
-                    self.metadata['roastdate'] = QDateTime(date)
+                isodate_str:Optional[str] = decodeLocal(profile['roastisodate'])
+                if isodate_str is not None:
+                    date = QDate.fromString(isodate_str,Qt.DateFormat.ISODate)
+                    if 'roasttime' in profile:
+                        try:
+                            roasttime_str:Optional[str] = decodeLocal(profile['roasttime'])
+                            if roasttime_str is not None:
+                                time = QTime.fromString(roasttime_str)
+                                self.metadata['roastdate'] = QDateTime(date,time)
+                            else:
+                                self.metadata['roastdate'] = QDateTime(date, QTime())
+                        except Exception: # pylint: disable=broad-except
+                            self.metadata['roastdate'] = QDateTime(date, QTime())
+                    else:
+                        self.metadata['roastdate'] = QDateTime(date, QTime())
             except Exception: # pylint: disable=broad-except
                 pass
         if 'roastepoch' in profile:
@@ -249,34 +322,42 @@ class RoastProfile():
             except Exception: # pylint: disable=broad-except
                 pass
         if 'roastbatchpos' in profile:
-            self.metadata['roastoftheday'] = f'{self.aw.qmc.roastOfTheDay(profile["roastbatchpos"])}'
+            self.metadata['roastoftheday'] = f"{self.aw.qmc.roastOfTheDay(profile['roastbatchpos'])}"
         if 'beans' in profile:
-            self.metadata['beans'] = decodeLocal(profile['beans'])
+            beans_str = decodeLocal(profile['beans'])
+            if beans_str is not None:
+                self.metadata['beans'] = beans_str
         if 'weight' in profile and profile['weight'][0] != 0.0:
-            w = profile['weight'][0]
-            if decodeLocal(profile['weight'][2]) != 'g':
-                w = self.aw.float2float(w,1)
-            self.metadata['weight'] = '%g%s'%(w,decodeLocal(profile['weight'][2]))
+            w:float = float(profile['weight'][0])
+            weight_unit:Optional[str] = decodeLocal(profile['weight'][2])
+            if weight_unit is not None:
+                if weight_unit != 'g':
+                    w = float2float(w,1)
+                self.metadata['weight'] = str(w).rstrip('0').rstrip('.') + weight_unit
         if 'moisture_greens' in profile and profile['moisture_greens'] != 0.0:
             self.metadata['moisture_greens'] = profile['moisture_greens']
         if 'ambientTemp' in profile:
-            self.metadata['ambientTemp'] = f'{self.aw.float2float(self.ambientTemp):g}{self.aw.qmc.mode}'
+            self.metadata['ambientTemp'] = f'{float2float(self.ambientTemp):g}{self.aw.qmc.mode}'
         if 'ambient_humidity' in profile:
-            self.metadata['ambient_humidity'] = '%g%%' % self.aw.float2float(profile['ambient_humidity'])
+            self.metadata['ambient_humidity'] = f"{float2float(profile['ambient_humidity']):g}%"
         if 'ambient_pressure' in profile:
-            self.metadata['ambient_pressure'] = '%ghPa' % self.aw.float2float(profile['ambient_pressure'])
+            self.metadata['ambient_pressure'] = f"{float2float(profile['ambient_pressure']):g}hPa"
         if 'computed' in profile and profile['computed'] is not None and 'weight_loss' in profile['computed'] and \
                 profile['computed']['weight_loss'] is not None:
-            self.metadata['weight_loss'] = '-%.1f%%' % profile['computed']['weight_loss']
+            self.metadata['weight_loss'] = f"-{profile['computed']['weight_loss']:g}%"
         if 'ground_color' in profile:
-            self.metadata['ground_color'] = '#%s' % profile['ground_color']
+            self.metadata['ground_color'] = f"#{float2str(profile['ground_color'])}"
         if 'computed' in profile and profile['computed'] is not None and 'AUC' in profile['computed'] and profile['computed']['AUC'] is not None and \
                 profile['computed']['AUC'] != 0:
-            self.metadata['AUC'] = '%sC*min' % profile['computed']['AUC']
+            self.metadata['AUC'] = f"{profile['computed']['AUC']}C*min"
         if 'roastingnotes' in profile:
-            self.metadata['roastingnotes'] = decodeLocal(profile['roastingnotes'])
+            roasting_notes:Optional[str] = decodeLocal(profile['roastingnotes'])
+            if roasting_notes is not None:
+                self.metadata['roastingnotes'] = roasting_notes
         if 'cuppingnotes' in profile:
-            self.metadata['cuppingnotes'] = decodeLocal(profile['cuppingnotes'])
+            cupping_notes:Optional[str] = decodeLocal(profile['cuppingnotes'])
+            if cupping_notes is not None:
+                self.metadata['cuppingnotes'] = cupping_notes
         # TP time in time since DROP
         if 'computed' in profile and profile['computed'] is not None and 'TP_time' in profile['computed']:
             self.TP = profile['computed']['TP_time']
@@ -288,17 +369,27 @@ class RoastProfile():
         self.updateAlpha()
 
     # applies current smoothing values to temperature and delta curves
-    def recompute(self):
+    def recompute(self) -> None:
+        decay_smoothing_p = not self.aw.qmc.optimalSmoothing
         # we resample the temperatures to regular interval timestamps
         if self.timex is not None and self.timex and len(self.timex)>1:
             timex_lin = numpy.linspace(self.timex[0],self.timex[-1],len(self.timex))
         else:
             timex_lin = None
-        decay_smoothing_p = (not self.aw.qmc.optimalSmoothing)
-        self.stemp1 = self.aw.qmc.smooth_list(self.timex,self.temp1,window_len=self.aw.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=timex_lin)
-        self.stemp2 = self.aw.qmc.smooth_list(self.timex,self.temp2,window_len=self.aw.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=timex_lin)
+        self.stemp1 = list(self.aw.qmc.smooth_list(self.timex,self.temp1,window_len=self.aw.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=timex_lin))
+        self.stemp2 = list(self.aw.qmc.smooth_list(self.timex,self.temp2,window_len=self.aw.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=timex_lin))
+        # we resample the temperatures of extra device curves to regular interval timestamps
+        self.extrastemp1 = []
+        self.extrastemp2 = []
+        for i, timex in enumerate(self.extratimex):
+            if timex is not None and timex and len(timex)>1:
+                timex_lin = numpy.linspace(timex[0],timex[-1],len(timex))
+            else:
+                timex_lin = None
+            self.extrastemp1.append(list(self.aw.qmc.smooth_list(timex,self.extratemp1[i],window_len=self.aw.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=timex_lin)))
+            self.extrastemp2.append(list(self.aw.qmc.smooth_list(timex,self.extratemp2[i],window_len=self.aw.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=timex_lin)))
         # recompute deltas
-        cf = self.aw.qmc.curvefilter*2 # we smooth twice as heavy for PID/RoR calcuation as for normal curve smoothing
+        cf = self.aw.qmc.curvefilter*2 # we smooth twice as heavy for PID/RoR calculation as for normal curve smoothing
         t1 = self.aw.qmc.smooth_list(self.timex,self.temp1,window_len=cf,decay_smoothing=decay_smoothing_p,a_lin=timex_lin)
         t2 = self.aw.qmc.smooth_list(self.timex,self.temp2,window_len=cf,decay_smoothing=decay_smoothing_p,a_lin=timex_lin)
         if self.timeindex[0]>-1:
@@ -307,23 +398,33 @@ class RoastProfile():
             RoR_start = -1
         if self.aw.qmc.compareBBP and not self.aw.qmc.compareRoast:
             # no delta curve if BBP only
-            self.delta1, self.delta2 = [None]*len(self.timex), [None]*len(self.timex)
+            self.delta1 = [None]*len(self.timex)
+            self.delta2 = [None]*len(self.timex)
         else:
             self.delta1, self.delta2 = self.aw.qmc.recomputeDeltas(self.timex,RoR_start,self.timeindex[6],t1,t2,optimalSmoothing=not decay_smoothing_p,timex_lin=timex_lin)
         # calculate start/end index
         self.startTimeIdx = (self.timeindex[0] if self.timeindex[0] != -1 else 0)
         self.endTimeIdx = (self.timeindex[6] if self.timeindex[6] != 0 else len(self.timex)-1)
-        self.stemp1 = [None if (not self.aw.qmc.compareBBP and i < self.startTimeIdx) or (not self.aw.qmc.compareRoast and i>self.startTimeIdx) or i > self.endTimeIdx else t for i,t in enumerate(self.stemp1)]
-        self.stemp2 = [None if (not self.aw.qmc.compareBBP and i < self.startTimeIdx) or (not self.aw.qmc.compareRoast and i>self.startTimeIdx) or i > self.endTimeIdx else t for i,t in enumerate(self.stemp2)]
+        if self.stemp1 is not None:
+            self.stemp1 = [None if (not self.aw.qmc.compareBBP and i < self.startTimeIdx) or (not self.aw.qmc.compareRoast and i>self.startTimeIdx) or i > self.endTimeIdx else t for i,t in enumerate(self.stemp1)]
+        if self.stemp2 is not None:
+            self.stemp2 = [None if (not self.aw.qmc.compareBBP and i < self.startTimeIdx) or (not self.aw.qmc.compareRoast and i>self.startTimeIdx) or i > self.endTimeIdx else t for i,t in enumerate(self.stemp2)]
+        for i, _ in enumerate(self.extratimex):
+            extrastemp1_i = self.extrastemp1[i]
+            extrastemp2_i = self.extrastemp2[i]
+            if extrastemp1_i is not None:
+                self.extrastemp1[i] = [None if (not self.aw.qmc.compareBBP and i < self.startTimeIdx) or (not self.aw.qmc.compareRoast and i>self.startTimeIdx) or i > self.endTimeIdx else t for i,t in enumerate(extrastemp1_i)]
+            if extrastemp2_i is not None:
+                self.extrastemp2[i] = [None if (not self.aw.qmc.compareBBP and i < self.startTimeIdx) or (not self.aw.qmc.compareRoast and i>self.startTimeIdx) or i > self.endTimeIdx else t for i,t in enumerate(extrastemp2_i)]
         # calculate max deltas
         self.max_DeltaET = 1
-        if len(self.delta1) > 0:
+        if self.delta1 is not None and len(self.delta1) > 0:
             try:
                 self.max_DeltaET = max(filter(None,self.delta1))
             except Exception: # pylint: disable=broad-except
                 pass
         self.max_DeltaBT = 1
-        if len(self.delta2) > 0:
+        if self.delta2 is not None and len(self.delta2) > 0:
             try:
                 self.max_DeltaBT = max(filter(None,self.delta2))
             except Exception: # pylint: disable=broad-except
@@ -331,17 +432,18 @@ class RoastProfile():
         self.events1 = []
         self.events2 = []
         self.events_timex = []
-        for ti in self.timeindex[:-1]:
-            temp1 = self.stemp1[ti]
-            temp2 = self.stemp2[ti]
-            if (len(self.events1) == 0 and ti != -1) or ti > 0:
-                self.events1.append(temp1)
-                self.events2.append(temp2)
-                self.events_timex.append(self.timex[ti])
-            else:
-                self.events1.append(None)
-                self.events2.append(None)
-                self.events_timex.append(None)
+        if self.stemp1 is not None and self.stemp2 is not None:
+            for ti in self.timeindex[:-1]:
+                temp1:Optional[float] = (self.stemp1[ti] if len(self.stemp1)>ti else None) # pyrefly: ignore
+                temp2:Optional[float] = (self.stemp2[ti] if len(self.stemp2)>ti else None) # pyrefly: ignore
+                if ((len(self.events1) == 0 and ti != -1) or ti > 0): # pyrefly: ignore[bad-argument-type]
+                    self.events1.append(temp1)
+                    self.events2.append(temp2)
+                    self.events_timex.append(self.timex[ti])
+                else:
+                    self.events1.append(None)
+                    self.events2.append(None)
+                    self.events_timex.append(None)
         # update special events
         if self.specialevents is not None and self.specialeventstype is not None and self.specialeventsvalue is not None:
             # calculated bot and top corresponding to the temperature positions of the event values 0 and 100
@@ -361,12 +463,15 @@ class RoastProfile():
             self.E3 = []
             self.E4 = []
 
-            last_E1, last_E2, last_E3, last_E4 = None, None, None, None
+            last_E1:Optional[float] = None
+            last_E2:Optional[float] = None
+            last_E3:Optional[float] = None
+            last_E4:Optional[float] = None
             for i,e in enumerate(self.specialevents):
                 try:
-                    etime = self.timex[e]
-                    etype = self.specialeventstype[i]
-                    evalue = self.aw.qmc.eventsInternal2ExternalValue(self.specialeventsvalue[i]) * value_factor + value_offset
+                    etime:float = self.timex[e]
+                    etype:float = self.specialeventstype[i]  # pyrefly: ignore[unsupported-operation]
+                    evalue:float = self.aw.qmc.eventsInternal2ExternalValue(self.specialeventsvalue[i]) * value_factor + value_offset # pyrefly: ignore[unsupported-operation]
                     # remember last event value per type before CHARGE
                     if (not self.aw.qmc.compareBBP and self.timeindex[0] != -1 and e < self.timeindex[0]):
                         if etype == 0:
@@ -403,8 +508,8 @@ class RoastProfile():
                                 self.E4.append((self.timex[self.timeindex[0]],last_E4))
                                 last_E4 = None
                             self.E4.append((etime,evalue))
-                except Exception as e: # pylint: disable=broad-except
-                    _log.exception(e)
+                except Exception as ex: # pylint: disable=broad-except
+                    _log.exception(ex)
             # add a last event at DROP/END to extend the lines to the end of roast
             if not self.aw.qmc.compareRoast and self.aw.qmc.compareBBP:
                 # BBP-only mode
@@ -420,63 +525,84 @@ class RoastProfile():
             if self.E4:
                 self.E4.append((end,self.E4[-1][1]))
 
-    def firstTime(self):
+    def firstTime(self) -> float:
         try:
             return self.timex[0]
         except Exception: # pylint: disable=broad-except
             return 0
 
-    def startTime(self):
+    def startTime(self) -> float:
         try:
             return self.timex[self.startTimeIdx]
         except Exception: # pylint: disable=broad-except
             return 0
 
-    def endTime(self):
+    def endTime(self) -> float:
         try:
             return self.timex[self.endTimeIdx]
         except Exception: # pylint: disable=broad-except
             return self.timex[-1]
 
-    def setVisible(self,b):
+    def setVisible(self, b:bool) -> None:
         self.visible = b
         self.updateVisibilities()
 
-    def setVisibilities(self,visibilities,event_visibility):
+    def setVisibilities(self, visibilities:List[bool], extra1_visibilitites:List[bool], extra2_visibilitites:List[bool], event_visibility:int) -> None:
         self.curve_visibilities = visibilities
+        self.extra1_curve_visibilities = extra1_visibilitites
+        self.extra2_curve_visibilities = extra2_visibilitites
         self.event_visibility = event_visibility
         self.updateVisibilities()
 
-    def updateVisibilities(self):
+    def updateVisibilities(self) -> None:
         visibilities = self.curve_visibilities
         profile_visible = self.visible and self.aligned
-        for i,l in enumerate([self.l_temp1,self.l_temp2,self.l_delta1,self.l_delta2]):
-            l.set_visible(profile_visible and visibilities[i])
+        # main curves
+        for i, ll in enumerate([self.l_temp1,self.l_temp2,self.l_delta1,self.l_delta2]):
+            if ll is not None:
+                ll.set_visible(profile_visible and visibilities[i])
+        # extra curves
+        for i, ll in enumerate(self.l_extratemp1):
+            if ll is not None:
+                ll.set_visible(profile_visible and self.extra1_curve_visibilities[i])
+        for i, ll in enumerate(self.l_extratemp2):
+            if ll is not None:
+                ll.set_visible(profile_visible and self.extra2_curve_visibilities[i])
+        # events
+        for i, ll in enumerate([self.l_events1,self.l_events2,self.l_events3,self.l_events4]):
+            if ll is not None:
+                ll.set_visible(profile_visible and i+1 == self.event_visibility)
         #
-        for i,l in enumerate([self.l_events1,self.l_events2,self.l_events3,self.l_events4]):
-            l.set_visible(profile_visible and i+1 == self.event_visibility)
-        #
-        self.l_mainEvents1.set_visible(False)
-        self.l_mainEvents2.set_visible(False)
+        if self.l_mainEvents1 is not None:
+            self.l_mainEvents1.set_visible(False)
+        if self.l_mainEvents2 is not None:
+            self.l_mainEvents2.set_visible(False)
         if profile_visible and visibilities[4]:
             if self.aw.qmc.swaplcds:
                 # prefer the ET over BT
                 if visibilities[0]: # ET visible
-                    self.l_mainEvents1.set_visible(True) # place the main events on the ET
-                    self.l_mainEvents2.set_visible(False)
+                    if self.l_mainEvents1 is not None:
+                        self.l_mainEvents1.set_visible(True) # place the main events on the ET
+                    if self.l_mainEvents2 is not None:
+                        self.l_mainEvents2.set_visible(False)
                 elif visibilities[1]: # BT visible
+                    if self.l_mainEvents2 is not None:
+                        self.l_mainEvents2.set_visible(True) # place the main events on the BT
+                    if self.l_mainEvents1 is not None:
+                        self.l_mainEvents1.set_visible(False)
+            # prefer the BT over ET
+            elif visibilities[1]: # BT visible
+                if self.l_mainEvents2 is not None:
                     self.l_mainEvents2.set_visible(True) # place the main events on the BT
+                if self.l_mainEvents1 is not None:
                     self.l_mainEvents1.set_visible(False)
-            else:
-                # prefer the BT over ET
-                if visibilities[1]: # BT visible
-                    self.l_mainEvents2.set_visible(True) # place the main events on the BT
-                    self.l_mainEvents1.set_visible(False)
-                elif visibilities[0]: # ET visible
+            elif visibilities[0]: # ET visible
+                if self.l_mainEvents1 is not None:
                     self.l_mainEvents1.set_visible(True) # place the main events on the ET
+                if self.l_mainEvents2 is not None:
                     self.l_mainEvents2.set_visible(False)
 
-    def setZorder(self,zorder):
+    def setZorder(self, zorder:int) -> None:
         self.zorder = zorder
         if self.aw.qmc.swaplcds:
             lines = [self.l_mainEvents1,self.l_mainEvents2,self.l_temp1,self.l_temp2,self.l_delta2,self.l_delta1]
@@ -485,15 +611,18 @@ class RoastProfile():
         if self.aw.qmc.swapdeltalcds:
             lines[4] = self.l_delta1
             lines[5] = self.l_delta2
-        for i,l in enumerate(lines):
-            if l is not None:
-                l.set_zorder(self.zorder + self.zorder_offsets[i])
-        for l in [self.l_events1,self.l_events2,self.l_events3,self.l_events4]:
-            if l is not None:
-                l.set_zorder(self.zorder + self.zorder_offsets[6])
+        for i, ll in enumerate(lines):
+            if ll is not None:
+                ll.set_zorder(self.zorder + self.zorder_offsets[i])
+        for ll in [self.l_events1,self.l_events2,self.l_events3,self.l_events4]:
+            if ll is not None:
+                ll.set_zorder(self.zorder + self.zorder_offsets[6])
+        for ll in self.l_extratemp1 + self.l_extratemp2:
+            if ll is not None:
+                ll.set_zorder(self.zorder + self.zorder_offsets[7])
 
     # swap alpha values based on self.aw.qmc.swaplcds and self.aw.qmc.swapdeltalcds settings
-    def updateAlpha(self):
+    def updateAlpha(self) -> None:
         alpha = self.alpha[:]
         if self.aw.qmc.swaplcds:
             alpha[0] = self.alpha[1]
@@ -501,39 +630,67 @@ class RoastProfile():
         if self.aw.qmc.swapdeltalcds:
             alpha[2] = self.alpha[3]
             alpha[3] = self.alpha[2]
-        for l,a in zip(
-            [self.l_mainEvents2,self.l_temp2,self.l_mainEvents1,self.l_temp1,self.l_delta2,self.l_delta1,self.l_events1,self.l_events2,self.l_events3,self.l_events4],
-            [alpha[0],alpha[0],alpha[1],alpha[1],alpha[2],alpha[3],alpha[4],alpha[4],alpha[4],alpha[4]]):
-            if l is not None:
-                l.set_alpha(a if self.active else a*self.alpha_dim_factor)
+        for ll, a in zip( # type:ignore[unused-ignore] # pright: error: "object*" is not iterable
+                [
+                    self.l_mainEvents2, self.l_temp2,
+                    self.l_mainEvents1, self.l_temp1,
+                    self.l_delta2, self.l_delta1,
+                    self.l_events1, self.l_events2, self.l_events3, self.l_events4],
+                [
+                    alpha[0],alpha[0],
+                    alpha[1],alpha[1],
+                    alpha[2],alpha[3],
+                    alpha[4],alpha[4],alpha[4],alpha[4]
+                ]):
+            if ll is not None:
+                ll.set_alpha(a if self.active else a*self.alpha_dim_factor)
+        for ll in self.l_extratemp1 + self.l_extratemp2:
+            if ll is not None:
+                ll.set_alpha(alpha[5] if self.active else alpha[5]*self.alpha_dim_factor)
 
-    def setActive(self,b):
+    def setActive(self, b:bool) -> None:
         self.active = b
         self.updateAlpha()
-        for l in [self.l_temp1,self.l_temp2,self.l_delta1,self.l_delta2,self.l_mainEvents1,self.l_mainEvents2,self.l_events1,self.l_events2,self.l_events3,self.l_events4]:
-            if l is not None:
+        for ll in [self.l_temp1,self.l_temp2,self.l_delta1,self.l_delta2,self.l_mainEvents1,self.l_mainEvents2,self.l_events1,self.l_events2,self.l_events3,self.l_events4]:
+            if ll is not None:
                 if self.active:
-                    l.set_color(self.color)
+                    ll.set_color(self.color)
                 else:
-                    l.set_color(self.gray)
+                    ll.set_color(self.gray)
+        for ll in self.l_extratemp1 + self.l_extratemp2:
+            if ll is not None:
+                if self.active:
+                    ll.set_color(self.color)
+                else:
+                    ll.set_color(self.gray)
 
-    def setTimeoffset(self,offset):
+    def setTimeoffset(self, offset:float) -> None:
         self.timeoffset = offset
         tempTrans = self.getTempTrans()
-        for l in [
+        for ll in [
             # shifting the temperature curves does not work for some curves that hold many points resulting some at the end being not displayed
             # thus we update the xdata explicitly below
             #self.l_temp1,self.l_temp2,
             self.l_mainEvents1,self.l_mainEvents2,self.l_events1,self.l_events2,self.l_events3,self.l_events4]:
-            if l is not None:
-                l.set_transform(tempTrans)
+            if ll is not None:
+                ll.set_transform(tempTrans)
 
         tempTransZero = self.getTempTrans(0)
-        for l in [self.l_temp1,self.l_temp2]:
-            if l is not None:
-                l.set_transform(tempTransZero) # we reset the transformation to avoid a double shift along the timeaxis
-                l.set_xdata([x-offset if x is not None else None for x in self.timex])
+        deltaTransZero = self.getDeltaTrans(offset=0)
 
+        for ll in [self.l_temp1,self.l_temp2]:
+            if ll is not None:
+                ll.set_transform(tempTransZero) # we reset the transformation to avoid a double shift along the timeaxis
+                ll.set_xdata(numpy.array([x-offset if x is not None else None for x in self.timex]))
+
+        # shifting the extra curves
+        for i, (ll1, ll2) in enumerate(zip(self.l_extratemp1,self.l_extratemp2)):
+            if ll1 is not None:
+                ll1.set_transform(deltaTransZero if self.extraDelta1[i] else tempTransZero) # we reset the transformation to avoid a double shift along the timeaxis
+                ll1.set_xdata(numpy.array([x-offset if x is not None else None for x in self.extratimex[i]]))
+            if ll2 is not None:
+                ll2.set_transform(deltaTransZero if self.extraDelta2[i] else tempTransZero) # we reset the transformation to avoid a double shift along the timeaxis
+                ll2.set_xdata(numpy.array([x-offset if x is not None else None for x in self.extratimex[i]]))
 
         # shifting the delta curves does not work for some curves that hold many points resulting some at the end being not displayed
         # thus we update the xdata explicitly below
@@ -541,11 +698,10 @@ class RoastProfile():
 #        for l in [self.l_delta1,self.l_delta2]:
 #            if l is not None:
 #                l.set_transform(deltaTrans)
-        deltaTransZero = self.getDeltaTrans(offset=0)
-        for l in [self.l_delta1,self.l_delta2]:
-            if l is not None:
-                l.set_transform(deltaTransZero) # we reset the transformation to avoid a double shift along the timeaxis
-                l.set_xdata([x-offset if x is not None else None for x in self.timex])
+        for ll in [self.l_delta1,self.l_delta2]:
+            if ll is not None:
+                ll.set_transform(deltaTransZero) # we reset the transformation to avoid a double shift along the timeaxis
+                ll.set_xdata(numpy.array([x-offset if x is not None else None for x in self.timex]))
 
 #        # update RoR clippings
 #        self.l_delta1_clipping.set_transform(self.getDeltaTrans())
@@ -554,26 +710,31 @@ class RoastProfile():
 #        self.l_delta2.set_clip_path(self.l_delta2_clipping)
 
     # returns the time transformation for the temperature curves
-    def getTempTrans(self,offset=None):
-        if offset is None:
-            offset = self.timeoffset
-        # transformation pipelines are processed from left to right so in "A + B" first transformation A then transformation B is applied (on the result of A)
-        # an artist transformation is supplied with data in data coordinates and should return data in display coordinates
-        # ax.transData : transforms from data to display coordinates
-        # transforms.Affine2D().translate() : applies its transformation
-        return transforms.Affine2D().translate(-offset,0) + self.aw.qmc.ax.transData # pylint: disable=invalid-unary-operand-type
+    def getTempTrans(self, offset:Optional[float] = None) -> Optional[transforms.Transform]:
+        if self.aw.qmc.ax:
+            if offset is None:
+                offset = self.timeoffset
+            # transformation pipelines are processed from left to right so in "A + B" first transformation A then transformation B is applied (on the result of A)
+            # an artist transformation is supplied with data in data coordinates and should return data in display coordinates
+            # ax.transData : transforms from data to display coordinates
+            # transforms.Affine2D().translate() : applies its transformation
+            return transforms.Affine2D().translate(-offset,0) + self.aw.qmc.ax.transData # pylint: disable=invalid-unary-operand-type
+        return None
 
     # returns the time transformation for the delta curves
-    def getDeltaTrans(self,offset=None):
-        if offset is None:
-            offset = self.timeoffset
-        return transforms.Affine2D().translate(-offset,0) + self.aw.qmc.delta_ax.transData # pylint: disable=invalid-unary-operand-type
+    def getDeltaTrans(self, offset:Optional[float] = None) -> transforms.Transform:
+        if self.aw.qmc.delta_ax is not None:
+            if offset is None:
+                offset = self.timeoffset
+            return transforms.Affine2D().translate(-offset,0) + self.aw.qmc.delta_ax.transData # pylint: disable=invalid-unary-operand-type
+        return transforms.Affine2D()
 
-    def undraw(self):
-        for l in [self.l_temp1,self.l_temp2,self.l_delta1,self.l_delta2,self.l_mainEvents1,self.l_mainEvents2,
+    def undraw(self) -> None:
+        for ll in [self.l_temp1,self.l_temp2,self.l_delta1,self.l_delta2,self.l_mainEvents1,self.l_mainEvents2,
                 self.l_events1,self.l_events2,self.l_events3,self.l_events4]:
             try:
-                l.remove()
+                if ll is not None:
+                    ll.remove()
             except Exception: # pylint: disable=broad-except
                 pass
         self.l_temp1 = None
@@ -586,143 +747,218 @@ class RoastProfile():
         self.l_events2 = None
         self.l_events3 = None
         self.l_events4 = None
+        for i, (ll1, ll2) in enumerate(zip(self.l_extratemp1,self.l_extratemp2)):
+            try:
+                if ll1 is not None:
+                    ll1.remove()
+            except Exception: # pylint: disable=broad-except
+                pass
+            try:
+                if ll2 is not None:
+                    ll2.remove()
+            except Exception: # pylint: disable=broad-except
+                pass
+            self.l_extratemp1[i] = None
+            self.l_extratemp2[i] = None
 
-    def draw(self):
-        self.drawBT()
-        self.drawET()
-        self.drawDeltaBT()
-        self.drawDeltaET()
-        self.drawMainEvents1()
-        self.drawMainEvents2()
+    def draw(self) -> None:
+        for i in range(self.aw.nLCDS):
+            self.drawExtras(i)
         self.drawEvents1()
         self.drawEvents2()
         self.drawEvents3()
         self.drawEvents4()
+        self.drawDeltaET()
+        self.drawDeltaBT()
+        self.drawET()
+        self.drawBT()
+        self.drawMainEvents2()
+        self.drawMainEvents1()
 
-    def drawBT(self):
-        if self.timex is not None and self.stemp2 is not None:
-            self.l_temp2, = self.aw.qmc.ax.plot(self.timex,self.stemp2,transform=self.getTempTrans(),markersize=self.aw.qmc.BTmarkersize,marker=self.aw.qmc.BTmarker,visible=(self.visible and self.aligned),
-                sketch_params=None,path_effects=[PathEffects.withStroke(linewidth=self.aw.qmc.BTlinewidth+self.aw.qmc.patheffects,foreground=self.aw.qmc.palette['background'])],
-                linewidth=self.aw.qmc.BTlinewidth,linestyle=self.aw.qmc.BTlinestyle,drawstyle=self.aw.qmc.BTdrawstyle,
-                alpha=(self.alpha[0] if self.active else self.alpha[0]*self.alpha_dim_factor),
+    def drawExtras(self, i:int) -> None:
+        if self.aw.qmc.ax is not None and len(self.extratimex)> i and self.extratimex[i]:
+            c = (self.color if self.active else self.gray)
+            alpha = (self.alpha[0] if self.active else self.alpha[0]*self.alpha_dim_factor)
+            if self.extrastemp1[i] is not None:
+                extramarkersizes1 = (self.aw.qmc.extramarkersizes1[i] if len(self.aw.qmc.extramarkersizes1)>i else self.aw.qmc.markersize_default)
+                extramarkers1 = (self.aw.qmc.extramarkers1[i] if len(self.aw.qmc.extramarkers1)>i else self.aw.qmc.marker_default)
+                extralinewidths1 = (self.aw.qmc.extralinewidths1[i] if len(self.aw.qmc.extralinewidths1)>i else self.aw.qmc.extra_linewidth_default)
+                extralinestyles1 = (self.aw.qmc.extralinestyles1[i] if len(self.aw.qmc.extralinestyles1)>i else self.aw.qmc.linestyle_default)
+                extradrawstyles1 = (self.aw.qmc.extradrawstyles1[i] if len(self.aw.qmc.extradrawstyles1)>i else self.aw.qmc.drawstyle_default)
+                l_temp1, = self.aw.qmc.ax.plot(self.extratimex[i],numpy.array(self.extrastemp1[i]),transform=(self.getDeltaTrans() if self.extraDelta1[i] else self.getTempTrans()),
+                    markersize=extramarkersizes1,marker=extramarkers1,visible=(self.visible and self.aligned),
+                    sketch_params=None,
+                    path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, extralinewidths1, alpha=alpha),
+                    linewidth=extralinewidths1,
+                    linestyle=extralinestyles1,
+                    drawstyle=extradrawstyles1,
+                    alpha=alpha,
+                    color=c,
+                    label=f'{self.label} {self.aw.arabicReshape(self.extraname1[i])}')
+                self.l_extratemp1[i] = l_temp1
+            if self.extrastemp2[i] is not None:
+                extramarkersizes2 = (self.aw.qmc.extramarkersizes2[i] if len(self.aw.qmc.extramarkersizes2)>i else self.aw.qmc.markersize_default)
+                extramarkers2 = (self.aw.qmc.extramarkers2[i] if len(self.aw.qmc.extramarkers2)>i else self.aw.qmc.marker_default)
+                extralinewidths2 = (self.aw.qmc.extralinewidths2[i] if len(self.aw.qmc.extralinewidths2)>i else self.aw.qmc.extra_linewidth_default)
+                extralinestyles2 = (self.aw.qmc.extralinestyles2[i] if len(self.aw.qmc.extralinestyles2)>i else self.aw.qmc.linestyle_default)
+                extradrawstyles2 = (self.aw.qmc.extradrawstyles2[i] if len(self.aw.qmc.extradrawstyles2)>i else self.aw.qmc.drawstyle_default)
+                l_temp2, = self.aw.qmc.ax.plot(self.extratimex[i],numpy.array(self.extrastemp2[i]),transform=(self.getDeltaTrans() if self.extraDelta2[i] else self.getTempTrans()),
+                    markersize=extramarkersizes2,marker=extramarkers2,visible=(self.visible and self.aligned),
+                    sketch_params=None,
+                    path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, extralinewidths2, alpha=alpha),
+                    linewidth=extralinewidths2,
+                    linestyle=extralinestyles2,
+                    drawstyle=extradrawstyles2,
+                    alpha=alpha,
+                    color=c,
+                    label=f'{self.label} {self.aw.arabicReshape(self.extraname2[i])}')
+                self.l_extratemp2[i] = l_temp2
+
+    def drawBT(self) -> None:
+        if self.aw.qmc.ax is not None and self.timex is not None and self.stemp2 is not None:
+            alpha = (self.alpha[0] if self.active else self.alpha[1]*self.alpha_dim_factor)
+            self.l_temp2, = self.aw.qmc.ax.plot(self.timex,numpy.array(self.stemp2),transform=self.getTempTrans(),markersize=self.aw.qmc.BTmarkersize,marker=self.aw.qmc.BTmarker,visible=(self.visible and self.aligned),
+                sketch_params=None,
+                path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, self.aw.qmc.BTlinewidth, alpha=alpha),
+                linewidth=self.aw.qmc.BTlinewidth,
+                linestyle=self.aw.qmc.BTlinestyle,
+                drawstyle=self.aw.qmc.BTdrawstyle,
+                alpha=alpha,
                 color=(self.color if self.active else self.gray),
-                label='{} {}'.format(self.label,self.aw.arabicReshape(QApplication.translate('Label', 'BT'))))
+                label=f'{self.label} {self.aw.arabicReshape(self.aw.BTname)}')
 
-    def drawET(self):
-        if self.timex is not None and self.stemp1 is not None:
-            self.l_temp1, = self.aw.qmc.ax.plot(self.timex,self.stemp1,transform=self.getTempTrans(),markersize=self.aw.qmc.ETmarkersize,marker=self.aw.qmc.ETmarker,visible=(self.visible and self.aligned),
-                sketch_params=None,path_effects=[PathEffects.withStroke(linewidth=self.aw.qmc.ETlinewidth+self.aw.qmc.patheffects,foreground=self.aw.qmc.palette['background'])],
-                linewidth=self.aw.qmc.ETlinewidth,linestyle=self.aw.qmc.ETlinestyle,drawstyle=self.aw.qmc.ETdrawstyle,
-                alpha=(self.alpha[1] if self.active else self.alpha[1]*self.alpha_dim_factor),
+    def drawET(self) -> None:
+        if self.aw.qmc.ax is not None and self.timex is not None and self.stemp1 is not None:
+            alpha = (self.alpha[1] if self.active else self.alpha[1]*self.alpha_dim_factor)
+            self.l_temp1, = self.aw.qmc.ax.plot(self.timex,numpy.array(self.stemp1),transform=self.getTempTrans(),markersize=self.aw.qmc.ETmarkersize,marker=self.aw.qmc.ETmarker,visible=(self.visible and self.aligned),
+                sketch_params=None,
+                path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, self.aw.qmc.ETlinewidth, alpha=alpha),
+                linewidth=self.aw.qmc.ETlinewidth,
+                linestyle=self.aw.qmc.ETlinestyle,
+                drawstyle=self.aw.qmc.ETdrawstyle,
+                alpha=alpha,
                 color=(self.color if self.active else self.gray),
-                label='{} {}'.format(self.label,self.aw.arabicReshape(QApplication.translate('Label', 'ET'))))
+                label=f'{self.label} {self.aw.arabicReshape(self.aw.ETname)}')
 
-    def drawDeltaBT(self):
-        if self.timex is not None and self.delta2 is not None:
+    def drawDeltaBT(self) -> None:
+        if self.aw.qmc.ax is not None and self.timex is not None and self.delta2 is not None:
+            alpha = (self.alpha[2] if self.active else self.alpha[1]*self.alpha_dim_factor)
             # we clip the RoR such that values below 0 are not displayed
 #            self.l_delta2_clipping = patches.Rectangle((0,0),self.timex[self.endTimeIdx],self.max_DeltaBT, transform=self.getDeltaTrans())
-            self.l_delta2, = self.aw.qmc.ax.plot(self.timex, self.delta2,transform=self.getDeltaTrans(),markersize=self.aw.qmc.BTdeltamarkersize,marker=self.aw.qmc.BTdeltamarker,visible=(self.visible and self.aligned),
-                sketch_params=None,path_effects=[PathEffects.withStroke(linewidth=self.aw.qmc.BTdeltalinewidth+self.aw.qmc.patheffects,foreground=self.aw.qmc.palette['background'])],
-                linewidth=self.aw.qmc.BTdeltalinewidth,linestyle=self.aw.qmc.BTdeltalinestyle,drawstyle=self.aw.qmc.BTdeltadrawstyle,
-                alpha=(self.alpha[2] if self.active else self.alpha[2]*self.alpha_dim_factor),
+            self.l_delta2, = self.aw.qmc.ax.plot(self.timex, numpy.array(self.delta2),transform=self.getDeltaTrans(),markersize=self.aw.qmc.BTdeltamarkersize,marker=self.aw.qmc.BTdeltamarker,visible=(self.visible and self.aligned),
+                sketch_params=None,
+                path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, self.aw.qmc.BTdeltalinewidth, alpha=alpha),
+                linewidth=self.aw.qmc.BTdeltalinewidth,
+                linestyle=self.aw.qmc.BTdeltalinestyle,
+                drawstyle=self.aw.qmc.BTdeltadrawstyle,
+                alpha=alpha,
 #                clip_path=self.l_delta2_clipping,clip_on=True,
                 color=(self.color if self.active else self.gray),
-                label='{} {}'.format(self.label,self.aw.arabicReshape(deltaLabelUTF8 + QApplication.translate('Label', 'BT'))))
+                label=f"{self.label} {self.aw.arabicReshape(deltaLabelUTF8 + QApplication.translate('Label', 'BT'))}")
 
-    def drawDeltaET(self):
-        if self.timex is not None and self.delta1 is not None:
+    def drawDeltaET(self) -> None:
+        if self.aw.qmc.ax is not None and self.timex is not None and self.delta1 is not None:
+            alpha = (self.alpha[3] if self.active else self.alpha[3]*self.alpha_dim_factor)
             # we clip the RoR such that values below 0 are not displayed
 #            self.l_delta1_clipping = patches.Rectangle((0,0),self.timex[self.endTimeIdx],self.max_DeltaET, transform=self.getDeltaTrans())
-            self.l_delta1, = self.aw.qmc.ax.plot(self.timex, self.delta1,transform=self.getDeltaTrans(),markersize=self.aw.qmc.ETdeltamarkersize,marker=self.aw.qmc.ETdeltamarker,visible=(self.visible and self.aligned),
-                sketch_params=None,path_effects=[PathEffects.withStroke(linewidth=self.aw.qmc.ETdeltalinewidth+self.aw.qmc.patheffects,foreground=self.aw.qmc.palette['background'])],
-                linewidth=self.aw.qmc.ETdeltalinewidth,linestyle=self.aw.qmc.ETdeltalinestyle,drawstyle=self.aw.qmc.ETdeltadrawstyle,
-                alpha=(self.alpha[3] if self.active else self.alpha[3]*self.alpha_dim_factor),
+            self.l_delta1, = self.aw.qmc.ax.plot(self.timex, numpy.array(self.delta1),transform=self.getDeltaTrans(),markersize=self.aw.qmc.ETdeltamarkersize,marker=self.aw.qmc.ETdeltamarker,visible=(self.visible and self.aligned),
+                sketch_params=None,
+                path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, self.aw.qmc.ETdeltalinewidth, alpha=alpha),
+                linewidth=self.aw.qmc.ETdeltalinewidth,
+                linestyle=self.aw.qmc.ETdeltalinestyle,
+                drawstyle=self.aw.qmc.ETdeltadrawstyle,
+                alpha=alpha,
 #                clip_path=self.l_delta1_clipping,clip_on=True,
                 color=(self.color if self.active else self.gray),
-                label='{} {}'.format(self.label,self.aw.arabicReshape(deltaLabelUTF8 + QApplication.translate('Label', 'ET'))))
+                label=f"{self.label} {self.aw.arabicReshape(deltaLabelUTF8 + QApplication.translate('Label', 'ET'))}")
 
-    def drawMainEvents1(self):
-        if self.events_timex is not None and self.events1 is not None:
-            self.l_mainEvents1, = self.aw.qmc.ax.plot(self.events_timex,self.events1,transform=self.getTempTrans(),
+    def drawMainEvents1(self) -> None:
+        if self.aw.qmc.ax is not None and self.events_timex is not None and self.events1 is not None:
+            alpha = (self.alpha[1] if self.active else self.alpha[1]*self.alpha_dim_factor)
+            self.l_mainEvents1, = self.aw.qmc.ax.plot(numpy.array(self.events_timex),numpy.array(self.events1),transform=self.getTempTrans(),
                 markersize=self.aw.qmc.ETlinewidth + 3,marker='o',visible=(self.visible and self.aligned),
                 sketch_params=None,
-                path_effects=[PathEffects.withStroke(linewidth=self.aw.qmc.ETlinewidth+self.aw.qmc.patheffects,foreground=self.aw.qmc.palette['background'])],
+                path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, self.aw.qmc.ETlinewidth, alpha=alpha),
                 linewidth=0,linestyle='',
-                alpha=(self.alpha[1] if self.active else self.alpha[1]*self.alpha_dim_factor),
+                alpha=alpha,
                 color=(self.color if self.active else self.gray),
 #                picker=5, # deprecated in MPL 3.3.x
                 picker=True,
                 pickradius=5,
-                label='{} {}'.format(self.label,self.aw.arabicReshape(QApplication.translate('Label', 'Events'))))
-            if self.aw.qmc.graphstyle == 1:
+                label=f"{self.label} {self.aw.arabicReshape(QApplication.translate('Label', 'Events'))}")
+            if self.aw.qmc.graphstyle == 1 and self.l_mainEvents1 is not None:
                 self.l_mainEvents1.set_sketch_params(1,700,12)
 
-    def drawMainEvents2(self):
-        if self.events_timex is not None and self.events1 is not None:
-            self.l_mainEvents2, = self.aw.qmc.ax.plot(self.events_timex,self.events2,transform=self.getTempTrans(),
+    def drawMainEvents2(self) -> None:
+        if self.aw.qmc.ax is not None and self.events_timex is not None and self.events1 is not None:
+            alpha = (self.alpha[0] if self.active else self.alpha[0]*self.alpha_dim_factor)
+            self.l_mainEvents2, = self.aw.qmc.ax.plot(numpy.array(self.events_timex),numpy.array(self.events2),transform=self.getTempTrans(),
                 markersize=self.aw.qmc.BTlinewidth + 3,marker='o',visible=(self.visible and self.aligned),
                 sketch_params=None,
-                path_effects=[PathEffects.withStroke(linewidth=self.aw.qmc.BTlinewidth+self.aw.qmc.patheffects,foreground=self.aw.qmc.palette['background'])],
+                path_effects=self.aw.qmc.line_path_effects(self.aw.qmc.glow, self.aw.qmc.patheffects, self.aw.light_background_p, self.aw.qmc.BTlinewidth, alpha=alpha),
                 linewidth=0,linestyle='',
-                alpha=(self.alpha[0] if self.active else self.alpha[0]*self.alpha_dim_factor),
+                alpha=alpha,
                 color=(self.color if self.active else self.gray),
 #                picker=5, # deprecated in MPL 3.3.x
                 picker=True,
                 pickradius=5,
-                label='{} {}'.format(self.label,self.aw.arabicReshape(QApplication.translate('Label', 'Events'))))
-            if self.aw.qmc.graphstyle == 1:
+                label=f"{self.label} {self.aw.arabicReshape(QApplication.translate('Label', 'Events'))}")
+            if self.aw.qmc.graphstyle == 1 and self.l_mainEvents2 is not None:
                 self.l_mainEvents2.set_sketch_params(4,800,20)
 
     # draw event lines n in [0,..,3]
     # returns line
-    def drawEvents(self,events,n):
-        if events:
-            timex,values = zip(*events)
-        else:
-            timex,values = [],[]
-        line, = self.aw.qmc.ax.plot(list(timex), list(values), color=(self.color if self.active else self.gray),
-                linestyle='-',drawstyle='steps-post',linewidth = self.aw.qmc.Evaluelinethickness[n],
-                alpha = (self.alpha[4] if self.active else self.alpha[4]*self.alpha_dim_factor),
-                label = self.aw.qmc.etypesf(n))
-        return line
+    def drawEvents(self, events:List[Tuple[float, float]], n:int) -> Optional['Line2D']:
+        if self.aw.qmc.ax is not None:
+            if events:
+                timex,values = zip(*events)
+            else:
+                timex,values = (),()
+            line, = self.aw.qmc.ax.plot(list(timex), list(values), color=(self.color if self.active else self.gray),
+                    linestyle='-',drawstyle='steps-post',linewidth = self.aw.qmc.Evaluelinethickness[n],
+                    alpha = (self.alpha[4] if self.active else self.alpha[4]*self.alpha_dim_factor),
+                    label = self.aw.qmc.etypesf(n))
+            return line
+        return None
 
-    def drawEvents1(self):
+    def drawEvents1(self) -> None:
         if self.E1 is not None:
-            self.l_events1 = self.drawEvents(self.E1,0)
+            self.l_events1 = self.drawEvents(self.E1, 0)
 
-    def drawEvents2(self):
+    def drawEvents2(self) -> None:
         if self.E2 is not None:
-            self.l_events2 =  self.drawEvents(self.E2,1)
+            self.l_events2 =  self.drawEvents(self.E2, 1)
 
-    def drawEvents3(self):
+    def drawEvents3(self) -> None:
         if self.E3 is not None:
-            self.l_events3 =  self.drawEvents(self.E3,2)
+            self.l_events3 =  self.drawEvents(self.E3, 2)
 
-    def drawEvents4(self):
+    def drawEvents4(self) -> None:
         if self.E4 is not None:
-            self.l_events4 =  self.drawEvents(self.E4,3)
+            self.l_events4 =  self.drawEvents(self.E4, 3)
 
 
-class CompareTableWidget(QTableWidget):
+class CompareTableWidget(QTableWidget): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
     deleteKeyPressed = pyqtSignal()
 
-    def keyPressEvent(self, event):
-        if event.key() in [Qt.Key.Key_Delete,Qt.Key.Key_Backspace]:
+    @pyqtSlot('QKeyEvent')
+    def keyPressEvent(self, event: Optional['QKeyEvent'] = None) -> None:
+        if event is not None and event.key() in [Qt.Key.Key_Delete,Qt.Key.Key_Backspace]:
             self.deleteKeyPressed.emit()
         else:
             super().keyPressEvent(event)
 
     # fails in selectionChanged() if the first row header is clicked repeatedly and reports [0], [1],.. instead of [0],[],..
-    def getselectedRowsFast(self):
-        selectedRows = []
+    def getselectedRowsFast(self) -> List[int]:
+        selectedRows:List[int] = []
         for item in self.selectedItems():
             if item.row() not in selectedRows:
                 selectedRows.append(item.row())
-        if selectedRows == []:
+        if not selectedRows:
             return self.getLastRow()
         return selectedRows
 
-    def getLastRow(self):
+    def getLastRow(self) -> List[int]:
         rows = self.rowCount()
         if rows > 0:
             return [rows-1]
@@ -733,28 +969,30 @@ class roastCompareDlg(ArtisanDialog):
     __slots__ = [ 'foreground', 'background', 'maxentries', 'basecolors', 'profiles', 'label_number', 'l_align', 'legend', 'legendloc_pos', 'addButton',
         'deleteButton', 'alignnames', 'alignComboBox', 'etypes', 'eventsComboBox', 'cb', 'model', 'button_7_org_state_hidden', 'button_1_org_state_hidden',
         'button_2_org_state_hidden', 'button_10_org_state_hidden', 'pick_handler_id', 'modeComboBox', 'buttonCONTROL_org_state_hidden', 'buttonONOFF_org_state_hidden',
-        'buttonRESET_org_state_hidden', 'buttonSTARTSTOP_org_state_hidden', 'profileTable' ]
+        'buttonRESET_org_state_hidden', 'buttonSTARTSTOP_org_state_hidden', 'profileTable', 'delta_axis_visible' ]
 
-    def __init__(self, parent = None, aw = None, foreground = None, background = None):
+    def __init__(self, parent:QWidget, aw:'ApplicationWindow', foreground:Optional[str] = None, background:Optional[str] = None) -> None:
         super().__init__(parent, aw)
 
         if platform.system() == 'Darwin':
-            self.setAttribute(Qt.WidgetAttribute.WA_MacAlwaysShowToolWindow)
+            self.setAttribute(Qt.WidgetAttribute.WA_MacAlwaysShowToolWindow) # show tool window even if app is in background (see https://bugreports.qt.io/browse/QTBUG-57581)
 
         self.setAcceptDrops(True)
 
-        self.foreground = foreground
-        self.background = background
+        self.foreground:Optional[str] = foreground
+        self.background:Optional[str] = background
         self.setWindowTitle(QApplication.translate('Form Caption','Comparator'))
         self.maxentries = 10 # maximum number of profiles to be compared
-        self.basecolors = list(cm.tab10(numpy.linspace(0,1,10)))  # @UndefinedVariable # ylint: disable=maybe-no-member
-        self.profiles = []
+        self.basecolors: List[Tuple[float, float, float, float]] = list(colormaps['tab10'](numpy.linspace(0,1,10)))  # @UndefinedVariable # pylint: disable=maybe-no-member
+        self.profiles:List[RoastProfile] = []
         self.label_number = 0
+        #
+        self.delta_axis_visible:Optional[bool] = None # True if twoAxisMode is active as detected by self.deltaAxisVisible()
         # align line
-        self.l_align = None
+        self.l_align:Optional[Line2D] = None
         # legend
-        self.legend = None
-        self.legendloc_pos = None
+        self.legend:Optional[Legend] = None
+        self.legendloc_pos:Optional[Tuple[float,float]] = None
         # table
         self.profileTable = CompareTableWidget()
         self.createProfileTable()
@@ -771,7 +1009,7 @@ class roastCompareDlg(ArtisanDialog):
             QApplication.translate('ComboBox','BBP+Roast'),
             QApplication.translate('ComboBox','BBP'),
             ]
-        self.modeComboBox = MyQComboBox()
+        self.modeComboBox:MyQComboBox = MyQComboBox()
         self.modeComboBox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.modeComboBox.addItems(modes)
         if self.aw.qmc.compareRoast and self.aw.qmc.compareBBP:
@@ -796,7 +1034,7 @@ class roastCompareDlg(ArtisanDialog):
         self.alignComboBox = MyQComboBox()
         self.alignComboBox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.alignComboBox.addItems(self.alignnames)
-        if self.aw.qmc.compareRoast == False and self.aw.qmc.compareBBP == True:
+        if not self.aw.qmc.compareRoast and self.aw.qmc.compareBBP:
             self.aw.qmc.compareAlignEvent = 0
             self.alignComboBox.setCurrentIndex(0)
             self.alignComboBox.setEnabled(False)
@@ -804,35 +1042,19 @@ class roastCompareDlg(ArtisanDialog):
             self.alignComboBox.setCurrentIndex(self.aw.qmc.compareAlignEvent)
         self.alignComboBox.currentIndexChanged.connect(self.changeAlignEventidx)
         #
-        self.etypes = self.aw.qmc.etypes[:-1]
-        self.etypes.insert(0,'')
         self.eventsComboBox = MyQComboBox()
         self.eventsComboBox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.eventsComboBox.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        self.eventsComboBox.addItems(self.etypes)
         self.eventsComboBox.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Maximum)
+        self.updateEventsMenu(None)
         self.eventsComboBox.setCurrentIndex(self.aw.qmc.compareEvents)
         self.eventsComboBox.currentIndexChanged.connect(self.changeEventsidx)
         #
         self.cb = CheckComboBox(placeholderText='')
         self.cb.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.model = self.cb.model()
-        self.cb.addItem(QApplication.translate('Label','ET'))
-        self.model.item(0).setCheckable(True)
-        self.cb.setItemCheckState(0,(Qt.CheckState.Checked if self.aw.qmc.compareET else Qt.CheckState.Unchecked))
-        self.cb.addItem(QApplication.translate('Label','BT'))
-        self.model.item(1).setCheckable(True)
-        self.cb.setItemCheckState(1,(Qt.CheckState.Checked if self.aw.qmc.compareBT else Qt.CheckState.Unchecked))
-        self.cb.addItem(deltaLabelUTF8 + QApplication.translate('Label','ET'))
-        self.model.item(2).setCheckable(True)
-        self.cb.setItemCheckState(2,(Qt.CheckState.Checked if self.aw.qmc.compareDeltaET else Qt.CheckState.Unchecked))
-        self.cb.addItem(deltaLabelUTF8 + QApplication.translate('Label','BT'))
-        self.model.item(3).setCheckable(True)
-        self.cb.setItemCheckState(3,(Qt.CheckState.Checked if self.aw.qmc.compareDeltaBT else Qt.CheckState.Unchecked))
-        self.cb.insertSeparator(4)
-        self.cb.addItem(QApplication.translate('CheckBox','Events'))
-        self.model.item(5).setCheckable(True)
-        self.cb.setItemCheckState(5,(Qt.CheckState.Checked if self.aw.qmc.compareMainEvents else Qt.CheckState.Unchecked))
+        self.model:QStandardItemModel = cast(QStandardItemModel, self.cb.model())
+
+        self.updateCurvesMenu(None)
         self.cb.flagChanged.connect(self.flagChanged)
 
         settings1Layout = QHBoxLayout()
@@ -866,11 +1088,15 @@ class roastCompareDlg(ArtisanDialog):
         mainLayout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(mainLayout)
 
-        windowFlags = self.windowFlags()
-        windowFlags |= Qt.WindowType.Tool
-        if platform.system() == 'Windows':
-            windowFlags |= Qt.WindowType.WindowMinimizeButtonHint  # Add minimize  button
-        self.setWindowFlags(windowFlags)
+        # we want minimize and close buttons, but no maximize buttons
+        if not platform.system().startswith('Windows'):
+            windowFlags = self.windowFlags()
+            windowFlags |= Qt.WindowType.Tool
+            windowFlags |= Qt.WindowType.CustomizeWindowHint # needed to be able to customize the close/min/max controls (at least on macOS)
+            windowFlags |= Qt.WindowType.WindowMinimizeButtonHint
+            windowFlags |= Qt.WindowType.WindowCloseButtonHint
+            self.setWindowFlags(windowFlags)
+        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, False)
 
         self.redraw()
 
@@ -882,7 +1108,7 @@ class roastCompareDlg(ArtisanDialog):
         self.disableButtons()
         self.aw.disableEditMenus(compare=True)
 
-        self.pick_handler_id = self.aw.qmc.fig.canvas.mpl_connect('pick_event', self.onpick_event)
+        self.pick_handler_id = self.aw.qmc.fig.canvas.mpl_connect('pick_event', self.onpick_event) # type: ignore[arg-type] # incompatible type "Callable[[PickEvent], None]"; expected "Callable[[Event], Any]
 
         settings = QSettings()
         if settings.contains('CompareGeometry'):
@@ -891,38 +1117,46 @@ class roastCompareDlg(ArtisanDialog):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus) # make keyPressEvent below work
         self.setFocus(Qt.FocusReason.MouseFocusReason)
 
-    def keyPressEvent(self,event):
+    @pyqtSlot('QKeyEvent')
+    def keyPressEvent(self, event: Optional['QKeyEvent']) -> None: # pyrefly: ignore
         try:
-            k = int(event.key())
-            if k == 71:                       #G (toggle time auto axis mode)
-                self.modeComboBox.setCurrentIndex((self.modeComboBox.currentIndex()+1) % 3)
-            else:
-                QWidget.keyPressEvent(self, event)
+            if event is not None:
+                k = int(event.key())
+                if k == 71:                       #G (toggle time auto axis mode)
+                    self.modeComboBox.setCurrentIndex((self.modeComboBox.currentIndex()+1) % 3)
+                else:
+                    QWidget.keyPressEvent(self, event)
         except Exception: # pylint: disable=broad-except
             pass
 
     @staticmethod
-    def dragEnterEvent(event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
+    @pyqtSlot('QDragEnterEvent')
+    def dragEnterEvent(event: Optional['QDragEnterEvent'] = None) -> None:
+        if event is not None:
+            mimeData:Optional[QMimeData] = event.mimeData()
+            if mimeData is not None and mimeData.hasUrls():
+                event.accept()
+            else:
+                event.ignore()
 
-    def dropEvent(self, event):
-        urls = event.mimeData().urls()
-        if urls and len(urls)>0:
-            res = []
-            for url in urls:
-                if url.scheme() == 'file':
-                    filename = url.toString(QUrl.UrlFormattingOption.PreferLocalFile)
-                    qfile = QFileInfo(filename)
-                    file_suffix = qfile.suffix()
-                    if file_suffix == 'alog':
-                        res.append(filename)
-            if len(res) > 0:
-                self.addProfiles(res)
+    @pyqtSlot('QDropEvent')
+    def dropEvent(self, event: Optional['QDropEvent'] = None) -> None:
+        if event is not None:
+            mimeData:Optional[QMimeData] = event.mimeData()
+            if mimeData is not None:
+                urls = mimeData.urls()
+                if urls and len(urls)>0:
+                    res:List[str] = []
+                    for url in urls:
+                        if url.scheme() == 'file':
+                            filename = url.toString(QUrl.UrlFormattingOption.PreferLocalFile)
+                            qfile = QFileInfo(filename)
+                            file_suffix = qfile.suffix()
+                            if file_suffix == 'alog':
+                                res.append(filename)
+                    self.addProfiles(res)
 
-    def enableButtons(self):
+    def enableButtons(self) -> None:
         if not self.buttonRESET_org_state_hidden:
             self.aw.buttonRESET.show() # RESET
         if not self.buttonONOFF_org_state_hidden:
@@ -932,7 +1166,7 @@ class roastCompareDlg(ArtisanDialog):
         if not self.buttonCONTROL_org_state_hidden:
             self.aw.buttonCONTROL.show() # CONTROL
 
-    def disableButtons(self):
+    def disableButtons(self) -> None:
         self.aw.buttonRESET.hide() # RESET
         self.aw.buttonONOFF.hide() # ON/OFF
         self.aw.buttonSTARTSTOP.hide() # START/STOP
@@ -940,41 +1174,63 @@ class roastCompareDlg(ArtisanDialog):
 
     ### DRAWING
 
-    def onpick_event(self,event):
+    def onpick_event(self, event:'PickEvent') -> None:
         p = next((p for p in self.profiles if event.artist in [p.l_mainEvents1,p.l_mainEvents2]), None)
         if p is not None and p.visible and p.active:
             # determine zorder of this profile:
-            p_zorder = 0
-            if p.l_mainEvents1.get_visible():
+            p_zorder:float = 0
+            if p.l_mainEvents1 is not None and p.l_mainEvents1.get_visible():
                 p_zorder = p.l_mainEvents1.get_zorder()
-            elif p.l_mainEvents2.get_visible():
+            elif p.l_mainEvents2 is not None and p.l_mainEvents2.get_visible():
                 p_zorder = p.l_mainEvents2.get_zorder()
 
             # if there is any profile op != p which is also triggered by this mouse event and has a higher z-order, ignore this pick
-            if any(op != p and any(me.get_visible() and me.get_zorder() > p_zorder and me.contains(event.mouseevent)[0] for me in [op.l_mainEvents1,op.l_mainEvents2])
+            if any(op != p and any(me is not None and me.get_visible() and me.get_zorder() > p_zorder and me.contains(event.mouseevent)[0] for me in [op.l_mainEvents1,op.l_mainEvents2])
                     for op in self.profiles):
                 return
 
-            ind = event.ind[0]
+            ind = event.ind[0] # type: ignore[attr-defined] # "PickEvent" has no attribute "ind"
             time = p.timex[p.timeindex[ind]]
             if p.timeindex[0] != -1:
                 time -= p.timex[p.timeindex[0]]
-            temp = self.aw.float2float(p.temp2[p.timeindex[ind]])
-            if ind > 0:
-                name_idx = ind + 1
-            else:
-                name_idx = ind
+            temp = float2float(p.temp2[p.timeindex[ind]])
+            name_idx = ind + 1 if ind > 0 else ind
             event_name = self.alignnames[name_idx]
             event_name = self.aw.arabicReshape(event_name)
             self.aw.sendmessage(f'{p.label}: {event_name} @ {stringfromseconds(time,leadingzero=False)}, {temp}{self.aw.qmc.mode}')
 
-    def clearCanvas(self):
+    # if zgrid is != 0 and either ET or BT delta is selected or any of the visible extra curves is rendered on the delta axis we show the delta (second) y-axis
+    def deltaAxisVisible(self) -> bool:
+        return self.aw.qmc.zgrid>0 and (self.aw.qmc.compareDeltaET or self.aw.qmc.compareDeltaBT or
+                    any((any(len(p.extraDelta1)>i and p.extraDelta1[i] and cv for i, cv in enumerate(p.extra1_curve_visibilities)) or
+                         any(len(p.extraDelta2)>i and p.extraDelta2[i] and cv for i, cv in enumerate(p.extra2_curve_visibilities))) for p in self.profiles))
 
-        rcParams['path.effects'] = []
-        if self.aw.qmc.graphstyle == 1:
-            scale = 1
-        else:
-            scale = 0
+    def updateRightAxis(self) -> None:
+        if self.aw.qmc.ax is not None:
+            self.aw.qmc.ax.spines.right.set_visible(bool(self.aw.qmc.zgrid != 0 and self.delta_axis_visible))
+            self.aw.qmc.ax.spines.top.set_visible(bool(self.aw.qmc.xgrid != 0 and self.aw.qmc.ygrid != 0 and self.aw.qmc.zgrid != 0 and self.delta_axis_visible))
+        delta_axis_label = (self.aw.qmc.mode + self.aw.arabicReshape(QApplication.translate('Label', '/min')) if self.aw.qmc.zgrid>0 and self.delta_axis_visible else '')
+        if self.aw.qmc.delta_ax is not None:
+            prop = self.aw.mpl_fontproperties.copy()
+            prop.set_size('small')
+            fontprop_medium = self.aw.mpl_fontproperties.copy()
+            fontprop_medium.set_size('medium')
+            self.aw.qmc.delta_ax.set_ylabel(delta_axis_label,color = self.aw.qmc.palette['ylabel'],fontproperties=fontprop_medium)
+            if self.delta_axis_visible and self.aw.qmc.zgrid>0:
+                self.aw.qmc.delta_ax.yaxis.set_major_locator(ticker.MultipleLocator(self.aw.qmc.zgrid))
+                self.aw.qmc.delta_ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+                for i in self.aw.qmc.delta_ax.get_yticklines():
+                    i.set_markersize(10)
+                for i in self.aw.qmc.delta_ax.yaxis.get_minorticklines():
+                    i.set_markersize(5)
+                for label in self.aw.qmc.delta_ax.get_yticklabels() :
+                    label.set_fontproperties(prop)
+            else:
+                self.aw.qmc.delta_ax.yaxis.set_major_locator(ticker.NullLocator())
+                self.aw.qmc.delta_ax.yaxis.set_minor_locator(ticker.NullLocator())
+
+    def clearCanvas(self) -> None:
+        scale = 1 if self.aw.qmc.graphstyle == 1 else 0
         length = 700 # 100 (128 the default)
         randomness = 12 # 2 (16 default)
         rcParams['path.sketch'] = (scale, length, randomness)
@@ -990,7 +1246,7 @@ class roastCompareDlg(ArtisanDialog):
         self.aw.qmc.ax.set_facecolor(self.aw.qmc.palette['background'])
         self.aw.qmc.delta_ax.clear()
         self.aw.qmc.ax.set_ylim(self.aw.qmc.ylimit_min, self.aw.qmc.ylimit)
-        grid_axis = None
+        grid_axis:Optional[Literal['both', 'x', 'y']] = None
         if self.aw.qmc.temp_grid and self.aw.qmc.time_grid:
             grid_axis = 'both'
         elif self.aw.qmc.temp_grid:
@@ -998,12 +1254,19 @@ class roastCompareDlg(ArtisanDialog):
         elif self.aw.qmc.time_grid:
             grid_axis = 'x'
         if grid_axis is not None:
-            self.aw.qmc.ax.grid(True,axis=grid_axis,color=self.aw.qmc.palette['grid'],linestyle=self.aw.qmc.gridstyles[self.aw.qmc.gridlinestyle],linewidth = self.aw.qmc.gridthickness,alpha = self.aw.qmc.gridalpha,sketch_params=0,path_effects=[])
+            self.aw.qmc.ax.grid(True,
+                axis = grid_axis,
+                color = self.aw.qmc.palette['grid'],
+                linestyle = self.aw.qmc.gridstyles[self.aw.qmc.gridlinestyle],
+                linewidth = self.aw.qmc.gridthickness,
+                alpha = self.aw.qmc.gridalpha,
+                sketch_params = 0,
+                path_effects = [])
 
-        self.aw.qmc.ax.spines.top.set_visible(self.aw.qmc.xgrid != 0 and self.aw.qmc.ygrid != 0 and self.aw.qmc.zgrid != 0)
+        self.aw.qmc.ax.spines.top.set_visible(bool(self.aw.qmc.xgrid != 0 and self.aw.qmc.ygrid != 0 and self.aw.qmc.zgrid != 0 and self.delta_axis_visible))
         self.aw.qmc.ax.spines.bottom.set_visible(self.aw.qmc.xgrid != 0)
         self.aw.qmc.ax.spines.left.set_visible(self.aw.qmc.ygrid != 0)
-        self.aw.qmc.ax.spines.right.set_visible(self.aw.qmc.zgrid != 0)
+        self.aw.qmc.ax.spines.right.set_visible(bool(self.aw.qmc.zgrid != 0 and self.delta_axis_visible))
 
         prop = self.aw.mpl_fontproperties.copy()
         prop.set_size('small')
@@ -1047,6 +1310,7 @@ class roastCompareDlg(ArtisanDialog):
 
         self.aw.qmc.ax.set_zorder(self.aw.qmc.delta_ax.get_zorder()+1) # put ax in front of delta_ax (which remains empty!)
         #create a second set of axes in the same position as self.ax
+
         self.aw.qmc.delta_ax.tick_params(\
             axis='y',           # changes apply to the y-axis
             which='both',       # both major and minor ticks are affected
@@ -1056,15 +1320,17 @@ class roastCompareDlg(ArtisanDialog):
             direction='inout', # tick_dir # this does not work as ticks are not drawn at all in ON mode with this!?
             labelright=True,
             labelleft=False,
-            labelbottom=False)   # labels along the bottom edge are on
+            labelbottom=False)   # labels along the bottom edge are off
 
         self.aw.qmc.ax.patch.set_visible(True)
 
-        delta_axis_label = ('' if self.aw.qmc.zgrid == 0 else self.aw.qmc.mode + self.aw.arabicReshape(QApplication.translate('Label', '/min')))
+        delta_axis_label = (self.aw.qmc.mode + self.aw.arabicReshape(QApplication.translate('Label', '/min')) if self.aw.qmc.zgrid>0 and self.delta_axis_visible else '')
         self.aw.qmc.delta_ax.set_ylabel(delta_axis_label,color = self.aw.qmc.palette['ylabel'],fontproperties=fontprop_medium)
 
+        self.aw.qmc.delta_ax.yaxis.set_label_position('right')
+
         self.aw.qmc.delta_ax.set_ylim(self.aw.qmc.zlimit_min,self.aw.qmc.zlimit)
-        if self.aw.qmc.zgrid > 0:
+        if self.delta_axis_visible and self.aw.qmc.zgrid>0:
             self.aw.qmc.delta_ax.yaxis.set_major_locator(ticker.MultipleLocator(self.aw.qmc.zgrid))
             self.aw.qmc.delta_ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
             for i in self.aw.qmc.delta_ax.get_yticklines():
@@ -1106,23 +1372,25 @@ class roastCompareDlg(ArtisanDialog):
         self.aw.qmc.xaxistosm()
 
     # draw time alignment vertical line
-    def drawAlignmentLine(self):
-        self.l_align = self.aw.qmc.ax.axvline(0,
-            color=self.aw.qmc.palette['grid'],
-            linestyle=self.aw.qmc.gridstyles[self.aw.qmc.gridlinestyle],
-            zorder=0,
-            linewidth = self.aw.qmc.gridthickness*2,sketch_params=0,
-            path_effects=[])
+    def drawAlignmentLine(self) -> None:
+        if self.aw.qmc.ax is not None:
+            self.l_align = self.aw.qmc.ax.axvline(0,
+                color=self.aw.qmc.palette['grid'],
+                linestyle=self.aw.qmc.gridstyles[self.aw.qmc.gridlinestyle],
+                zorder=0,
+                linewidth = self.aw.qmc.gridthickness*2,sketch_params=0,
+                path_effects=[])
 
-    def drawLegend(self):
+    def drawLegend(self) -> None:
         if self.aw.qmc.legendloc:
+            loc:Union[int, Tuple[float,float]]
             if self.legend is None:
                 if self.legendloc_pos is None:
                     loc = self.aw.qmc.legendloc
                 else:
                     loc = self.legendloc_pos
             else:
-                loc = self.legend._loc # pylint: disable=protected-access
+                loc = self.legend._loc # type: ignore # "Legend" has no attribute "_loc" # pylint: disable=protected-access
             handles = []
             labels = []
             for p in self.profiles:
@@ -1131,46 +1399,49 @@ class roastCompareDlg(ArtisanDialog):
                         lines = [p.l_temp1,p.l_temp2,p.l_delta1,p.l_delta2,p.l_events1,p.l_events2,p.l_events3,p.l_events4]
                     else:
                         lines = [p.l_temp2,p.l_temp1,p.l_delta2,p.l_delta1,p.l_events1,p.l_events2,p.l_events3,p.l_events4]
-                    for l in lines:
-                        if l.get_visible():
-                            handles.append(l)
+                    for ll in lines:
+                        if ll is not None and ll.get_visible():
+                            handles.append(ll)
                             labels.append(p.label)
                             break
             if len(handles) > 0:
                 prop = self.aw.mpl_fontproperties.copy()
                 prop.set_size('x-small')
-                self.legend = self.aw.qmc.ax.legend(handles,labels,loc=loc,
-                    #ncol=ncol,
-                    fancybox=True,prop=prop,shadow=False,frameon=True)
-                try:
-                    self.legend.set_in_layout(False) # remove legend from tight_layout calculation
-                except Exception: # set_in_layout not available in mpl<3.x # pylint: disable=broad-except
-                    pass
-                try:
-                    self.legend.set_draggable(state=True,use_blit=True)  #,update='bbox')
-                except Exception: # not available in mpl<3.x # pylint: disable=broad-except
-                    self.legend.draggable(state=True) # for mpl 2.x
-                frame = self.legend.get_frame()
-                frame.set_facecolor(self.aw.qmc.palette['legendbg'])
-                frame.set_alpha(self.aw.qmc.alpha['legendbg'])
-                frame.set_edgecolor(self.aw.qmc.palette['legendborder'])
-                frame.set_linewidth(0.5)
-                for line,text in zip(self.legend.get_lines(), self.legend.get_texts()):
-                    text.set_color(line.get_color())
-            else:
+                if self.aw.qmc.ax is not None:
+                    self.legend = self.aw.qmc.ax.legend(handles,labels,loc=loc,
+                        #ncol=ncol,
+                        fancybox=True,prop=prop,shadow=False,frameon=True)
+
                 if self.legend is not None:
-                    self.legend.remove()
+                    try:
+                        self.legend.set_in_layout(False) # remove legend from tight_layout calculation
+                    except Exception: # set_in_layout not available in mpl<3.x # pylint: disable=broad-except
+                        pass
+                    try:
+                        self.legend.set_draggable(state=True,use_blit=True)  #,update='bbox')
+                        self.legend.set_picker(self.aw.draggable_text_box_picker)
+                    except Exception: # not available in mpl<3.x # pylint: disable=broad-except
+                        self.legend.draggable(state=True) # type: ignore # for mpl 2.x
+                    frame = self.legend.get_frame()
+                    frame.set_facecolor(self.aw.qmc.palette['legendbg'])
+                    frame.set_alpha(self.aw.qmc.alpha['legendbg'])
+                    frame.set_edgecolor(self.aw.qmc.palette['legendborder'])
+                    frame.set_linewidth(0.5)
+                    for line,text in zip(self.legend.get_lines(), self.legend.get_texts()):
+                        text.set_color(line.get_color())
+            elif self.legend is not None:
+                self.legend.remove()
         else:
             if self.legend is not None:
                 self.legend.remove()
             self.legend = None
 
-    def repaint(self):
+    def repaintDlg(self) -> None:
         self.drawLegend()
         self.aw.qmc.placelogoimage()
         self.aw.qmc.fig.canvas.draw()
 
-    def redraw(self):
+    def redraw(self) -> None:
         self.clearCanvas()
         self.drawAlignmentLine()
         self.recompute()
@@ -1179,13 +1450,21 @@ class roastCompareDlg(ArtisanDialog):
             rp.updateAlpha()
         self.realign()
         self.updateZorders()
-        self.repaint()
+        self.repaintDlg()
+
+    def redrawOnDeltaAxisVisibilityChanged(self) -> None:
+        two_axis = self.deltaAxisVisible()
+        if self.delta_axis_visible is None or self.delta_axis_visible != two_axis:
+            # the two axis status changed thus we do a full redraw incl. a clearCanvas()
+            self.delta_axis_visible = two_axis
+            self.updateRightAxis()
+        self.repaintDlg()
 
     ### Table
 
-    def setProfileTableRow(self,i):
+    def setProfileTableRow(self, i:int) -> None:
         profile = self.profiles[i]
-        c = QColor.fromRgbF(*profile.color)
+        c = QColor.fromRgbF(*profile.color)  # ty:ignore[missing-argument]
         color = QTableWidgetItem()
         color.setBackground(c)
         color.setFlags(Qt.ItemFlag.ItemIsEnabled) # do not change background color on row selection of the color items
@@ -1207,8 +1486,8 @@ class roastCompareDlg(ArtisanDialog):
         header = QTableWidgetItem(profile.label)
         self.profileTable.setVerticalHeaderItem(i,header)
 
-    def renderToolTip(self,profile):
-        tooltip = ''
+    def renderToolTip(self, profile:RoastProfile) -> str:
+        tooltip:str = ''
         if profile.metadata is not None:
             try:
                 if 'roastdate' in profile.metadata:
@@ -1229,7 +1508,7 @@ class roastCompareDlg(ArtisanDialog):
                         tooltip += '\n'
                     tooltip += profile.metadata['beans'].strip()
                     if 'moisture_greens' in profile.metadata:
-                        tooltip += ' (%g%%)' % self.aw.float2float(profile.metadata['moisture_greens'])
+                        tooltip += f" ({float2float(profile.metadata['moisture_greens'],self.aw.percent_decimals):g}%)"
                 if 'ambientTemp' in profile.metadata:
                     if tooltip != '':
                         tooltip += '\n'
@@ -1274,43 +1553,52 @@ class roastCompareDlg(ArtisanDialog):
                 _log.exception(e)
         return tooltip.strip()
 
-    def createProfileTable(self):
+    def createProfileTable(self) -> None:
         try:
             self.profileTable.clear()
             self.profileTable.setTabKeyNavigation(True)
             self.profileTable.setColumnCount(3)
             self.profileTable.setAlternatingRowColors(True)
-#            self.profileTable.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers) # we allow the editing/renaming of items
             self.profileTable.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
             self.profileTable.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
             self.profileTable.setShowGrid(False)
-            self.profileTable.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-#            self.profileTable.horizontalHeader().setVisible(False)
+            vheader: Optional[QHeaderView] = self.profileTable.verticalHeader()
+            if vheader is not None:
+                vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
             self.profileTable.setHorizontalHeaderLabels(['',
                                                          QApplication.translate('Label','ON'),
                                                          QApplication.translate('Label','Title')])
-            self.profileTable.horizontalHeader().sectionClicked.connect(self.columnHeaderClicked)
+            hheader: Optional[QHeaderView] = self.profileTable.horizontalHeader()
+            if hheader is not None:
+                hheader.sectionClicked.connect(self.columnHeaderClicked)
             self.profileTable.setCornerButtonEnabled(True) # click in the left header corner selects all entries in the table
             self.profileTable.setSortingEnabled(False)
 
-            self.profileTable.verticalHeader().setSectionsMovable(True)
-            self.profileTable.verticalHeader().setDragDropMode(QTableWidget.DragDropMode.InternalMove)
-            self.profileTable.verticalHeader().sectionMoved.connect(self.sectionMoved)
-            self.profileTable.verticalHeader().sectionDoubleClicked.connect(self.tableSectionClicked)
+            vheader = self.profileTable.verticalHeader()
+            if vheader is not None:
+                vheader.setSectionsMovable(True)
+                vheader.setDragDropMode(QTableWidget.DragDropMode.InternalMove)
+                vheader.sectionMoved.connect(self.sectionMoved)
+                vheader.sectionDoubleClicked.connect(self.tableSectionClicked)
 
             self.profileTable.itemSelectionChanged.connect(self.selectionChanged)
             self.profileTable.deleteKeyPressed.connect(self.deleteSelected)
 
-            header = self.profileTable.horizontalHeader()
-            header.setStretchLastSection(True)
-            header.setMinimumSectionSize(10)       # color column size
-            self.profileTable.setColumnWidth(0,10) # color column size
-            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            header: Optional[QHeaderView] = self.profileTable.horizontalHeader()
+            if header is not None:
+                header.setStretchLastSection(True)
+                header.setMinimumSectionSize(10)  # color column size
+#                header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+                header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+                header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+                header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
+            self.profileTable.setColumnWidth(0,10) # color column size
             self.profileTable.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            self.profileTable.horizontalScrollBar().setEnabled(False)
+
+            horizontalScrollBar: Optional[QScrollBar] = self.profileTable.horizontalScrollBar()
+            if horizontalScrollBar is not None:
+                horizontalScrollBar.setEnabled(False)
             self.profileTable.setAutoScroll(False) # disable scrolling to selected cell
 
         except Exception as ex: # pylint: disable=broad-except
@@ -1321,24 +1609,26 @@ class roastCompareDlg(ArtisanDialog):
     ### SLOTS
 
     @pyqtSlot(int)
-    def columnHeaderClicked(self,i):
+    def columnHeaderClicked(self, i:int) -> None:
         if i == 1: # flag header clicked
-            if all(p.visible for p in self.profiles):
-                new_state = False
-            else:
-                new_state = True
+            new_state = not all(p.visible for p in self.profiles)
             for r in range(self.profileTable.rowCount()):
-                layout = self.profileTable.cellWidget(r,1).layout()
-                flag = layout.itemAt(0).widget()
-                flag.blockSignals(True)
-                flag.setChecked(new_state)
-                flag.blockSignals(False)
+                widget: Optional[QWidget] = self.profileTable.cellWidget(r,1)
+                if widget is not None:
+                    layout: Optional[QLayout] = widget.layout()
+                    if layout is not None:
+                        layoutItem: Optional[QLayoutItem] = layout.itemAt(0)
+                        if layoutItem is not None:
+                            flag = cast(QCheckBox, layoutItem.widget())
+                            flag.blockSignals(True)
+                            flag.setChecked(new_state)
+                            flag.blockSignals(False)
                 self.profiles[r].setVisible(new_state)
             # update chart
             self.updateDeltaLimits()
             self.autoTimeLimits()
             self.realign()
-            self.repaint()
+            self.repaintDlg()
             self.aw.qpc.update_phases(self.getPhasesData())
         elif i == 2: # title header clicked
             selected = self.profileTable.selectedRanges()
@@ -1350,42 +1640,52 @@ class roastCompareDlg(ArtisanDialog):
                 self.profileTable.selectAll()
 
     @pyqtSlot(int,int,int)
-    def sectionMoved(self,_logicalIndex, _oldVisualIndex, _newVisualIndex):
-        self.updateAlignMenu()
+    def sectionMoved(self, _logicalIndex:int, _oldVisualIndex:int, _newVisualIndex:int) -> None:
+        self.updateMenus()
         self.realign()
         self.updateZorders()
-        self.repaint()
+        self.repaintDlg()
         self.aw.qpc.update_phases(self.getPhasesData())
 
     @pyqtSlot(int)
-    def visibilityChanged(self,state):
+    def visibilityChanged(self, state:int) -> None:
         i = self.aw.findWidgetsRow(self.profileTable,self.sender(),1)
         if i is not None:
             self.profiles[i].setVisible(bool(state))
             self.updateDeltaLimits()
             self.autoTimeLimits()
             self.realign()
-            self.repaint()
+            self.repaintDlg()
             self.aw.qpc.update_phases(self.getPhasesData())
 
+
     @pyqtSlot(int,bool)
-    def flagChanged(self,i,b):
+    def flagChanged(self, i:int, b:bool) -> None:
         if i == 0:
             self.aw.qmc.compareET = b
         elif i == 1:
             self.aw.qmc.compareBT = b
         elif i == 2:
             self.aw.qmc.compareDeltaET = b
+            self.updateDeltaLimits()
         elif i == 3:
             self.aw.qmc.compareDeltaBT = b
+            self.updateDeltaLimits()
         elif i == 5:
             self.aw.qmc.compareMainEvents = b
-        self.updateDeltaLimits()
+        else:
+            offset:Final[int] = 7
+            j:int = i - offset
+            d,m = divmod(j,2)
+            if m == 0:
+                self.aw.qmc.compareExtraCurves1[d] = b
+            else:
+                self.aw.qmc.compareExtraCurves2[d] = b
         self.updateVisibilities()
-        self.repaint()
+        self.redrawOnDeltaAxisVisibilityChanged()
 
     @pyqtSlot(int)
-    def changeModeidx(self,i):
+    def changeModeidx(self, i:int) -> None:
         if int(not self.aw.qmc.compareRoast) + int(self.aw.qmc.compareBBP) != i:
             if i == 1: # BBP+Roast
                 self.aw.qmc.compareRoast = True
@@ -1407,60 +1707,59 @@ class roastCompareDlg(ArtisanDialog):
             self.redraw()
 
     @pyqtSlot(int)
-    def changeAlignEventidx(self,i):
+    def changeAlignEventidx(self, i:int) -> None:
         if self.aw.qmc.compareAlignEvent != i:
             self.aw.qmc.compareAlignEvent = i
             self.realign()
-            self.repaint()
+            self.repaintDlg()
             self.aw.qpc.update_phases(self.getPhasesData())
 
     @pyqtSlot(int)
-    def changeEventsidx(self,i):
+    def changeEventsidx(self, i:int) -> None:
         self.aw.qmc.compareEvents = i
         self.updateVisibilities()
-        self.repaint()
+        self.repaintDlg()
 
     @pyqtSlot()
-    def selectionChanged(self):
+    def selectionChanged(self) -> None:
         selected = [self.aw.findWidgetsRow(self.profileTable,si,2) for si in self.profileTable.selectedItems()]
 #        selected = self.profileTable.getselectedRowsFast() # does return [1],[2],[1],.. on repeated clicks on the row header of the first entry insteadd of [1],[0],[1],..
         for i,p in enumerate(self.profiles):
-            if selected and not i in selected:
+            if selected and i not in selected:
                 p.setActive(False)
             else:
                 p.setActive(True)
         self.updateProfileTableColors()
-        self.repaint()
+        self.repaintDlg()
 
     @pyqtSlot(int)
-    def tableSectionClicked(self,i):
-        app = QCoreApplication.instance()
+    def tableSectionClicked(self, i:int) -> None:
         fileURL = QUrl.fromLocalFile(self.profiles[i].filepath)
-        if platform.system() == 'Windows' and not app.artisanviewerMode:
-            self.aw.app.sendMessage2ArtisanInstance(fileURL.toString(),app._viewer_id) # pylint: disable=protected-access
+        if platform.system() == 'Windows' and not self.aw.app.artisanviewerMode:
+            self.aw.app.sendMessage2ArtisanInstance(fileURL.toString(),self.aw.app._viewer_id) # pylint: disable=protected-access
         else:
             QDesktopServices.openUrl(fileURL)
 
     @pyqtSlot()
-    def deleteSelected(self):
+    def deleteSelected(self) -> None:
         self.deleteProfiles(self.profileTable.getselectedRowsFast())
 
     @pyqtSlot(bool)
-    def add(self,_=False):
+    def add(self,_:bool = False) -> None:
         filenames = self.aw.reportFiles()
         if filenames:
             self.addProfiles(filenames)
 
     @pyqtSlot(bool)
-    def delete(self,_=False):
+    def delete(self,_:bool = False) -> None:
         self.deleteProfiles(self.profileTable.getselectedRowsFast())
 
     ### UPDATE functions
 
-    def updateDeltaLimits(self):
+    def updateDeltaLimits(self) -> None:
         # update delta max limit in auto mode
         if (self.aw.qmc.autodeltaxET or self.aw.qmc.autodeltaxBT):
-            dmax = 0
+            dmax:float = 0
             for rp in self.profiles:
                 if rp.visible and rp.aligned:
                     if (self.cb.itemCheckState(2) == Qt.CheckState.Checked and self.aw.qmc.autodeltaxET) or \
@@ -1471,67 +1770,138 @@ class roastCompareDlg(ArtisanDialog):
                         dmax = max(dmax,rp.max_DeltaBT)
             if dmax > 0:
                 dmax = int(dmax) + 1
-                self.aw.qmc.delta_ax.set_ylim(top=dmax) # we only autoadjust the upper limit
+                if self.aw.qmc.delta_ax is not None:
+                    self.aw.qmc.delta_ax.set_ylim(top=dmax) # we only autoadjust the upper limit
                 self.aw.qmc.zlimit = int(round(dmax))
 
-    def recompute(self):
+    def recompute(self) -> None:
         for rp in self.profiles:
             rp.recompute()
 
-    def updateZorders(self):
+    def updateZorders(self) -> None:
         profiles = self.getProfilesVisualOrder()
         profiles.reverse()
-        zorder = 0
-        for rp in profiles:
+        for zorder, rp in enumerate(profiles):
             rp.setZorder(zorder)
-            zorder += 1
 
-    def updateVisibilities(self):
-        for p in self.profiles:
-            p.setVisibilities([
+    def updateVisibilities(self) -> None:
+        visibilities:List[bool] = [
                 self.cb.itemCheckState(0) == Qt.CheckState.Checked, # ET
                 self.cb.itemCheckState(1) == Qt.CheckState.Checked, # BT
                 self.cb.itemCheckState(2) == Qt.CheckState.Checked, # DeltaET
                 self.cb.itemCheckState(3) == Qt.CheckState.Checked, # DeltaBT
                 self.cb.itemCheckState(5) == Qt.CheckState.Checked, # Main events
-                ],self.aw.qmc.compareEvents)
+        ]
+        extra1_visibilitites:List[bool] = []
+        extra2_visibilitites:List[bool] = []
+        offset:Final[int] = 7
+        for i in range(self.aw.nLCDS):
+            extra1_visibilitites.append(self.cb.itemCheckState(offset + i*2) == Qt.CheckState.Checked)
+            extra2_visibilitites.append(self.cb.itemCheckState(offset + i*2 + 1) == Qt.CheckState.Checked)
+        for p in self.profiles:
+            p.setVisibilities(visibilities, extra1_visibilitites, extra2_visibilitites, self.aw.qmc.compareEvents)
 
-    def updateAlignMenu(self):
-        top = self.getTopProfileVisualOrder()
-        if top:
+    def updateEventsMenu(self, top:Optional[RoastProfile]) -> None:
+        etypes:List[str]
+        etypes = (self.aw.qmc.etypes[:-1] if top is None else top.etypes)
+        idx:int = self.eventsComboBox.currentIndex()
+        self.eventsComboBox.blockSignals(True)
+        self.eventsComboBox.clear()
+        self.eventsComboBox.addItems([''] + etypes)
+        self.eventsComboBox.setCurrentIndex(idx)
+        self.eventsComboBox.blockSignals(False)
+
+    def updateAlignMenu(self, top:Optional[RoastProfile]) -> None:
+        if top is not None:
             model = self.alignComboBox.model()
+            assert isinstance(model, QStandardItemModel) # pyrefly: ignore[invalid-argument]
             for i in range(model.rowCount()):
-                if len(top.timeindex) > i and ((i == 0 and top.timeindex[i] != -1) or (i==1 and top.TP != 0) or (i>1 and top.timeindex[i-1] > 0)):
-                    model.item(i).setEnabled(True)
-                else:
-                    model.item(i).setEnabled(False)
+                item: Optional[QStandardItem] = model.item(i)
+                if item is not None:
+                    if len(top.timeindex) > i and ((i == 0 and top.timeindex[i] != -1) or (i==1 and top.TP != 0) or (i>1 and top.timeindex[i-1] > 0)):
+                        item.setEnabled(True)
+                    else:
+                        item.setEnabled(False)
 
-    def updateProfileTableItems(self):
+    def updateCurvesMenu(self, top:Optional[RoastProfile]) -> None:
+        self.model.clear()
+        self.cb.addItem(self.aw.ETname)
+        item0 = self.model.item(0)
+        if item0 is not None:
+            item0.setCheckable(True)
+        self.cb.setItemCheckState(0,(Qt.CheckState.Checked if self.aw.qmc.compareET else Qt.CheckState.Unchecked))
+        self.cb.addItem(self.aw.BTname)
+        item1 = self.model.item(1)
+        if item1 is not None:
+            item1.setCheckable(True)
+        self.cb.setItemCheckState(1,(Qt.CheckState.Checked if self.aw.qmc.compareBT else Qt.CheckState.Unchecked))
+        self.cb.addItem(deltaLabelUTF8 + self.aw.ETname)
+        item2 = self.model.item(2)
+        if item2 is not None:
+            item2.setCheckable(True)
+        self.cb.setItemCheckState(2,(Qt.CheckState.Checked if self.aw.qmc.compareDeltaET else Qt.CheckState.Unchecked))
+        self.cb.addItem(deltaLabelUTF8 + self.aw.BTname)
+        item3 = self.model.item(3)
+        if item3 is not None:
+            item3.setCheckable(True)
+        self.cb.setItemCheckState(3,(Qt.CheckState.Checked if self.aw.qmc.compareDeltaBT else Qt.CheckState.Unchecked))
+        self.cb.insertSeparator(4)
+        self.cb.addItem(QApplication.translate('CheckBox','Events'))
+        item5 = self.model.item(5)
+        if item5 is not None:
+            item5.setCheckable(True)
+        self.cb.setItemCheckState(5,(Qt.CheckState.Checked if self.aw.qmc.compareMainEvents else Qt.CheckState.Unchecked))
+        # add extra device flags
+        if top is not None and len(top.extraname1) > 0:
+            self.cb.insertSeparator(6)
+            offset:int = 7
+            for i, (name1, name2) in enumerate(zip(top.extraname1, top.extraname2)):
+                self.cb.addItem(QApplication.translate('CheckBox',name1))
+                i1 = offset + i*2
+                item1 = self.model.item(i1)
+                if item1 is not None:
+                    item1.setCheckable(True)
+                self.cb.setItemCheckState(i1, (Qt.CheckState.Checked if self.aw.qmc.compareExtraCurves1[i] else Qt.CheckState.Unchecked))
+                #
+                self.cb.addItem(QApplication.translate('CheckBox',name2))
+                i2 = offset + i*2 + 1
+                item2 = self.model.item(i2)
+                if item2 is not None:
+                    item2.setCheckable(True)
+                self.cb.setItemCheckState(i2, (Qt.CheckState.Checked if self.aw.qmc.compareExtraCurves2[i] else Qt.CheckState.Unchecked))
+
+    def updateMenus(self) -> None:
+        top:Optional[RoastProfile] = self.getTopProfileVisualOrder()
+        self.updateAlignMenu(top)
+        self.updateCurvesMenu(top)
+        self.updateEventsMenu(top)
+
+    def updateProfileTableItems(self) -> None:
         for i,p in enumerate(self.profiles):
             w = self.profileTable.item(i,2)
             if w is not None:
                 if p.aligned:
-                    if sys.platform.startswith('darwin') and darkdetect.isDark() and appFrozen():
+                    if self.aw.app.darkmode:
                         w.setForeground(Qt.GlobalColor.white)
                     else:
                         w.setForeground(Qt.GlobalColor.black)
                 else:
                     w.setForeground(Qt.GlobalColor.lightGray)
 
-    def updateProfileTableColors(self):
+    def updateProfileTableColors(self) -> None:
         for i,p in enumerate(self.profiles):
             w = self.profileTable.item(i,0)
             if w is not None:
                 if p.active:
-                    c = QColor.fromRgbF(*p.color)
+                    c = QColor.fromRgbF(*p.color) # ty:ignore[missing-argument]
                 else:
-                    c = QColor.fromRgbF(*p.gray).lighter()
+                    c = QColor.fromRgbF(*p.gray)  # ty:ignore[missing-argument]
                 w.setBackground(c)
         self.aw.qpc.update_phases(self.getPhasesData())
 
     # align all profiles to the first one w.r.t. to the event self.aw.qmc.compareAlignEvent
     #   0:CHARGE, 1:TP, 2:DRY, 3:FCs, 4:FCe, 5:SCs, 6:SCe, 7:DROP
-    def realign(self):
+    def realign(self) -> None:
         if len(self.profiles) > 0:
             profiles = self.getProfilesVisualOrder()
             # align top profile to its CHARGE event or first reading to 00:00
@@ -1544,6 +1914,7 @@ class roastCompareDlg(ArtisanDialog):
 #            top.max_time = top.endTime() - delta
             top.max_time = (top.endTime() - delta if self.aw.qmc.compareRoast else 0)
             # align all other profiles to the top profile w.r.t. self.aw.qmc.compareAlignEvent
+            refTime:float
             if self.aw.qmc.compareAlignEvent == 0:
                 refTime = 0
             elif self.aw.qmc.compareAlignEvent == 1: # TP
@@ -1556,8 +1927,8 @@ class roastCompareDlg(ArtisanDialog):
                     self.l_align.set_visible(False)
                 return
             if self.l_align is not None:
-                self.l_align.set_xdata(refTime)
-                if any([p.visible for p in profiles]):
+                self.l_align.set_xdata([refTime])
+                if any(p.visible for p in profiles):
                     self.l_align.set_visible(True)
                 else:
                     self.l_align.set_visible(False)
@@ -1571,7 +1942,7 @@ class roastCompareDlg(ArtisanDialog):
 #                    p.max_time = p.endTime() - eventTime + refTime
                     p.max_time = (p.endTime() if self.aw.qmc.compareRoast else p.startTime()) - eventTime + refTime
                 elif self.aw.qmc.compareAlignEvent==1 and p.TP > 0:
-                    p_offset = 0
+                    p_offset:float = 0
                     if p.timeindex[0]>-1:
                         p_offset = p.timex[p.timeindex[0]]
                     eventTime = p.TP + p_offset
@@ -1608,14 +1979,14 @@ class roastCompareDlg(ArtisanDialog):
             self.autoTimeLimits()
             self.updateProfileTableItems()
             self.updateDeltaLimits()
-        else: # no profile loaded
-            if self.l_align is not None:
-                # we hide the alignment line
-                self.l_align.set_visible(False)
+        # no profile loaded
+        elif self.l_align is not None:
+            # we hide the alignment line
+            self.l_align.set_visible(False)
 
     ### ADD/DELETE table items
 
-    def addProfile(self,filename,obj):
+    def addProfile(self, filename:str, obj:'ProfileData') -> None:
         selected = [self.aw.findWidgetsRow(self.profileTable,si,2) for si in self.profileTable.selectedItems()]
         active = not bool(selected)
         # assign next color
@@ -1633,22 +2004,28 @@ class roastCompareDlg(ArtisanDialog):
         self.profileTable.setRowCount(len(self.profiles))
         self.setProfileTableRow(len(self.profiles)-1)
 
-    def addProfileFromURL(self,extractor,url):
+    def addProfileFromURL(self,
+            extractor:Callable[[QUrl, List[str], List[str], List[str], Callable[[int],float]], Optional['ProfileData']],
+            url:QUrl) -> None:
         _log.info('addProfileFromURL(%s)', url)
         try:
-            obj = extractor(url,self.aw)
+            obj:Optional[ProfileData] = extractor(url,
+                                            self.aw.qmc.etypesdefault,
+                                            self.aw.qmc.alt_etypesdefault,
+                                            self.aw.qmc.artisanflavordefaultlabels,
+                                            self.aw.qmc.eventsExternal2InternalValue)
             if obj:
-                self.addProfile(url,obj)
-                self.updateAlignMenu()
+                self.addProfile(str(url), obj)
+                self.updateMenus()
                 self.realign()
                 self.updateZorders()
-                self.repaint()
+                self.repaintDlg()
                 self.aw.qpc.update_phases(self.getPhasesData())
         except Exception as ex: # pylint: disable=broad-except
             _log.exception(ex)
 
     # Internal function not to be called directly. Use addProfiles() which also handles the repainting!
-    def addProfileFromFile(self,filename):
+    def addProfileFromFile(self, filename:str) -> None:
         _log.debug('addProfileFromFile(%s)', filename)
         try:
             if len(self.profiles) < self.maxentries and not any(filename == p.filepath for p in self.profiles):
@@ -1659,72 +2036,93 @@ class roastCompareDlg(ArtisanDialog):
                 firstChar = stream.read(1)
                 if firstChar == '{':
                     f.close()
-                    obj = self.aw.deserialize(filename)
-                    self.addProfile(filename,obj)
+                    obj = deserialize(filename)
+                    self.aw.plusAddPath(obj, filename)
+                    self.addProfile(filename,cast('ProfileData', obj))
         except Exception as ex: # pylint: disable=broad-except
             _log.exception(ex)
 
-    def addProfiles(self,filenames):
-        if filenames:
+    def addProfiles(self, filenames:List[str]) -> None:
+        if len(filenames) > 0:
             for filename in filenames:
                 self.addProfileFromFile(filename)
-            self.updateAlignMenu()
+            self.updateMenus()
             self.realign()
             self.updateZorders()
-            self.repaint()
+            self.redrawOnDeltaAxisVisibilityChanged()
             self.aw.qpc.update_phases(self.getPhasesData())
 
-    def deleteProfile(self,i):
+    def deleteProfile(self, i:int) -> None:
         self.profileTable.removeRow(i)
         p = self.profiles[i]
         self.basecolors.append(p.color) # we add the color back to the list of available ones
         self.profiles.remove(p)
         p.undraw()
 
-    def deleteProfiles(self,indices):
-        if indices and len(indices) > 0:
+    def deleteProfiles(self, indices:Optional[List[int]]) -> None:
+        if indices is not None and len(indices) > 0:
             for i in sorted(indices,reverse=True):
                 self.deleteProfile(i)
-            self.updateAlignMenu()
+            self.updateMenus()
             self.realign()
             self.updateZorders()
-            self.repaint()
+            self.redrawOnDeltaAxisVisibilityChanged()
             self.aw.qpc.update_phases(self.getPhasesData())
 
     ### Utility
 
-    def getTopProfileVisualOrder(self):
+    def getTopProfileVisualOrder(self) -> Optional[RoastProfile]:
         for i,p in enumerate(self.profiles):
             if self.profileTable.visualRow(i) == 0:
                 return p
         return None
 
-    def getPhasesData(self):
-        data = []
-        profiles = self.getProfilesVisualOrder()
+    def getPhasesData(self) -> List[Tuple[str, float, Tuple[float,float,float], bool, bool, str,
+            Tuple[float,float,float], Tuple[float,float,float]]]:
+        data :List[Tuple[str, float, Tuple[float,float,float], bool, bool, str,
+                Tuple[float,float,float], Tuple[float,float,float]]]= []
+        profiles:List[RoastProfile] = self.getProfilesVisualOrder()
         for p in reversed(profiles):
             if p.visible:
-                start = p.timex[p.timeindex[0]] if p.timeindex[0] != -1 else p.timex[0]
-                total = p.timex[p.timeindex[6]] - start if p.timeindex[6] != 0 else p.timex[-1]
-                dry = p.timex[p.timeindex[1]] - start if p.timeindex[1] != 0 else 0
-                fcs = p.timex[p.timeindex[2]] - start if p.timeindex[2] != 0 else 0
-                p1 = dry
-                p3 = total - fcs if fcs != 0 else 0
-                p2 = total - p1 - p3 if p1 != 0 and p3 != 0 else 0
-                c = QColor.fromRgbF(*p.color)
-                data.append((p.label, total, (p1, p2, p3), p.active, p.aligned, c.name()))
+                start_idx = p.timeindex[0] if p.timeindex[0] != -1 else 0
+                start:float = p.timex[start_idx]
+                total:float = p.timex[p.timeindex[6]] - start if p.timeindex[6] != 0 else p.timex[-1]
+                dry:float = p.timex[p.timeindex[1]] - start if p.timeindex[1] != 0 else 0
+                fcs:float = p.timex[p.timeindex[2]] - start if p.timeindex[2] != 0 else 0
+                p1:float = dry
+                p3:float = total - fcs if fcs != 0 else 0
+                p2:float = total - p1 - p3 if p1 != 0 and p3 != 0 else 0
+                c:QColor = QColor.fromRgbF(*p.color) # ty:ignore[missing-argument]
+                t1:float = p.temp2[p.timeindex[1]] if p.timeindex[1] != 0 and len(p.temp2) > p.timeindex[1] else -1
+                t2:float = p.temp2[p.timeindex[2]] if p.timeindex[2] != 0 and len(p.temp2) > p.timeindex[2] else -1
+                t3:float = p.temp2[p.timeindex[6]] if p.timeindex[6] != 0 and len(p.temp2) > p.timeindex[6] else (p.temp2[-1] if len(p.temp2)>0 else -1)
+                r1:float = -1
+                r2:float = -1
+                r3:float = -1
+                if p.delta2 is not None:
+                    r:Optional[float] = p.delta2[p.timeindex[1]] if p.timeindex[1] != 0 and len(p.delta2) > p.timeindex[1] else -1
+                    if r is not None:
+                        r1 = float(r)
+                    r = p.delta2[p.timeindex[2]] if p.timeindex[2] != 0 and len(p.delta2) > p.timeindex[2] else -1
+                    if r is not None:
+                        r2 = float(r)
+                    r = p.delta2[p.timeindex[6]] if p.timeindex[6] != 0 and len(p.delta2) > p.timeindex[6] else (p.delta2[-1] if len(p.delta2)>0 else -1)
+                    if r is not None:
+                        r3 = float(r)
+                data.append((p.label, total, (p1, p2, p3), p.active, p.aligned, c.name(),
+                    (t1, t2, t3), (r1, r2, r3)))
         return data
 
-    def getProfilesVisualOrder(self):
+    def getProfilesVisualOrder(self) -> List[RoastProfile]:
         res = self.profiles[:]
         for i,p in enumerate(self.profiles):
             res[self.profileTable.visualRow(i)] = p
         return res
 
-    def autoTimeLimits(self):
+    def autoTimeLimits(self) -> None:
         if self.aw.qmc.autotimex:
-            min_timex = None
-            max_timex = None
+            min_timex:Optional[float] = None
+            max_timex:Optional[float] = None
             for p in self.profiles:
                 if p.visible and p.aligned:
                     if min_timex is None:
@@ -1741,7 +2139,8 @@ class roastCompareDlg(ArtisanDialog):
                 max_timex += 1/10*time_period
                 self.aw.qmc.xaxistosm(min_time=min_timex, max_time=max_timex)
 
-    def closeEvent(self, _):
+    @pyqtSlot('QCloseEvent')
+    def closeEvent(self, _:Optional['QCloseEvent'] = None) -> None:
         #disconnect pick handler
         self.aw.qmc.fig.canvas.mpl_disconnect(self.pick_handler_id)
         #save window geometry
@@ -1756,7 +2155,7 @@ class roastCompareDlg(ArtisanDialog):
             self.aw.loadbackground(self.background)
             self.aw.qmc.background = True
             self.aw.qmc.timealign(redraw=False)
-            self.aw.qmc.redraw()
+            self.aw.qmc.redraw(forceRenewAxis=True)
         if (self.foreground is None or self.foreground.strip() == '') and (self.background is None or self.background.strip() == ''):
             #selected = [self.aw.findWidgetsRow(self.profileTable,si,2) for si in self.profileTable.selectedItems()]
             selected = self.profileTable.getselectedRowsFast()

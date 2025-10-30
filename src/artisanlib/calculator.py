@@ -13,26 +13,32 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2020
+# Marko Luther, 2023
 
-from artisanlib.util import fromCtoF, fromFtoC, stringfromseconds, stringtoseconds
+from typing import Optional, TYPE_CHECKING
+
+from artisanlib.util import fromCtoF, fromFtoC, stringfromseconds, stringtoseconds, comma2dot, weight_units, convertWeight, convertVolume
 from artisanlib.dialogs import ArtisanDialog
 
 try:
-    #ylint: disable = E, W, R, C
     from PyQt6.QtCore import pyqtSlot, QSettings, QRegularExpression # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtGui import QRegularExpressionValidator # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtWidgets import (QApplication, QLabel, QGridLayout, QGroupBox, QLineEdit, # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QHBoxLayout, QVBoxLayout) # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import pyqtSlot, QSettings, QRegularExpression # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import QRegularExpressionValidator # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QLabel, QGridLayout, QGroupBox, QLineEdit, # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import pyqtSlot, QSettings, QRegularExpression # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtGui import QRegularExpressionValidator # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtWidgets import (QApplication, QLabel, QGridLayout, QGroupBox, QLineEdit, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
         QComboBox, QHBoxLayout, QVBoxLayout) # @UnusedImport @Reimport  @UnresolvedImport
 
+
+if TYPE_CHECKING:
+    from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
+    from PyQt6.QtWidgets import QWidget # pylint: disable=unused-import
+    from PyQt6.QtGui import QCloseEvent # pylint: disable=unused-import
+
 class calculatorDlg(ArtisanDialog):
-    def __init__(self, parent = None, aw = None):
+    def __init__(self, parent:'QWidget', aw:'ApplicationWindow') -> None:
         super().__init__(parent, aw)
         self.setModal(True)
         self.setWindowTitle(QApplication.translate('Form Caption','Roast Calculator'))
@@ -49,15 +55,15 @@ class calculatorDlg(ArtisanDialog):
         endlabel = QLabel(QApplication.translate('Label', 'End (00:00)'))
         self.startEdit = QLineEdit()
         self.endEdit = QLineEdit()
-        regextime = QRegularExpression(r'^[0-5][0-9]:[0-5][0-9]$')
+        regextime = QRegularExpression(r'^-?[0-9]?[0-9]?[0-9][:,h][0-5][0-9]$')
         self.startEdit.setValidator(QRegularExpressionValidator(regextime,self))
         self.endEdit.setValidator(QRegularExpressionValidator(regextime,self))
         self.startEdit.editingFinished.connect(self.calculateRC)
         self.endEdit.editingFinished.connect(self.calculateRC)
         nevents = len(self.aw.qmc.specialevents)
-        events_found = [f'{QApplication.translate("Form Caption", "Event")} #0']
+        events_found = [f"{QApplication.translate('Form Caption', 'Event')} #0"]
         for i in range(nevents):
-            events_found.append(f'{QApplication.translate("Form Caption", "Event")} #{str(i+1)}')
+            events_found.append(f"{QApplication.translate('Form Caption', 'Event')} #{str(i+1)}")
         self.eventAComboBox = QComboBox()
         self.eventAComboBox.addItems(events_found)
         self.eventAComboBox.currentIndexChanged.connect(self.calcEventRC)
@@ -75,13 +81,13 @@ class calculatorDlg(ArtisanDialog):
         self.ceEdit.editingFinished.connect(self.convertTempCtoF)
         #WEIGHT CONVERSION
         self.WinComboBox = QComboBox()
-        self.WinComboBox.addItems(self.aw.qmc.weight_units)
+        self.WinComboBox.addItems(weight_units)
         self.WinComboBox.setMaximumWidth(80)
         self.WinComboBox.setMinimumWidth(80)
         self.WoutComboBox = QComboBox()
         self.WoutComboBox.setMaximumWidth(80)
         self.WoutComboBox.setMinimumWidth(80)
-        self.WoutComboBox.addItems(self.aw.qmc.weight_units)
+        self.WoutComboBox.addItems(weight_units)
         self.WoutComboBox.setCurrentIndex(2)
         self.WinEdit = QLineEdit()
         self.WoutEdit = QLineEdit()
@@ -208,7 +214,7 @@ class calculatorDlg(ArtisanDialog):
         self.setFixedHeight(self.sizeHint().height())
 
     @pyqtSlot(int)
-    def calcEventRC(self,_):
+    def calcEventRC(self, _:int) -> None:
         nevents = len(self.aw.qmc.specialevents)
         Aevent = int(self.eventAComboBox.currentIndex())
         Bevent = int(self.eventBComboBox.currentIndex())
@@ -223,98 +229,98 @@ class calculatorDlg(ArtisanDialog):
 
     #calculate rate of change
     @pyqtSlot()
-    def calculateRC(self):
+    def calculateRC(self) -> None:
         if len(self.aw.qmc.timex)>2:
-            if not len(self.startEdit.text()) or not len(self.endEdit.text()):
+            if not self.startEdit.text() or not self.endEdit.text():
                 #empty field
                 return
-            starttime = stringtoseconds(str(self.startEdit.text()))
-            endtime = stringtoseconds(str(self.endEdit.text()))
-            if starttime == -1 or endtime == -1:
-                self.result1.setText(QApplication.translate('Label', 'Time syntax error. Time not valid'))
+            try:
+                starttime = stringtoseconds(str(self.startEdit.text()))
+                endtime = stringtoseconds(str(self.endEdit.text()))
+                if  endtime > self.aw.qmc.timex[-1] or endtime < starttime:
+                    self.aw.sendmessage(QApplication.translate('Label', 'Error: End time smaller than Start time'))
+                    self.result1.setText('')
+                    self.result2.setText('')
+                    return
+                if self.aw.qmc.timeindex[0] != -1:
+                    start = self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
+                else:
+                    start = 0
+                startindex = self.aw.qmc.time2index(starttime + start)
+                endindex = self.aw.qmc.time2index(endtime + start)
+                #delta
+                deltatime = self.aw.qmc.timex[endindex] -  self.aw.qmc.timex[startindex]
+                deltatemperature = self.aw.qmc.temp2[endindex] - self.aw.qmc.temp2[startindex]
+                deltaseconds = 0 if deltatime == 0 else deltatemperature / deltatime
+                deltaminutes = deltaseconds*60.
+                string1 = QApplication.translate('Label', 'Best approximation was made from {0} to {1}').format(stringfromseconds(self.aw.qmc.timex[startindex]- start),stringfromseconds(self.aw.qmc.timex[endindex]- start))
+                string2 = QApplication.translate('Label', '<b>{0}</b> {1}/sec, <b>{2}</b> {3}/min').format(f'{deltaseconds:.2f}',self.aw.qmc.mode,f'{deltaminutes:.2f}',self.aw.qmc.mode)
+                self.result1.setText(string1)
+                self.result2.setText(string2)
+            except Exception: # pylint: disable=broad-except
+                self.aw.sendmessage(QApplication.translate('Label', 'Time syntax error. Time not valid'))
+                self.result1.setText('')
                 self.result2.setText('')
                 return
-            if  endtime > self.aw.qmc.timex[-1] or endtime < starttime:
-                self.result1.setText(QApplication.translate('Label', 'Error: End time smaller than Start time'))
-                self.result2.setText('')
-                return
-            if self.aw.qmc.timeindex[0] != -1:
-                start = self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
-            else:
-                start = 0
-            startindex = self.aw.qmc.time2index(starttime + start)
-            endindex = self.aw.qmc.time2index(endtime + start)
-            #delta
-            deltatime = self.aw.qmc.timex[endindex] -  self.aw.qmc.timex[startindex]
-            deltatemperature = self.aw.qmc.temp2[endindex] - self.aw.qmc.temp2[startindex]
-            if deltatime == 0:
-                deltaseconds = 0
-            else:
-                deltaseconds = deltatemperature/deltatime
-            deltaminutes = deltaseconds*60.
-            string1 = QApplication.translate('Label', 'Best approximation was made from {0} to {1}').format(stringfromseconds(self.aw.qmc.timex[startindex]- start),stringfromseconds(self.aw.qmc.timex[endindex]- start))
-            string2 = QApplication.translate('Label', '<b>{0}</b> {1}/sec, <b>{2}</b> {3}/min').format('%.2f'%(deltaseconds),self.aw.qmc.mode,'%.2f'%(deltaminutes),self.aw.qmc.mode)
-            self.result1.setText(string1)
-            self.result2.setText(string2)
         else:
             self.result1.setText(QApplication.translate('Label', 'No profile found'))
             self.result2.setText('')
 
     @pyqtSlot()
-    def convertTempFtoC(self):
+    def convertTempFtoC(self) -> None:
         self.convertTempLocal('FtoC')
 
     @pyqtSlot()
-    def convertTempCtoF(self):
+    def convertTempCtoF(self) -> None:
         self.convertTempLocal('CtoF')
 
-    def convertTempLocal(self,x):
-        self.faEdit.setText(self.aw.comma2dot(str(self.faEdit.text())))
-        self.ceEdit.setText(self.aw.comma2dot(str(self.ceEdit.text())))
+    def convertTempLocal(self, x:str) -> None:
+        self.faEdit.setText(comma2dot(str(self.faEdit.text())))
+        self.ceEdit.setText(comma2dot(str(self.ceEdit.text())))
         if x == 'FtoC':
             newC = fromFtoC(float(str(self.faEdit.text())))
-            result = '%.2f'%newC
+            result = f'{newC:.2f}'
             self.ceEdit.setText(result)
         elif x == 'CtoF':
             newF = fromCtoF(float(str(self.ceEdit.text())))
-            result = '%.2f'%newF
+            result = f'{newF:.2f}'
             self.faEdit.setText(result)
 
     @pyqtSlot()
-    def convertWeightItoO(self):
-        self.WinEdit.setText(self.aw.comma2dot(str(self.WinEdit.text())))
+    def convertWeightItoO(self) -> None:
+        self.WinEdit.setText(comma2dot(str(self.WinEdit.text())))
         inx = float(str(self.WinEdit.text()))
-        outx = self.aw.convertWeight(inx,self.WinComboBox.currentIndex(),self.WoutComboBox.currentIndex())
-        self.WoutEdit.setText('%.2f'%outx)
+        outx = convertWeight(inx,self.WinComboBox.currentIndex(),self.WoutComboBox.currentIndex())
+        self.WoutEdit.setText(f'{outx:.2f}')
 
     @pyqtSlot()
-    def convertWeightOtoI(self):
-        self.WoutEdit.setText(self.aw.comma2dot(str(self.WoutEdit.text())))
+    def convertWeightOtoI(self) -> None:
+        self.WoutEdit.setText(comma2dot(str(self.WoutEdit.text())))
         outx = float(str(self.WoutEdit.text()))
-        inx = self.aw.convertWeight(outx,self.WoutComboBox.currentIndex(),self.WinComboBox.currentIndex())
-        self.WinEdit.setText('%.2f'%inx)
+        inx = convertWeight(outx,self.WoutComboBox.currentIndex(),self.WinComboBox.currentIndex())
+        self.WinEdit.setText(f'{inx:.2f}')
 
     @pyqtSlot()
-    def convertVolumeItoO(self):
-        self.VinEdit.setText(self.aw.comma2dot(str(self.VinEdit.text())))
+    def convertVolumeItoO(self) -> None:
+        self.VinEdit.setText(comma2dot(str(self.VinEdit.text())))
         inx = float(str(self.VinEdit.text()))
-        outx = self.aw.convertVolume(inx,self.VinComboBox.currentIndex(),self.VoutComboBox.currentIndex())
-        self.VoutEdit.setText('%.3f'%outx)
+        outx = convertVolume(inx,self.VinComboBox.currentIndex(),self.VoutComboBox.currentIndex())
+        self.VoutEdit.setText(f'{outx:.3f}')
 
     @pyqtSlot()
-    def convertVolumeOtoI(self):
-        self.VoutEdit.setText(self.aw.comma2dot(str(self.VoutEdit.text())))
+    def convertVolumeOtoI(self) -> None:
+        self.VoutEdit.setText(comma2dot(str(self.VoutEdit.text())))
         outx = float(str(self.VoutEdit.text()))
-        inx = self.aw.convertVolume(outx,self.VoutComboBox.currentIndex(),self.VinComboBox.currentIndex())
-        self.VinEdit.setText('%.3f'%inx)
+        inx = convertVolume(outx,self.VoutComboBox.currentIndex(),self.VinComboBox.currentIndex())
+        self.VinEdit.setText(f'{inx:.3f}')
 
     @pyqtSlot()
-    def calculateYield(self):
-        self.groundsEdit.setText(self.aw.comma2dot(str(self.groundsEdit.text())))
-        self.tdsEdit.setText(self.aw.comma2dot(str(self.tdsEdit.text())))
-        self.coffeeEdit.setText(self.aw.comma2dot(str(self.coffeeEdit.text())))
+    def calculateYield(self) -> None:
+        self.groundsEdit.setText(comma2dot(str(self.groundsEdit.text())))
+        self.tdsEdit.setText(comma2dot(str(self.tdsEdit.text())))
+        self.coffeeEdit.setText(comma2dot(str(self.coffeeEdit.text())))
         # Extraction yield % = Brewed Coffee[g] x TDS[%] / Coffee Grounds[g]
-        if self.groundsEdit.text() == '' or self.tdsEdit.text() == '' or self.coffeeEdit.text == '':
+        if self.groundsEdit.text() == '' or self.tdsEdit.text() == '' or self.coffeeEdit.text() == '':
             return
         grounds = float(str(self.groundsEdit.text()))
         tds = float(str(self.tdsEdit.text()))
@@ -322,9 +328,10 @@ class calculatorDlg(ArtisanDialog):
         if grounds == 0:
             return
         cyield = coffee * tds / grounds
-        self.yieldEdit.setText('%.1f' % cyield)
+        self.yieldEdit.setText(f'{cyield:.1f}')
 
-    def closeEvent(self, _):
+    @pyqtSlot('QCloseEvent')
+    def closeEvent(self, _:Optional['QCloseEvent'] = None) -> None:
         settings = QSettings()
         #save window geometry
         settings.setValue('CalculatorGeometry',self.saveGeometry())

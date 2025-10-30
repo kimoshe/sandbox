@@ -1,4 +1,19 @@
 #!/bin/sh
+# ABOUT
+# build packaging shell script for Artisan Linux builds
+#
+# LICENSE
+# This program or module is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published
+# by the Free Software Foundation, either version 2 of the License, or
+# version 3 of the License, or (at your option) any later versison. It is
+# provided for educational purposes and is distributed in the hope that
+# it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+# the GNU General Public License for more details.
+#
+# AUTHOR
+# Dave Baxter, Marko Luther 2023
 
 #set -ex
 set -e  # reduced logging
@@ -27,7 +42,9 @@ mv debian/usr/share/dist debian/usr/share/artisan
 find debian -name .svn -exec rm -rf {} \; > /dev/null 2>&1
 fakeroot chown -R root:root debian
 fakeroot chmod -R go-w debian
-fakeroot chmod 0644 debian/usr/share/artisan/*.so*
+# Find and delete dangling symbolic links
+find "debian/usr/share/artisan/_internal/" -type l -name "*.so*" ! -exec test -e {} \; -delete
+fakeroot chmod 0644 debian/usr/share/artisan/_internal/*.so* || true
 fakeroot chmod +x debian/usr/bin/artisan
 rm -f ${NAME}*.rpm
 
@@ -44,7 +61,7 @@ rm -rf usr/share/man/man1/._*
 rm -rf usr/share/pixmaps/._*
 rm -rf usr/share/applications/._*
 
-fpm -s dir -t rpm -n artisan --license GPL3 -m "Marko Luther <marko.luther@gmx.net>"  -p .. \
+sudo fpm -s dir -t rpm -n artisan --license GPL3 -m "Marko Luther <marko.luther@gmx.net>"  -p .. \
 --vendor "Artisan GitHub" \
 --url "https://github.com/artisan-roaster-scope/artisan" \
 --description "This program or software helps coffee roasters record, analyze, and control
@@ -58,7 +75,7 @@ flavor." \
 
 # Allow FPM to write some temporary files
 fakeroot chmod o+w .
-fpm --deb-no-default-config-files -s dir -t deb -n artisan --license GPL3 -m "Marko Luther <marko.luther@gmx.net>" -p .. \
+sudo fpm --deb-no-default-config-files -s dir -t deb -n artisan --license GPL3 -m "Marko Luther <marko.luther@gmx.net>" -p .. \
 --vendor "Artisan GitHub" \
 --no-auto-depends \
 --url "https://github.com/artisan-roaster-scope/artisan" \
@@ -75,6 +92,12 @@ cd ..
 mv *.rpm ${NAME}.rpm
 mv *.deb ${NAME}.deb
 
+# imagemagick missing from pkg2appimage continuous as of bd9684f (27-Jan-25)
+# reference https://github.com/AppImageCommunity/pkg2appimage/issues/445
+# TODO - watch for this to be resolved
+echo "*** Installing imagemagick"
+sudo apt-get install -y imagemagick
+
 export ARCH=x86_64
 # Create AppImage by using the pkg2appimage tool
 wget -c https://github.com/$(wget -q https://github.com/AppImage/pkg2appimage/releases/expanded_assets/continuous -O - | grep "pkg2appimage-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)
@@ -84,3 +107,19 @@ ARCH=x86_64 ./pkg2appimage-*.AppImage artisan-AppImage.yml
 mv ./out/*.AppImage ${NAME}.AppImage
 
 ls -lh *.deb *.rpm
+
+# Check that the packaged files are above an expected size
+basename=${NAME}
+suffixes=".deb .rpm .AppImage" # separate statements for suffixes to check
+min_size=270000000
+for suffix in $suffixes; do
+    filename="$basename$suffix"
+    size=$(($(du -k "$filename" | cut -f1) * 1024)) # returns kB so multiply by 1024 (du works on macOS)
+    echo "$filename size: $size bytes"
+    if [ "$size" -lt "$min_size" ]; then
+        echo "$filename is smaller than minimum $min_size bytes"
+        exit 1
+    else
+        echo "**** Success: $filename is larger than minimum $min_size bytes"
+    fi
+done

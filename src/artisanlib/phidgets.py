@@ -13,53 +13,53 @@
 # the GNU General Public License for more details.
 
 # AUTHOR
-# Marko Luther, 2018
+# Marko Luther, 2023
+
+from Phidget22.Devices.Manager import Manager # type: ignore
+from Phidget22.DeviceID import DeviceID # type: ignore
+from Phidget22.DeviceClass import DeviceClass # type: ignore
 
 import logging
-try:
-    from typing import Final
-except ImportError:
-    # for Python 3.7:
-    from typing_extensions import Final
+from typing import Final, Dict, Tuple, Optional, TYPE_CHECKING
 
-from Phidget22.Devices.Manager import Manager
-from Phidget22.DeviceID import DeviceID
-from Phidget22.DeviceClass import DeviceClass
+if TYPE_CHECKING:
+    from Phidget22.Phidget import Phidget # type: ignore # pylint: disable=unused-import
 
 try:
-    #ylint: disable = E, W, R, C
     from PyQt6.QtCore import QSemaphore # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #ylint: disable = E, W, R, C
-    from PyQt5.QtCore import QSemaphore # @UnusedImport @Reimport  @UnresolvedImport
+except ImportError:
+    from PyQt5.QtCore import QSemaphore # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
 
 
-_log: Final = logging.getLogger(__name__)
+_log: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-class PhidgetManager():
+class PhidgetManager:
 
-    def __init__(self):
+    __slots__ = [ 'attachedPhidgetChannels', 'managersemaphore', 'manager' ]
+
+    def __init__(self) -> None:
         # a dictionary associating all physical attached Phidget channels
         # to their availability state:
         #    True: available for attach to a software channel
         #    False: occupied and connected to a software channel
         # access to this dict is protected by the managersemaphore and
         # should happen only via the methods addChannel and deleteChannel
-        self.attachedPhidgetChannels = {}
-        self.managersemaphore = QSemaphore(1)
-        self.manager = Manager()
+        self.attachedPhidgetChannels:Dict[Phidget, bool] = {} # type:ignore[no-any-unimported,unused-ignore]
+        self.managersemaphore:QSemaphore = QSemaphore(1)
+        self.manager:Manager = Manager() # type:ignore[no-any-unimported,unused-ignore]
+
         self.manager.setOnAttachHandler(self.attachHandler)
         self.manager.setOnDetachHandler(self.detachHandler)
         self.manager.open()
-        _log.debug('PhidgetManager opened')
+        _log.debug('phidgetManager opened')
 
-    def close(self):
+    def close(self) -> None:
         self.manager.close()
         self.attachedPhidgetChannels.clear()
         _log.debug('PhidgetManager closed')
 
-    def attachHandler(self,_,attachedChannel):
+    def attachHandler(self,_:Manager , attachedChannel:'Phidget') -> None: # type:ignore[no-any-unimported,unused-ignore]
         try:
             if attachedChannel.getParent().getDeviceClass() != DeviceClass.PHIDCLASS_HUB:
                 # we do not add the hub itself
@@ -67,23 +67,24 @@ class PhidgetManager():
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
 
-    def detachHandler(self,_,attachedChannel):
+    def detachHandler(self, _:Manager, attachedChannel:'Phidget') -> None: # type:ignore[no-any-unimported,unused-ignore]
         try:
             self.deleteChannel(attachedChannel)
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
 
-    def addChannel(self,channel):
+    def addChannel(self,channel:'Phidget') -> None: # type:ignore[no-any-unimported,unused-ignore]
 #        _log.debug("addChannel: %s %s", channel, type(channel))
         try:
             self.managersemaphore.acquire(1)
-            state = True
+            state:bool = True
             try:
                 # reserve all channels with the same hubport on the same hub
                 hub = channel.getHub()
                 hubport = channel.getHubPort()
                 hupportdevice = bool(channel.getIsHubPortDevice() == 0) # it is not a direct hubport channel
                 for k, _ in self.attachedPhidgetChannels.items():
+#                    _log.debug('addChennel: %s, %s',k, k.getDeviceID())
                     try:
                         khub = k.getHub() # this might raise: "A Phidget channel object of the wrong channel class was passed into this API call."
                         khubport = k.getHubPort()
@@ -93,12 +94,11 @@ class PhidgetManager():
                                     self.attachedPhidgetChannels[k] = False
                                 #else:
                                 #  other is also a VINT device. Do nothing
-                            else:
-                                if k.getIsHubPortDevice() == 0:
-                                    # there is a port registered with connected VINT device we deactivate this hubport channel
-                                    state = False
-                                #else:
-                                #   do nothing
+                            elif k.getIsHubPortDevice() == 0:
+                                # there is a port registered with connected VINT device we deactivate this hubport channel
+                                state = False
+                            #else:
+                            #   do nothing
                     except Exception: # pylint: disable=broad-except
                         pass
             except Exception: # pylint: disable=broad-except
@@ -110,8 +110,8 @@ class PhidgetManager():
             if self.managersemaphore.available() < 1:
                 self.managersemaphore.release(1)
 
-    def deleteChannel(self,channel):
-        _log.debug('deleteChannel: %s', channel)
+    def deleteChannel(self,channel:'Phidget') -> None: # type:ignore[no-any-unimported,unused-ignore]
+#        _log.debug('deleteChannel: %s', channel)
         try:
             self.managersemaphore.acquire(1)
             # if channel is a VINT device, release all HUBport channels that were blocked by this VINT device
@@ -139,14 +139,11 @@ class PhidgetManager():
             if self.managersemaphore.available() < 1:
                 self.managersemaphore.release(1)
 
-    def getChannel(self,serial,port,channel,phidget_class_name,device_id,remote,remoteOnly):
+    def getChannel(self,serial:int, port:Optional[int], channel:int, phidget_class_name:str, device_id:int, remote:bool, remoteOnly:bool) -> Optional['Phidget']: # type:ignore[no-any-unimported,unused-ignore]
         try:
             self.managersemaphore.acquire(1)
-            if device_id in [DeviceID.PHIDID_HUB0000]:
-                # we are looking for HUB ports
-                hub = 1
-            else:
-                hub = 0
+            # we are looking for HUB ports
+            hub = 1 if device_id in [DeviceID.PHIDID_HUB0000] else 0
             for k, _ in self.attachedPhidgetChannels.items():
                 if k.getIsHubPortDevice() or k.getDeviceClass() == DeviceClass.PHIDCLASS_VINT:
                     kport = k.getHubPort()
@@ -166,16 +163,18 @@ class PhidgetManager():
             if self.managersemaphore.available() < 1:
                 self.managersemaphore.release(1)
 
-    def reserveSerialPort(self,serial,port,channel,phidget_class_name,device_id,remote=False,remoteOnly=False):
-        chnl = self.getChannel(serial,port,channel,phidget_class_name,device_id,remote,remoteOnly)
-        self.reserveChannel(chnl)
+    def reserveSerialPort(self, serial:int, port:Optional[int], channel:int, phidget_class_name:str, device_id:int, remote:bool = False, remoteOnly:bool = False) -> None: # type:ignore[no-any-unimported,unused-ignore]
+        chnl = self.getChannel(serial, port, channel, phidget_class_name, device_id, remote, remoteOnly)
+        if chnl is not None:
+            self.reserveChannel(chnl)
 
-    def releaseSerialPort(self,serial,port,channel,phidget_class_name,device_id,remote=False,remoteOnly=False):
-        chnl = self.getChannel(serial,port,channel,phidget_class_name,device_id,remote,remoteOnly)
-        self.releaseChannel(chnl)
+    def releaseSerialPort(self, serial:int, port:Optional[int], channel:int, phidget_class_name:str, device_id:int, remote:bool = False, remoteOnly:bool = False) -> None: # type:ignore[no-any-unimported,unused-ignore]
+        chnl = self.getChannel(serial, port, channel, phidget_class_name, device_id, remote, remoteOnly)
+        if chnl is not None:
+            self.releaseChannel(chnl)
 
     # should be called from the attach handler that binds this hardware channel to a software channel
-    def reserveChannel(self,channel):
+    def reserveChannel(self,channel:'Phidget') -> None: # type:ignore[no-any-unimported,unused-ignore]
         _log.debug('reserveChannel: %s', channel)
         try:
             self.managersemaphore.acquire(1)
@@ -200,7 +199,7 @@ class PhidgetManager():
                 self.managersemaphore.release(1)
 
     # should be called from the detach handler that releases this hardware channel from a software channel
-    def releaseChannel(self,channel):
+    def releaseChannel(self,channel:'Phidget') -> None: # type:ignore[no-any-unimported,unused-ignore]
         _log.debug('releaseChannel: %s', channel)
         try:
             self.managersemaphore.acquire(1)
@@ -224,14 +223,21 @@ class PhidgetManager():
 
 #    def print_list(self,items):
 #        for k,v in items:
-#            print(v,k.getDeviceSerialNumber(),k.getDeviceClass(),k.getDeviceClassName(),k.getDeviceName(),k.getDeviceSKU(),k.getChannelClassName(),k.getDeviceID(),k.getIsHubPortDevice(),"port: ",k.getHubPort(),"ch: ", k.getChannel(), "local: ", k.getIsLocal())
+#            _log.info("v:%s, ser:%s, class:%s, classname:%s, device:%s, SKU:%s, chClassName:%s, id:%s,device:%s, port:%s, ch:%s, local:%s",v,k.getDeviceSerialNumber(),k.getDeviceClass(),k.getDeviceClassName(),k.getDeviceName(),k.getDeviceSKU(),k.getChannelClassName(),k.getDeviceID(),k.getIsHubPortDevice(),k.getHubPort(),k.getChannel(), k.getIsLocal())
 #
 #    def print_list2(self,items):
 #        for k in items:
-#            print(k.getDeviceSerialNumber(),k.getChannelClassName(),k.getDeviceID(),k.getIsHubPortDevice(),"port: ", k.getHubPort(),"ch: ",k.getChannel(), "local: ", k.getIsLocal())
+#            _log.info("ser:%s, class:%s, id:%s, device:%s, port:%s, ch:%s, local:%s",k.getDeviceSerialNumber(),k.getChannelClassName(),k.getDeviceID(),k.getIsHubPortDevice(),k.getHubPort(),k.getChannel(),k.getIsLocal())
 
-    # returns the first matching Phidget channel and reserves it
-    def getFirstMatchingPhidget(self,phidget_class_name,device_id,channel=None,remote=False,remoteOnly=False,serial=None,hubport=None):
+    # returns the first matching Phidget channel (serial and port as integers) and reserves it
+    def getFirstMatchingPhidget(self,
+                phidget_class_name:str,
+                device_id:int,
+                channel:Optional[int]=None,
+                remote:bool=False,
+                remoteOnly:bool=False,
+                serial:Optional[int]=None,
+                hubport:Optional[int]=None) -> Tuple[Optional[int],Optional[int]]:
         _log.debug('getFirstMatchingPhidget(%s,%s,%s,%s,%s,%s,%s)',phidget_class_name,device_id,channel,remote,remoteOnly,serial,hubport)
         try:
             self.managersemaphore.acquire(1)
@@ -272,7 +278,7 @@ class PhidgetManager():
             return None, None
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
-            return None, None
         finally:
             if self.managersemaphore.available() < 1:
                 self.managersemaphore.release(1)
+        return None, None
