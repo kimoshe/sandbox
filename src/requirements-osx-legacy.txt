@@ -1,7 +1,7 @@
 ######
 # platform specifics:
 #
-appnope==0.1.2
+appnope==0.1.4
 pyobjc-core==7.3 # version 8 and higher crashes on macOS X 10.13
 pyobjc-framework-Cocoa==7.3 # version 8 and higher crashes on macOS X 10.13
 #py2app==0.23 # we stay on 0.23 due to our darkmode patch which needs to be redone for later versions like 0.24 to avoid the patch to be overwritten

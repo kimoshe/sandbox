@@ -1,7 +1,7 @@
 ######
 # platform specifics:
 #
-appnope==0.1.3
+appnope==0.1.4
 pyobjc-core==8.5.1 #8.5
 pyobjc-framework-Cocoa==8.5.1 #8.5
 py2app==0.28.4 #0.23 # we stay on 0.23 due to our darkmode patch which needs to be redone for later ersions like 0.24 to avoid the patch to be overwritten
