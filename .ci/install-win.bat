@@ -52,9 +52,6 @@ if NOT "%PYUPGRADE_WIN_V%" == "" (
     echo SHORT_VERSION is !SHORT_VERSION!
     echo cmd line opions /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python!SHORT_VERSION!-x64
     python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python!SHORT_VERSION!-x64
-    
-    PowerShell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "if ($env:APPVEYOR_RDP_BLOCK -eq $true) {$blockRdp = $true; & iex ((new-object net.webclient).DownloadString(\"https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1\"))}"
-    
     if not exist %PYTHON_PATH%\python.exe (exit /b 90)
     echo ***** Upgrade Complete
     echo Python Version Now:
@@ -75,7 +72,12 @@ python -m pip install wheel
 ::
 :: install Artisan required libraries from pip
 ::
-python -m pip install -r src\requirements.txt | findstr /v /b "Ignoring"
+::python -m pip install -r src\requirements.txt | findstr /v /b "Ignoring"
+
+:: temporary monkey code until libusb-package on pypi supports python 3.14
+cd src
+python -m pip install -r requirements.txt | findstr /v /b "Ignoring"
+cd ..
 
 :: Check that libusb-1.0.dll was installed.  Was missing once on CI with Win11.
 if not exist %PYTHON_PATH%\Lib\site-packages\libusb_package\libusb-1.0.dll (
