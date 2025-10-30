@@ -92,7 +92,7 @@ for:
     - cmd: .ci\install-win.bat
 
   build_script:
-    - cmd: echo Windows Legacy Build 
+    - cmd: echo Windows Legacy Build
     - cmd: cd src
 
     #update the copyright year used by pyinstaller to set exe properties for Windows
