@@ -184,7 +184,7 @@ from matplotlib.font_manager import FontProperties, fontManager
 from matplotlib.transforms import Bbox
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # @Reimport
-from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar # @Reimport
+from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar  # @Reimport
 from matplotlib.backend_bases import LocationEvent as mplLocationevent
 
 from matplotlib.backends.qt_editor import figureoptions
@@ -202,9 +202,11 @@ if TYPE_CHECKING:
     from artisanlib.weblcds import WebLCDs, WebGreen, WebRoasted # pylint: disable=unused-import
     from artisanlib.santoker import Santoker # pylint: disable=unused-import
     from artisanlib.santoker_r import SantokerR # pylint: disable=unused-import
+    from artisanlib.lebrew import Lebrew_RoastSeeNEXT # pylint: disable=unused-import
     from artisanlib.bluedot import BlueDOT # pylint: disable=unused-import
     from artisanlib.mugma import Mugma # pylint: disable=unused-import
     from artisanlib.kaleido import KaleidoPort # pylint: disable=unused-import
+    from artisanlib.phases_canvas import tphasescanvas # pylint: disable=unused-import
     try:
         from artisanlib.ikawa import IKAWA_BLE # pylint: disable=unused-import # ty: ignore[possibly-unbound-import]
     except Exception: # pylint: disable=broad-except
@@ -1081,7 +1083,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
             if self.white_icons:
                 pm = self.recolorIcon(pm, QColor('#dfdfdf'))
             else:
-                pm = self.recolorIcon(pm,QColor('#424242'))
+                pm = self.recolorIcon(pm, QColor('#424242'))
         if hasattr(pm, 'setDevicePixelRatio'):
             pm.setDevicePixelRatio(self.devicePixelRatioF() or 1)
 
@@ -1828,6 +1830,9 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
         # Santoker R
         self.santokerR:Optional[SantokerR] = None # holds the Santoker R instance created on connect; reset to None on disconnect
 
+        # Lebrew RoastSee NEXT
+        self.lebrew_roastseeNEXT:Optional[Lebrew_RoastSeeNEXT] = None # holds the Lebrew RoastSeeNEXT instance; reset to None on disconnect
+
         # Thermoworks BlueDOT
         self.thermoworksBlueDOT:Optional[BlueDOT] = None  # holds the BlueDOT instance created on connect; reset to None on disconnect
 
@@ -2496,7 +2501,9 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
         if self.ConfMenu is not None:
             self.machineMenu:QMenu = QMenu(QApplication.translate('Menu', 'Machine'))
             # populated in populateMachineMenu/populateListMenu if not empty
-            self.populateMachineMenu()
+            # using a QTimer to speed up startup a bit
+            QTimer.singleShot(500,self.populateMachineMenu)
+            self.ConfMenu.addMenu(self.machineMenu)
 
             self.deviceAction:QAction = QAction(QApplication.translate('Menu', 'Device...'), self)
             self.deviceAction.triggered.connect(self.deviceassigment)
@@ -4030,13 +4037,11 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
         #level 3
         level3layout.addLayout(pidbuttonLayout,0)
 
-        self.qpc:tphasescanvas = tphasescanvas(self.dpi, self)
-        self.qpc.mpl_connect('scroll_event', self.scrollingPhases)
+        self.qpc:Optional[tphasescanvas] = None
 
         self.scroller: QScrollArea = QScrollArea()
         self.scroller.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scroller.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroller.setWidget(self.qpc)
         self.scroller.setWidgetResizable(True)
         self.scroller.setFrameShape(QFrame.Shape.NoFrame)
         self.scroller.setVisible(False)
@@ -4055,7 +4060,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
         #self.splitter.setStyleSheet("QSplitter::handle:vertical {background: lightGray;}")
 
         self.splitter.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Expanding)
-        self.qpc.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
+
         level3layout.addWidget(self.splitter)
 
         level3layout.setSpacing(0)
@@ -4439,6 +4444,14 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
         self.zoomInShortcut.activated.connect(self.zoomIn)
         self.zoomOutShortcut = QShortcut(QKeySequence.StandardKey.ZoomOut, self)
         self.zoomOutShortcut.activated.connect(self.zoomOut)
+
+    def establish_phasescanvas(self) -> None:
+        if self.qpc is None:
+            from artisanlib.phases_canvas import tphasescanvas # pylint: disable=reimported
+            self.qpc = tphasescanvas(self.dpi, self)
+            self.qpc.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
+            self.qpc.mpl_connect('scroll_event', self.scrollingPhases)
+            self.scroller.setWidget(self.qpc)
 
     def scale_connected_handler(self, scale_id:str, scale_name:str) -> None:
         if scale_name:
@@ -5651,7 +5664,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
             self.ConfMenu.addMenu(menu)
 
     def populateMachineMenu(self) -> None:
-        self.populateListMenu('Machines','.aset',self.openMachineSettings,self.machineMenu)
+        self.populateListMenu('Machines','.aset',self.openMachineSettings,self.machineMenu, addMenu=False)
 
     @pyqtSlot(bool)
     def openMachineSettings(self, _checked:bool = False) -> None:
@@ -8620,7 +8633,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                     QApplication.processEvents()
                     if self.qmc.statssummary:
                         self.qmc.redraw(recomputeAllDeltas=False)
-                if self.qpc:
+                if self.qpc is not None:
                     self.qpc.setdpi(dpi,moveWindow)
             except Exception as e:  # pylint: disable=broad-except
                 _log.exception(e)
@@ -8979,7 +8992,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                                     cmds = eval(cs[len('read'):]) # pylint: disable=eval-used
                                     if isinstance(cmds,tuple) and len(cmds) == 2:
                                         # cmd has format "read(s,r)"
-                                        self.modbus.lastReadResult = self.modbus.readSingleRegister(*cmds,force=True)
+                                        self.modbus.lastReadResult = self.modbus.readSingleRegister(*cmds,force=True)  # pyrefly: ignore[bad-keyword-argument]
                                         followupCmd = 0.03
                                 except Exception as e: # pylint: disable=broad-except
                                     _log.exception(e)
@@ -8988,7 +9001,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                                     cmds = eval(cs[len('readSigned'):]) # pylint: disable=eval-used
                                     if isinstance(cmds,tuple) and len(cmds) == 2:
                                         # cmd has format "readSigned(s,r)"
-                                        self.modbus.lastReadResult = self.modbus.readSingleRegister(*cmds,force=True,signed=True)
+                                        self.modbus.lastReadResult = self.modbus.readSingleRegister(*cmds,force=True,signed=True)  # pyrefly: ignore[bad-keyword-argument]
                                         followupCmd = 0.03
                                 except Exception as e: # pylint: disable=broad-except
                                     _log.exception(e)
@@ -8997,7 +9010,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                                     cmds = eval(cs[len('readBCD'):]) # pylint: disable=eval-used
                                     if isinstance(cmds,tuple) and len(cmds) == 2:
                                         # cmd has format "readBCD(s,r)"
-                                        self.modbus.lastReadResult = self.modbus.readBCDint(*cmds,force=True)
+                                        self.modbus.lastReadResult = self.modbus.readBCDint(*cmds,force=True)  # pyrefly: ignore[bad-keyword-argument]
                                         followupCmd = 0.03
                                 except Exception as e: # pylint: disable=broad-except
                                     _log.exception(e)
@@ -9006,7 +9019,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                                     cmds = eval(cs[len('read32'):]) # pylint: disable=eval-used
                                     if isinstance(cmds,tuple) and len(cmds) == 2:
                                         # cmd has format "read32(s,r)"
-                                        self.modbus.lastReadResult = self.modbus.readInt32(*cmds,force=True)
+                                        self.modbus.lastReadResult = self.modbus.readInt32(*cmds,force=True)  # pyrefly: ignore[bad-keyword-argument]
                                         followupCmd = 0.03
                                 except Exception as e: # pylint: disable=broad-except
                                     _log.exception(e)
@@ -9015,7 +9028,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                                     cmds = eval(cs[len('read32Signed'):]) # pylint: disable=eval-used
                                     if isinstance(cmds,tuple) and len(cmds) == 2:
                                         # cmd has format "read32Signed(s,r)"
-                                        self.modbus.lastReadResult = self.modbus.readInt32(*cmds,force=True,signed=True)
+                                        self.modbus.lastReadResult = self.modbus.readInt32(*cmds,force=True,signed=True)  # pyrefly: ignore[bad-keyword-argument]
                                         followupCmd = 0.03
                                 except Exception as e: # pylint: disable=broad-except
                                     _log.exception(e)
@@ -9024,7 +9037,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                                     cmds = eval(cs[len('read32BCD'):]) # pylint: disable=eval-used
                                     if isinstance(cmds,tuple) and len(cmds) == 2:
                                         # cmd has format "read32BCD(s,r)"
-                                        self.modbus.lastReadResult = self.modbus.readBCD(*cmds,force=True)
+                                        self.modbus.lastReadResult = self.modbus.readBCD(*cmds,force=True)  # pyrefly: ignore[bad-keyword-argument]
                                         followupCmd = 0.03
                                 except Exception as e: # pylint: disable=broad-except
                                     _log.exception(e)
@@ -9033,7 +9046,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                                     cmds = eval(cs[len('readFloat'):]) # pylint: disable=eval-used
                                     if isinstance(cmds,tuple) and len(cmds) == 2:
                                         # cmd has format "readFloat(s,r)"
-                                        res:Optional[float] = self.modbus.readFloat(*cmds,force=True)
+                                        res:Optional[float] = self.modbus.readFloat(*cmds,force=True)  # pyrefly: ignore[bad-keyword-argument]
                                         self.modbus.lastReadResult = (res if res is None else int(round(res)))
                                         followupCmd = 0.03
                                 except Exception as e: # pylint: disable=broad-except
@@ -11188,7 +11201,8 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
 
     #called from user configured event buttons
     #by default actions are processed in a parallel thread, but components of multiple button actions not to avoid crashes
-    def recordextraevent(self, ee:int, parallel:bool = True, updateButtons:bool = True) -> None:
+    # value, if given, overwrites the button value as defined in the button table
+    def recordextraevent(self, ee:int, parallel:bool = True, updateButtons:bool = True, value:Optional[int] = None) -> None:
         eventtype = self.extraeventstypes[ee]
         if updateButtons and self.mark_last_button_pressed: # not if triggered from mutiplebutton actions:
             try:
@@ -11210,7 +11224,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                     self.qmc.eventactionsemaphore.release(1)
         # reset lastbuttonpressed
         self.lastbuttonpressed = ee
-        cmdvalue = self.qmc.eventsInternal2ExternalValue(self.extraeventsvalues[ee])
+        cmdvalue = (self.qmc.eventsInternal2ExternalValue(self.extraeventsvalues[ee]) if value is None else value)
         if eventtype < 4 or eventtype > 4:  ## if eventtype == 4 we have an button event of type " " that does not add an event; if eventtype == 9 ("-") we have an untyped event
             if eventtype == 9: # an untyped event
                 # we just fire the action
@@ -11226,7 +11240,10 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                 # and record the event
                 if self.qmc.flagstart:
                     # we use event handling to enable the doupdategraphics/doupdatebackground also if running in background thread
-                    self.qmc.eventRecordSignal.emit(ee)
+                    if value is None:
+                        self.qmc.eventRecordSignal.emit(ee)
+                    else:
+                        self.qmc.eventRecordOverwriteValueSignal.emit(ee, value)
             else:
                 #if eventtype < 4: # absolute values
                 etype = eventtype
@@ -11269,7 +11286,10 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                 self.moveslider(etype,new_value)
                 if self.qmc.flagstart and event_record:
                     # we use event handling to enable the doupdategraphics/doupdatebackground also if running in background thread
-                    self.qmc.eventRecordSignal.emit(ee)
+                    if value is None:
+                        self.qmc.eventRecordSignal.emit(ee)
+                    else:
+                        self.qmc.eventRecordOverwriteValueSignal.emit(ee, value)
         else:
             # just issue the eventaction (no cmd substitution here)
             # split on an octothorpe '#' that is not inside parentheses '()'
@@ -11632,7 +11652,6 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
             self.sliderGrpBox4.setTitle('')
 
     def hideLCDs(self, changeDefault:bool = True) -> None:
-        _log.debug('PRINT hideLCDs')
         self.lcd1.setVisible(False)
         self.lcdFrame.setVisible(False)
         self.readingsAction.setChecked(False)
@@ -17800,7 +17819,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
             self.qmc.phasesLCDmode = toInt(settings.value('phasesLCDmode',self.qmc.phasesLCDmode))
             if settings.contains('step100temp'):
                 try:
-                    self.qmc.step100temp = toInt(settings.value('step100temp',self.qmc.step100temp))
+                    self.qmc.step100temp = int(settings.value('step100temp',self.qmc.step100temp)) # don't use Int() here as it converts None to 0 which is wrong here!
                 except Exception: # pylint: disable=broad-except
                     self.qmc.step100temp = None
             # Important - this must come after the code that restores phasesLCDmode
@@ -20960,7 +20979,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
                     painter.drawPixmap(0, 0, image)
                 else:
                     painter.drawImage(0, 0, image)
-                if self.comparator is not None and self.qpc and len(self.splitter.sizes())>1 and self.splitter.sizes()[1]>0:
+                if self.comparator is not None and self.qpc is not None and len(self.splitter.sizes())>1 and self.splitter.sizes()[1]>0:
                     phases_image = self.qpc.grab().toImage() # a QImage on macOS
                     if not phases_image.isNull():
                         if self.printer.pageLayout().orientation() == QPageLayout.Orientation.Landscape:
@@ -27168,6 +27187,7 @@ class ApplicationWindow(QMainWindow): # pyrefly:ignore[invalid-inheritance] # py
         else:
             foreground = self.curFile
             background = (self.qmc.backgroundpath if self.qmc.background else None)
+            self.establish_phasescanvas()
             if self.qmc.reset():
                 filenames = []
                 if foreground is not None and foreground.strip() != '':

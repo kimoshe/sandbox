@@ -24,11 +24,11 @@
 
 try:
     #pylint: disable = E, W, R, C
-    from PyQt6.QtCore import QCoreApplication, QObject, QThread, pyqtSlot, pyqtSignal # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt6.QtCore import QCoreApplication, QObject, QThread, pyqtSlot, pyqtSignal, QSemaphore # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt6.QtWidgets import QApplication # @UnusedImport @Reimport  @UnresolvedImport
 except Exception: # pylint: disable=broad-except
     #pylint: disable = E, W, R, C
-    from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot, pyqtSignal # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+    from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot, pyqtSignal, QSemaphore # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
     from PyQt5.QtWidgets import QApplication # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
 
 from artisanlib.util import getDirectory
@@ -60,6 +60,8 @@ queue:Optional['persistqueue.SQLiteQueue'] = None # type:ignore[no-any-unimporte
 
 worker:Optional['Worker'] = None
 worker_thread:Optional[QThread] = None
+
+queueWorkerSemaphore = QSemaphore(1) # ensure that only one worker thread is running
 
 
 class Worker(QObject): # pyright: ignore [reportGeneralTypeIssues] # pyrefly: ignore # Argument to class must be a base class
@@ -103,7 +105,6 @@ class Worker(QObject): # pyright: ignore [reportGeneralTypeIssues] # pyrefly: ig
                 try:
                     if item is None:
                         item = queue.get()
-                    time.sleep(config.queue_task_delay)
                     _log.debug(
                         '-> worker processing item: %s', item
                     )
@@ -296,47 +297,57 @@ def start() -> None:
     global queue  # pylint: disable=global-statement
     global worker, worker_thread  # pylint: disable=global-statement
 
-    if queue is None:
-        # we initialize the queue
-        import persistqueue
-        if hasattr(persistqueue, 'SQLiteQueue'):
-            try:
-                queue = persistqueue.SQLiteQueue(
-                    queue_path, multithreading=True, auto_commit=False
-                )
-                # we keep items in the queue if not explicit marked as task_done:
-                # auto_commit=False
-            except Exception:  # pylint: disable=broad-except
-                pass
-
-    _log.debug('start()')
-    if queue is not None:
-        _log.debug('-> qsize: %s', queue.qsize()) # ty: ignore[possibly-unbound-attribute]
-    if worker_thread is None:
-        worker = Worker()
-        worker_thread = QThread()
-        worker_thread.start()
-        worker.moveToThread(worker_thread)
-        worker.startSignal.connect(worker.task)
-        worker.replySignal.connect(util.updateLimits)
-        #app.aboutToQuit.connect(end)
-        worker.startSignal.emit()
-        _log.debug('queue started')
-    elif worker is not None:
-        worker.resume() # ty: ignore[possibly-unbound-attribute]
-        _log.debug('queue resumed')
+    try:
+        queueWorkerSemaphore.acquire(1)
+        if queue is None:
+            # we initialize the queue
+            import persistqueue
+            if hasattr(persistqueue, 'SQLiteQueue'):
+                try:
+                    queue = persistqueue.SQLiteQueue(
+                        queue_path, multithreading=True, auto_commit=False
+                    )
+                    # we keep items in the queue if not explicit marked as task_done:
+                    # auto_commit=False
+                except Exception:  # pylint: disable=broad-except
+                    pass
+        _log.debug('start()')
+        if queue is not None:
+            _log.debug('-> qsize: %s', queue.qsize()) # ty: ignore[possibly-unbound-attribute]
+        if worker_thread is None:
+            worker = Worker()
+            worker_thread = QThread()
+            worker_thread.start()
+            worker.moveToThread(worker_thread)
+            worker.startSignal.connect(worker.task)
+            worker.replySignal.connect(util.updateLimits)
+            #app.aboutToQuit.connect(end)
+            worker.startSignal.emit()
+            _log.debug('queue started')
+        elif worker is not None:
+            worker.resume() # ty: ignore[possibly-unbound-attribute]
+            _log.debug('queue resumed')
+    finally:
+        if queueWorkerSemaphore.available() < 1:
+            queueWorkerSemaphore.release(1)
 
 
 # the queue worker thread cannot really be stopped, but we can pause it
-def stop() -> None:
+def stop() -> None:  # pylint: disable=global-statement
     if worker is not None:
-        worker.pause()
-        _log.debug('queue stopped')
+        try:
+            queueWorkerSemaphore.acquire(1)
+            worker.pause()
+            _log.debug('queue stopped')
+        finally:
+            if queueWorkerSemaphore.available() < 1:
+                queueWorkerSemaphore.release(1)
 
 
 # check if a full roast record (one with date) with roast_id is in the queue
-# this is used to add only items to the queue that are registered already in
-# the sync cache but not yet uploaded as they are still in the queue
+# this is used to add also items to the queue that are not yet registered in
+# the sync cache as they are not yet uploaded successfully to the server as their initial item
+# is still stuck in the outgoing queue
 def full_roast_in_queue(roast_id: str) -> bool:
     import persistqueue
     if hasattr(persistqueue, 'SQLiteQueue'):
@@ -361,7 +372,6 @@ def full_roast_in_queue(roast_id: str) -> bool:
     return False
 
 
-
 ################
 
 # returns true if the given roast_record r is a full record containing all
@@ -369,6 +379,35 @@ def full_roast_in_queue(roast_id: str) -> bool:
 def is_full_roast_record(r: Dict[str, Any]) -> bool:  #for Python >= 3.9 can replace 'Dict' with the generic type hint 'dict'
     return bool('date' in r and r['date'] and 'amount' in r and 'roast_id' in r)
 
+# holds the last queued roast item
+last_queued_roast_item:Optional[Dict[str, Any]] = None
+
+
+# adds given item to the outgoing queue to be send to the server, but ignores items that contain no additional information over the item just queued before (last_queued_roast).
+# NOTE: it can happen that the new item to be queued (queued on SAVE/AUTOSAVE) is just an update of a previous queued roast but not yet send roast (queued on DROP) and thus the
+#   mechanism (via sync.py cached_sync_record_hash/cached_sync_record) to just send updates does not yet applies.
+def queue_roast_item(roast_item:Dict[str, Any]) -> bool:
+    global last_queued_roast_item  # pylint: disable=global-statement
+
+    # is roast1 a subset of roast2 modulo the attribute 'modified_at'?
+    def roast_subset_of(roast1:Dict[str, Any], roast2:Dict[str, Any]) -> bool:
+        return all(item in roast2.items() for item in roast1.items() if item[0] != 'modified_at')
+
+    queued:bool = False
+    if queue is None:
+        _log.info(
+            '-> roast not queued as queue'
+                ' is not running')
+    elif last_queued_roast_item is None or not roast_subset_of(roast_item, last_queued_roast_item):
+        queue.put(
+            {'url': config.roast_url, 'data': roast_item, 'verb': 'POST'},
+            # timeout=config.queue_put_timeout
+            # sql queue does not feature a timeout
+        )
+        queued = True
+        last_queued_roast_item = roast_item
+
+    return queued
 
 # called on completed roasts with roast data
 # if roast_record is given, we assume an update is queued, otherwise a new
@@ -378,11 +417,11 @@ def is_full_roast_record(r: Dict[str, Any]) -> bool:  #for Python >= 3.9 can rep
 #      - date
 #      - amount
 #   an update only the roast_id
-# if unsynced is set (roast was not yet in sync DB) we always set current time as modified_at stamp, overwriting the last saved dated
+# if unsynced is set (roast was not yet in sync DB) we always set current time as modified_at, overwriting the last saved dated
 # that might have been set by roast.getRoast()
 def addRoast(roast_record:Optional[Dict[str, Any]] = None, unsynced:bool=False) -> None:
     try:
-        _log.debug('addRoast()')
+        _log.debug('addRoast(%s, %s)', roast_record, unsynced)
         aw = config.app_window
         if aw is None:
             _log.info('config.app_window is None')
@@ -431,15 +470,12 @@ def addRoast(roast_record:Optional[Dict[str, Any]] = None, unsynced:bool=False) 
                     rr = r
                 # send zero values like 0 and '' for corresponding attributes as None to allow the server to clean those up
                 rr = sync.surpress_zero_values(rr)
-                queue.put(
-                    {'url': config.roast_url, 'data': rr, 'verb': 'POST'},
-                    # timeout=config.queue_put_timeout
-                    # sql queue does not feature a timeout
-                )
-                _log.debug('-> roast queued up')
-                if 'roast_id' in rr:
-                    _log.info('roast queued: %s', rr['roast_id'])
-                _log.debug('-> qsize: %s', queue.qsize())
+                queued:bool = queue_roast_item(rr)
+                if queued:
+                    _log.debug('-> roast queued up')
+                    if 'roast_id' in rr:
+                        _log.info('roast queued: %s', rr['roast_id'])
+                    _log.debug('-> qsize: %s', queue.qsize())
             else:
                 _log.debug(
                     '-> roast not queued as mandatory info missing'

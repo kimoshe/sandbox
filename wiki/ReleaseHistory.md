@@ -2,8 +2,19 @@ Detailed Release History
 ========================
 
 ----
+v3.4.1
+------------------
+
+* ADDITIONS
+  - adds support of the Lebrew RoastSee NEXT real-time Agtron and crack analyzer
+  - adds possibility to overwrite the event button value on alarm action `Event Button`
+
+
+----
 v3.4.0 (Oct 31, 2025)
 ------------------
+
+Last version featuring legacy builds supporting macOS 10.13+, Window 8 and Windows 9.
 
 * ADDITIONS
   - adds tooltip to phases widget in Comparator displaying 2nd and 3rd phase bean temperatures (or RoR if ALT/Option key is pressed) limits ([Issue #1906](../../../issues/1906))
@@ -26,7 +37,7 @@ v3.4.0 (Oct 31, 2025)
   - adds multi-modal state transitions to Batch Manager
   - adds remaining total roast time estimate to scheduler and lists roast templates in scheduled items
   - adds support for longer recordings as applied in coffee fermentation ([Discussion #1969](../../../discussions/1969))
-  - adds support for whole/ground color readings with one decimal ([Issue #1986](../../../issues/1986)
+  - adds support for whole/ground color readings with one decimal ([Issue #1986](../../../issues/1986))
   - adds flag to stop PID on DROP
   - adds lookahead to ramping event replay
   - adds CM ET/BT device reporting the current Comparison Metrics, CM, (square root of the average sum of squared differences), also known as Casino Mocca values, on how close the ET/BT curves are w.r.t. the loaded background after the DRY END as specified in the phases dialog
@@ -51,8 +62,8 @@ v3.4.0 (Oct 31, 2025)
   - ensures that the default file suffixes on file save are applied ([PR #1965](../../../pull/1965)). Thanks [Scott](https://github.com/scottjames)!
   - activates large PID LCDs for internal software PID and external TC4/MODBUS/S7 PIDs
   - the scheduler indicates now significant changes to the current schedule as received from [artisan.aplus](https://artisan.aplus), which have to be acknowledged by the user
-  - changes `COOL` in alarms to `COOL END` for consistency [PR #1976](../../../pull/1976))
-  - remember loaded settings filename as default on save [PR #1975](../../../pull/1975))
+  - changes `COOL` in alarms to `COOL END` for consistency ([PR #1976](../../../pull/1976))
+  - remember loaded settings filename as default on save ([PR #1975](../../../pull/1975))
   - BatchManager resets on tare triggered by button press on the Acaia scale
   - automatic timeline extension now relative to sampling interval
   - Linux builds require now glibc >=2.35
@@ -83,6 +94,8 @@ v3.4.0 (Oct 31, 2025)
 ----
 v3.2.0 (June 23, 2025)
 ------------------
+
+Last version supporting macOS 12, Ubuntu 22.04 and RedHat 8.4.
 
 * ADDITIONS
   - adds [batch manager](https://doc.artisan.plus/docs/batch-manager)
@@ -457,6 +470,7 @@ v2.10.0 (November 28, 2023)
 v2.8.4 (June 21, 2023)
 ------------------
 
+Last version supporting macOS 11, but newer legacy builds still support macOS 10.13 and newer.
 
 * ADDITIONS
   - adds official support for [Kaleido]([https://www.kaleido-roaster.com/](https://artisan-scope.org/machines/kaleido/)) Network, Serial and Legacy protocols
@@ -532,6 +546,8 @@ v2.8.4 (June 21, 2023)
 ----
 v2.8.2 (December 21, 2022)
 ------------------
+
+Last version supporting macOS 10.15, but legacy builds of v2.8 still supports macOS 10.13+.
 
 * NEW FEATURES
   - adds [Sivetz fluid bed roasting machines](https://artisan-scope.org/machines/sivetz/) support
@@ -746,6 +762,8 @@ v2.6.0 (March 11, 2022)
 v2.4.6 (July 30, 2021)
 ------------------
 
+Last version supporting Windows 8, but legacy build of v2.6.0 supports Windows 8.
+
 * NEW FEATURES
   - adds [energy and CO2 calculator](https://artisan-roasterscope.blogspot.com/2021/07/tracking-energy-consumption-co2.html)
   - adds a flag "Show Full" to the Curve and Background dialog to control of foreground and background curves before CHARGE and after DROP (keyboard shortcuts `i` and `o`)
@@ -825,6 +843,8 @@ v2.4.6 (July 30, 2021)
 v2.4.4 (December 14, 2020)
 ------------------
 
+Last version supporting Raspbian Stretch.
+
 * NEW FEATURES
   - adds machine setups for the PLC equipped machines from [Nordic](https://artisan-scope.org/machines/nordic/), [Fabrica Roasters](https://artisan-scope.org/machines/fabrica/) and [MCR Series in C](https://artisan-scope.org/machines/mcr/)
   - adds support for [Phidget HUM1001](https://www.phidgets.com/?tier=3&catid=14&pcid=12&prodid=1179)
@@ -879,12 +899,12 @@ Richard Rodrigues](https://github.com/rich1n))
   - applies Delta BT auto axis computation also to Web Ranking reports
 
 
-**Note**
-_This is the last version supporting Raspbian Stretch_
 
 ----
 v2.4.2 (October 2, 2020)
 ------------------
+
+Last version supporting macOS 10.13 and 10.14; note that legacy builds of v2.6.0 and v2.8.0 again supports those systems-
 
 * NEW FEATURES
   - extended machine support
@@ -946,9 +966,6 @@ v2.4.2 (October 2, 2020)
   - prevents saving NaN annotation and flag coordinates in profiles ([Issue #505](../../../issues/505))
   - fixes Transposer crash ([Issue #506](../../../issues/506))
   - fixes palette loading from .apal files
-
-**Note**
-_This is the last version supporting macOS 10.13 and 10.14_
 
 
 ----

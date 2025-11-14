@@ -73,6 +73,7 @@ from artisanlib.atypes import SerialSettings, BTBreakParams, BbpCache, AlarmSet,
 # import artisan.plus module
 from plus.util import roastLink
 from plus.queue import addRoast, sendLockSchedule
+from plus.sync import clearSyncRecordHash
 
 try:
     #pylint: disable-next = E, W, R, C
@@ -182,6 +183,7 @@ class tgraphcanvas(FigureCanvas):
     alarmsetSignal = pyqtSignal(int)
     moveBackgroundSignal = pyqtSignal(str, int)
     eventRecordSignal = pyqtSignal(int)
+    eventRecordOverwriteValueSignal = pyqtSignal(int,int)
     eventRecordActionSignal = pyqtSignal(int,float,str,bool)
     showCurveSignal = pyqtSignal(str, bool)
     showExtraCurveSignal = pyqtSignal(int, str, bool)
@@ -926,9 +928,13 @@ class tgraphcanvas(FigureCanvas):
                        '+Shelly 3EM Pro Power/S',       #181
                        '+Shelly Plug Power/Temp',       #182
                        '+Shelly Plug Voltage/Current',  #183
-                       'TASI TA612C',               #184
-                       '+TASI TA612C 34',           #185
-                       '+CM ET/BT'                  #186
+                       'TASI TA612C',                   #184
+                       '+TASI TA612C 34',               #185
+                       '+CM ET/BT',                     #186
+                       '+RoastSeeNEXT Agtron/Crack',    #187
+                       '+RoastSeeNEXT RoR/FoR',         #188
+                       '+RoastSeeNEXT Distance/Time',   #189
+                       '+RoastSeeNEXT Yellow'           #190
                        ]
 
         # ADD DEVICE:
@@ -998,11 +1004,6 @@ class tgraphcanvas(FigureCanvas):
             174, # ColorTrack BT
             175, # Thermoworks BlueDOT
             176, # Aillio Bullet R2
-            179, # Shelly 3EM Pro Energy/Return
-            180, # Shelly Plug Total/Last
-            181, # Shelly 3EM Pro Power/S
-            182, # Shelly Plug Power/Temp
-            183  # Shelly Plug Voltage/Current
         ]
 
         # ADD DEVICE:
@@ -1079,11 +1080,15 @@ class tgraphcanvas(FigureCanvas):
             174, # ColorTrack BT
             177, # +PID P/I
             178, # +PID D/Error
-            179, # Shelly 3EM Pro Energy/Return
-            180, # Shelly Plug Total/Last
-            181, # Shelly 3EM Pro Power/S
-            182, # Shelly Plug Power/Temp
-            183  # Shelly Plug Voltage/Current
+            179, # +Shelly 3EM Pro Energy/Return
+            180, # +Shelly Plug Total/Last
+            181, # +Shelly 3EM Pro Power/S
+            182, # +Shelly Plug Power/Temp
+            183, # +Shelly Plug Voltage/Current
+            187, # +RoastSeeNEXT Agtron/Crack
+            188, # +RoastSeeNEXT RoR/FOR
+            189, # +RoastSeeNEXT Distance/Time
+            190  # +RoastSeeNEXT Yellow
         ]
 
         # ADD DEVICE:
@@ -2478,6 +2483,7 @@ class tgraphcanvas(FigureCanvas):
         self.alarmsetSignal.connect(self.selectAlarmSet)
         self.moveBackgroundSignal.connect(self.moveBackgroundAndRedraw)
         self.eventRecordSignal.connect(self.EventRecordSlot)
+        self.eventRecordOverwriteValueSignal.connect(self.EventRecordOverwriteValueSlot)
         self.eventRecordActionSignal.connect(self.EventRecordActionSlot, type=Qt.ConnectionType.QueuedConnection) # type: ignore # queued to avoid deadlock between PID processing and EventRecordAction, both accessing the same critical section protected by profileDataSemaphore
         self.showCurveSignal.connect(self.showCurve)
         self.showExtraCurveSignal.connect(self.showExtraCurve)
@@ -5983,17 +5989,22 @@ class tgraphcanvas(FigureCanvas):
                     else:
                         self.adderror(QApplication.translate('Message','Calling alarm failed on {0}').format(fname))
                 elif action == 2:
-                    # alarm event button
-                    button_number:Optional[int] = None
+                    # alarm event button, a comma separated list of button specifications with an optional trailing comment after a hash symbol
                     text = string.split('#')[0]
                     bnrs = text.split(',')
                     for bnr in bnrs:
+                        button_number:Optional[int] = None           # the referenced button number
+                        button_overwrite_value:Optional[int] = None  # value to overwrite the referenced button value
+                        # a button specification is either just an integer or two integers (button number ref, overwrite event value) separated by a '>' symbol
                         try:
-                            button_number = int(str(bnr.strip())) - 1 # the event buttons presented to the user are numbered from 1 on
+                            button_spec = bnr.strip().split('>')
+                            if len(button_spec)>1:
+                                button_overwrite_value = int(button_spec[1].strip())
+                            button_number = int(button_spec[0].strip()) - 1 # the event buttons presented to the user are numbered from 1 on
                         except Exception: # pylint: disable=broad-except
                             self.aw.sendmessage(QApplication.translate('Message',"Alarm trigger button error, description '{0}' not a number").format(string))
                         if button_number is not None and -1 < button_number < len(self.aw.buttonlist):
-                            self.aw.recordextraevent(button_number)
+                            self.aw.recordextraevent(button_number,value=button_overwrite_value)
                 elif action in {3, 4, 5, 6}:
                     # alarm slider 1-4
                     slidernr = None
@@ -7791,6 +7802,8 @@ class tgraphcanvas(FigureCanvas):
             # reset plus sync
             self.plus_sync_record_hash = None
             self.plus_file_last_modified = None
+            # clear also the cached sync record and sync record hash used to detect changes in the loaded profile
+            clearSyncRecordHash()
 
             # initialize recording version to be stored to new profiles recorded
             self.aw.recording_version = str(__version__)
@@ -9258,7 +9271,8 @@ class tgraphcanvas(FigureCanvas):
             self.redrawdesigner(force=True)
         elif self.aw.comparator is not None:
             self.aw.comparator.redraw()
-            self.aw.qpc.redraw_phases()
+            if self.aw.qpc is not None:
+                self.aw.qpc.redraw_phases()
         else:
             titleB = ''
             try:
@@ -13420,6 +13434,10 @@ class tgraphcanvas(FigureCanvas):
                     self.aw.santokerR.stop()
                     self.aw.santokerR = None
 
+                if self.aw.lebrew_roastseeNEXT is not None:
+                    self.aw.lebrew_roastseeNEXT.stop()
+                    self.aw.lebrew_roastseeNEXT = None
+
                 # disconnect Thermoworks BlueDOT
                 if not bool(self.aw.simulator) and self.device == 175 and self.aw.thermoworksBlueDOT is not None:
                     self.aw.thermoworksBlueDOT.stop()
@@ -13798,7 +13816,7 @@ class tgraphcanvas(FigureCanvas):
 
     # close serial port, Phidgets and Yocto ports
     def disconnectProbesFromSerialDevice(self, ser:'serialport') -> None:
-        _log.debug('disconnectProbesFromSerialDevice')
+        _log.debug('disconnectProbesFromSerialDevice(%s)',ser)
         try:
             self.samplingSemaphore.acquire(1)
 
@@ -14158,10 +14176,10 @@ class tgraphcanvas(FigureCanvas):
     def OffRecorder(self, autosave:bool = True, enableButton:bool = True) -> None:
         _log.info('MODE: STOP RECORDING')
         try:
-            # mark DROP if not yet set (and DROP not undone), at least 7min roast time and CHARGE is set and either autoDROP is active or DROP button is hidden
+            # mark DROP if not yet set (and DROP not undone), at least 5min roast time and CHARGE is set and either autoDROP is active or DROP button is hidden
             if self.timeindex[6] == 0 and self.timeindex[0] != -1 and self.autoDROPenabled and (self.autoDropFlag or not self.buttonvisibility[6]):
                 start = self.timex[self.timeindex[0]]
-                if (len(self.timex)>0 and self.timex[-1] - start) > 7*60: # only after 7min into the roast
+                if (len(self.timex)>0 and self.timex[-1] - start) > 5*60: # only after 5min into the roast
                     self.markDrop()
             if self.timeindex[6] == 0 and self.autoDROPenabled:
                 # if DROP is still not set (and was never set before, eg. autoDROP is still enabled), we reset the scheduleID not
@@ -15440,26 +15458,31 @@ class tgraphcanvas(FigureCanvas):
     def EventRecordSlot(self, ee:int) -> None:
         self.EventRecord(ee)
 
+    @pyqtSlot(int,int)
+    def EventRecordOverwriteValueSlot(self, ee:int, value:int) -> None:
+        self.EventRecord(ee, value=value)
+
     @pyqtSlot(int,float,str,bool)
     def EventRecordActionSlot(self,eventtype:int,eventvalue:float,description:str,doupdategraphics:bool) -> None:
         self.EventRecordAction(extraevent=1,eventtype=eventtype,eventvalue=eventvalue,eventdescription=description,doupdategraphics=doupdategraphics)
 
+    # if value is given it overwrites the extraeventsvalues[extraevent]
     def EventRecord(self, extraevent:Optional[int] = None, takeLock:bool = True,
-            doupdategraphics:bool = True, doupdatebackground:bool = True) -> None:
+            doupdategraphics:bool = True, doupdatebackground:bool = True, value:Optional[int] = None) -> None:
         try:
             if extraevent is not None:
                 if self.aw.extraeventstypes[extraevent] <= 4:
                     self.EventRecordAction(
                         extraevent=extraevent,
                         eventtype=self.aw.extraeventstypes[extraevent],
-                        eventvalue=self.aw.extraeventsvalues[extraevent],
+                        eventvalue=(self.aw.extraeventsvalues[extraevent] if value is None else self.eventsExternal2InternalValue(value)),
                         eventdescription=self.aw.extraeventsdescriptions[extraevent],takeLock=takeLock,
                         doupdategraphics=doupdategraphics,doupdatebackground=doupdatebackground)
                 elif self.aw.extraeventstypes[extraevent] == 9:
                     self.EventRecordAction(
                         extraevent=extraevent,
                         eventtype=4,  # we map back to the untyped event type
-                        eventvalue=self.aw.extraeventsvalues[extraevent],
+                        eventvalue=(self.aw.extraeventsvalues[extraevent] if value is None else self.eventsExternal2InternalValue(value)),
                         eventdescription=self.aw.extraeventsdescriptions[extraevent],takeLock=takeLock,
                         doupdategraphics=doupdategraphics,doupdatebackground=doupdatebackground)
                 else: # on "relative" event values, we take the last value set per event via the recordextraevent call before
@@ -15467,7 +15490,7 @@ class tgraphcanvas(FigureCanvas):
                     self.EventRecordAction(
                         extraevent=extraevent,
                         eventtype=self.aw.extraeventstypes[extraevent]-5,
-                        eventvalue=(self.eventsExternal2InternalValue(last_value) if last_value else None),
+                        eventvalue=((self.eventsExternal2InternalValue(last_value) if last_value else None) if value is None else self.eventsExternal2InternalValue(value)),
                         eventdescription=self.aw.extraeventsdescriptions[extraevent],takeLock=takeLock,
                         doupdategraphics=doupdategraphics,doupdatebackground=doupdatebackground)
             else:

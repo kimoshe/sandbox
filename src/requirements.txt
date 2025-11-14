@@ -49,14 +49,15 @@ xlrd==2.0.2
 websockets==13.1;  python_version < '3.9' # last Python 3.8 release
 websockets==15.0.1; python_version >= '3.9'
 PyYAML==6.0.3
-psutil==7.1.2
+psutil==7.1.3
 typing-extensions==4.10.0; python_version < '3.8' # required for supporting Final and TypeDict on Python <3.8
 protobuf==5.29.3; python_version < '3.9' # last Python 3.8 release
 protobuf==6.33.0; python_version >= '3.9'
 numpy==1.24.3; python_version < '3.9' # last Python 3.8 release
 numpy==2.3.4; python_version >= '3.9'
 scipy==1.10.1; python_version < '3.9' # last Python 3.8 release
-scipy==1.16.2; python_version >= '3.9'
+scipy==1.15.3; python_version >= '3.9' and sys_platform=='darwin' and platform_release<'20.0' # last version supporting macOS 10.13
+scipy==1.16.3; python_version >= '3.9' and sys_platform!='darwin' or (sys_platform=='darwin' and platform_release>='20.0')
 wquantiles==0.6
 colorspacious==1.1.2
 openpyxl==3.1.5
@@ -69,7 +70,7 @@ matplotlib==3.7.3; python_version < '3.9' # last Python 3.8 release
 matplotlib==3.10.7; python_version >= '3.9' # matplotlib 3.10.5 doesn't show HiDPI support
 jinja2==3.1.6
 aiohttp==3.10.11; python_version < '3.9' # last Python 3.8 release
-aiohttp==3.13.1; python_version >= '3.9'
+aiohttp==3.13.2; python_version >= '3.9'
 aiohttp_jinja2==1.6
 python-bidi==0.4.2; python_version < '3.9' # last Python 3.8 release
 python-bidi==0.6.6; python_version == '3.9' # last Python 3.9 release
@@ -78,7 +79,7 @@ arabic-reshaper==3.0.0
 pillow==10.4.0; python_version < '3.9' # last Python 3.8 release
 pillow==11.3.0; python_version == '3.10'
 pillow==12.0.0; python_version >= '3.10'
-pydantic==2.12.3; (platform_system=='Windows' and python_version>'3.10') or sys_platform=='darwin' or platform_system=='Linux'
+pydantic==2.12.4; (platform_system=='Windows' and python_version>'3.10') or sys_platform=='darwin' or platform_system=='Linux'
 pydantic==2.7.1; (platform_system=='Windows' and python_version<'3.9')  # last version working with Windows 7/8 pending resolution of pydantic Issue #9920
 babel==2.17.0
 bleak==0.22.3; python_version < '3.9' # last Python 3.8 release
@@ -144,6 +145,5 @@ build==1.3.0; (platform_system=='Windows' and python_version >= '3.9')
 pywin32==311; platform_system=='Windows'
 pyinstaller-versionfile==2.1.1; platform_system=='Windows' and python_version < '3.9'
 pyinstaller-versionfile==3.0.1; platform_system=='Windows' and python_version >= '3.9'
-#libusb-package==1.0.26.3; platform_system=='Windows'
-patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl; platform_system=='Windows'  # there is no pypi libusb_package for python_version == 3.14
+libusb-package==1.0.26.3; platform_system=='Windows'
 tzdata==2025.2; platform_system=='Windows' and python_version >= '3.9' # to prevent pyinstaller WARNING: Hidden import "tzdata" not found!
