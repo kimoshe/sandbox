@@ -57,6 +57,7 @@ init:
 branches:
   only:
     - master
+    - test-branch-build
 
 stack:
   python ${PYTHON_V}
