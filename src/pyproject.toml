@@ -78,7 +78,7 @@ ignore-paths = [ "^uic/.*$",
                  "^proto/.*$",
                  "^test/.*$",
                  "^patches/.*$",
-                 "^.*/.whl$",
+                 "^.*\\.whl$",
                  "^.pytype/.*$" ]
 
 # Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
