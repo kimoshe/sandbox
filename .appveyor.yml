@@ -168,7 +168,7 @@ for:
         
     # patch for pylupdate6
     - cmd: echo *** PATCH pylupdate6
-    - cmd: copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py
+    - cmd: copy /Y src\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py
 
   build_script:
     - cmd: echo Windows Build

@@ -224,8 +224,8 @@ class Visitor(ast.NodeVisitor):
         node.
         """
 
-       if isinstance(node, ast.Constant):
-           return node.value
+        if isinstance(node, ast.Constant):
+            return node.value
 
         if isinstance(node, ast.Constant):
             if isinstance(node.value, str):
