@@ -16,24 +16,17 @@
 # Marko Luther, 2023
 
 import platform
-from typing import Optional, TYPE_CHECKING
+from typing import override, TYPE_CHECKING
 
 
 from artisanlib.util import deltaLabelUTF8, stringfromseconds, stringtoseconds
 from artisanlib.dialogs import ArtisanDialog
 
-try:
-    from PyQt6.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtWidgets import (QApplication, QLabel, QDialogButtonBox, QFrame, # @UnusedImport @Reimport  @UnresolvedImport
-        QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QGroupBox, QLineEdit, QLayout, # @UnusedImport @Reimport  @UnresolvedImport
-        QSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
-except ImportError:
-    from PyQt5.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import QIntValidator, QRegularExpressionValidator # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QLabel, QDialogButtonBox, QFrame, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-        QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QGroupBox, QLineEdit, QLayout, # @UnusedImport @Reimport  @UnresolvedImport
-        QSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
+from PyQt6.QtCore import Qt, pyqtSlot, QRegularExpression, QSettings
+from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator
+from PyQt6.QtWidgets import (QApplication, QLabel, QDialogButtonBox, QFrame,
+    QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QGroupBox, QLineEdit, QLayout,
+    QSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
 
 if TYPE_CHECKING:
     from artisanlib.main import ApplicationWindow # pylint: disable=unused-import
@@ -316,7 +309,7 @@ class WindowsDlg(ArtisanDialog):
         self.dialogbuttons.accepted.connect(self.updatewindow)
         self.dialogbuttons.rejected.connect(self.restoreState)
 
-        resetButton: Optional[QPushButton] = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.RestoreDefaults)
+        resetButton: QPushButton|None = self.dialogbuttons.addButton(QDialogButtonBox.StandardButton.RestoreDefaults)
         if resetButton is not None:
             resetButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             resetButton.clicked.connect(self.reset)
@@ -459,7 +452,7 @@ class WindowsDlg(ArtisanDialog):
         mainLayout.addLayout(buttonLayout)
         self.setLayout(mainLayout)
         if platform.system() != 'Windows':
-            ok_button: Optional[QPushButton] = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
+            ok_button: QPushButton|None = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
             if ok_button is not None:
                 ok_button.setFocus()
 
@@ -515,7 +508,7 @@ class WindowsDlg(ArtisanDialog):
     def xlimitChanged(self) -> None:
         try:
             endedittime_str = str(self.xlimitEdit.text())
-            if endedittime_str is not None and endedittime_str != '':
+            if endedittime_str != '':
                 endeditime = stringtoseconds(endedittime_str)
                 if self.aw.qmc.endofx != endeditime:
                     self.autotimexFlag.setChecked(False)
@@ -530,7 +523,7 @@ class WindowsDlg(ArtisanDialog):
     def xlimitMinChanged(self) -> None:
         try:
             startedittime_str = str(self.xlimitEdit_min.text())
-            if startedittime_str is not None and startedittime_str != '':
+            if startedittime_str != '':
                 starteditime = stringtoseconds(startedittime_str)
                 if starteditime >= 0 and self.aw.qmc.timeindex[0] != -1:
                     self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]] + starteditime
@@ -603,14 +596,15 @@ class WindowsDlg(ArtisanDialog):
 
     @pyqtSlot(int)
     def autoDeltaxFlagChanged(self, _:int) -> None:
-        self.aw.qmc.autodeltaxET = self.autodeltaxETFlag.isChecked()
-        self.aw.qmc.autodeltaxBT = self.autodeltaxBTFlag.isChecked()
-        if not self.aw.qmc.flagon and (self.autodeltaxETFlag or self.autodeltaxBTFlag):
-            if self.aw.comparator is not None:
-                self.aw.comparator.redraw()
-                self.zlimitEdit.setText(str(self.aw.qmc.zlimit))
-            else:
-                self.autoDeltaAxis()
+        if not self.aw.qmc.flagon:
+            self.aw.qmc.autodeltaxET = self.autodeltaxETFlag.isChecked()
+            self.aw.qmc.autodeltaxBT = self.autodeltaxBTFlag.isChecked()
+            if (self.aw.qmc.autodeltaxET or self.aw.qmc.autodeltaxBT):
+                if self.aw.comparator is not None:
+                    self.aw.comparator.redraw()
+                    self.zlimitEdit.setText(str(self.aw.qmc.zlimit))
+                else:
+                    self.autoDeltaAxis()
 
     @pyqtSlot(int)
     def autoTimexFlagChanged(self, n:int) -> None:
@@ -646,7 +640,7 @@ class WindowsDlg(ArtisanDialog):
 
         try:
             endedittime_str = str(self.xlimitEdit.text())
-            if endedittime_str is not None and endedittime_str != '':
+            if endedittime_str != '':
                 endeditime = stringtoseconds(endedittime_str)
                 if self.aw.qmc.endofx != endeditime:
                     self.aw.qmc.endofx = endeditime
@@ -657,7 +651,7 @@ class WindowsDlg(ArtisanDialog):
 
         try:
             startedittime_str = str(self.xlimitEdit_min.text())
-            if startedittime_str is not None and startedittime_str != '':
+            if startedittime_str != '':
                 starteditime = stringtoseconds(startedittime_str)
                 if starteditime >= 0 and self.aw.qmc.timeindex[0] != -1:
                     self.aw.qmc.startofx = self.aw.qmc.timex[self.aw.qmc.timeindex[0]] + starteditime
@@ -840,7 +834,7 @@ class WindowsDlg(ArtisanDialog):
 
 
         endedittime_str = str(self.xlimitEdit.text())
-        if endedittime_str is not None and endedittime_str != '':
+        if endedittime_str != '':
             try:
                 endeditime = stringtoseconds(endedittime_str)
                 self.aw.qmc.endofx = endeditime
@@ -853,7 +847,7 @@ class WindowsDlg(ArtisanDialog):
             self.aw.qmc.locktimex_end = self.aw.qmc.endofx_default
 
         startedittime_str = str(self.xlimitEdit_min.text())
-        if startedittime_str is not None and startedittime_str != '':
+        if startedittime_str != '':
             try:
                 starteditime = stringtoseconds(startedittime_str)
                 if starteditime >= 0 and self.aw.qmc.timeindex[0] != -1:
@@ -945,7 +939,9 @@ class WindowsDlg(ArtisanDialog):
         self.close()
 
     @pyqtSlot('QCloseEvent')
-    def closeEvent(self, _:Optional['QCloseEvent'] = None) -> None:
+    @override
+    def closeEvent(self, a0:'QCloseEvent|None' = None) -> None:
+        del a0
         #save window position (only; not size!)
         settings = QSettings()
         settings.setValue('AxisPosition',self.frameGeometry().topLeft())

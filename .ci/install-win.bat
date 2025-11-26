@@ -37,27 +37,18 @@ python -V
 ::
 :: Upgrade the Python version to PYUPGRADE_WIN_V whenever the environment variable exists.
 ::
-setlocal enabledelayedexpansion
 if NOT "%PYUPGRADE_WIN_V%" == "" (
     echo ***** Upgrading to %PYUPGRADE_WIN_V%
     echo *** Downloading Python install exe
     curl -L -O https://www.python.org/ftp/python/%PYUPGRADE_WIN_V%/python-%PYUPGRADE_WIN_V%-amd64.exe
     if not exist python-%PYUPGRADE_WIN_V%-amd64.exe (exit /b 80)
     echo *** Installing Python %PYUPGRADE_WIN_V%
-    
-    for /f "tokens=1,2 delims=." %%a in ("%PYUPGRADE_WIN_V%") do (
-        set SHORT_VERSION=%%a%%b
-    )
-    echo PYUPGRADE_WIN_V is -%PYUPGRADE_WIN_V%-
-    echo SHORT_VERSION is !SHORT_VERSION!
-    echo cmd line opions /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python!SHORT_VERSION!-x64
-    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1 InstallAllUsers=1 TargetDir=c:\Python!SHORT_VERSION!-x64
+    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1
     if not exist %PYTHON_PATH%\python.exe (exit /b 90)
     echo ***** Upgrade Complete
     echo Python Version Now:
     python -V
 )
-endlocal
 
 ::
 :: get pip up to date
@@ -72,12 +63,7 @@ python -m pip install wheel
 ::
 :: install Artisan required libraries from pip
 ::
-::python -m pip install -r src\requirements.txt | findstr /v /b "Ignoring"
-
-:: temporary monkey code until libusb-package on pypi supports python 3.14
-cd src
-python -m pip install -r requirements.txt | findstr /v /b "Ignoring"
-cd ..
+python -m pip install -r src\requirements.txt | findstr /v /b "Ignoring"
 
 :: Check that libusb-1.0.dll was installed.  Was missing once on CI with Win11.
 if not exist %PYTHON_PATH%\Lib\site-packages\libusb_package\libusb-1.0.dll (

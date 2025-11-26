@@ -11,7 +11,8 @@ This module tests the async communication classes including:
 import asyncio
 import time
 from unittest.mock import AsyncMock, Mock, patch
-from typing import AsyncGenerator, TYPE_CHECKING
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from artisanlib.atypes import SerialSettings # pylint: disable=unused-import
@@ -237,7 +238,7 @@ class TestIteratorReader:
         reader = IteratorReader(mock_chunks())
         result = await reader.readuntil(b'\n')
 
-        assert result == b'\n'
+        assert result == b'ab\n'
 
     @pytest.mark.asyncio
     async def test_readuntil_with_empty_separator_returns_immediately(self) -> None:

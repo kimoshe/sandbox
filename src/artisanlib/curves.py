@@ -23,10 +23,12 @@ import sys
 import platform
 import numpy
 import logging
-from typing import Final, List, Sequence, Tuple, Optional, TYPE_CHECKING
+from collections.abc import Sequence
+from typing import override, Final, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
+    from artisanlib.dialogs import HelpDlg # noqa: F401 # pylint: disable=unused-import
     from PyQt6.QtGui import QCloseEvent # pylint: disable=unused-import
 
 from artisanlib.util import (deltaLabelBigPrefix, deltaLabelPrefix, deltaLabelUTF8,
@@ -34,21 +36,14 @@ from artisanlib.util import (deltaLabelBigPrefix, deltaLabelPrefix, deltaLabelUT
 from artisanlib.dialogs import ArtisanDialog
 from artisanlib.widgets import MyQDoubleSpinBox
 from help import symbolic_help # pyright:ignore [attr-defined] # pylint: disable=no-name-in-module
+from artisanlib.canvas import Interp1dKind
 
-try:
-    from PyQt6.QtCore import (Qt, pyqtSlot, QSettings, QRegularExpression, QTimer) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtGui import (QColor, QIntValidator, QRegularExpressionValidator, QPixmap) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtWidgets import (QApplication, QWidget, QCheckBox, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, # @UnusedImport @Reimport  @UnresolvedImport
-                                 QPushButton, QSpinBox, QTabWidget, QComboBox, QDialogButtonBox, QGridLayout, # @UnusedImport @Reimport  @UnresolvedImport
-                                 QGroupBox, QLayout, QMessageBox, QRadioButton, QStyleFactory, QHeaderView, # @UnusedImport @Reimport  @UnresolvedImport
-                                 QTableWidget, QTableWidgetItem, QFrame, QButtonGroup) # @UnusedImport @Reimport  @UnresolvedImport
-except ImportError:
-    from PyQt5.QtCore import (Qt, pyqtSlot, QSettings, QRegularExpression, QTimer) # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import (QColor, QIntValidator, QRegularExpressionValidator, QPixmap) # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QWidget, QCheckBox, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-                                 QPushButton, QSpinBox, QTabWidget, QComboBox, QDialogButtonBox, QGridLayout, # @UnusedImport @Reimport  @UnresolvedImport
-                                 QGroupBox, QLayout, QMessageBox, QRadioButton, QStyleFactory, QHeaderView, # @UnusedImport @Reimport  @UnresolvedImport
-                                 QTableWidget, QTableWidgetItem, QFrame, QButtonGroup) # @UnusedImport @Reimport  @UnresolvedImport
+from PyQt6.QtCore import (Qt, pyqtSlot, QSettings, QRegularExpression, QTimer)
+from PyQt6.QtGui import (QColor, QIntValidator, QRegularExpressionValidator, QPixmap)
+from PyQt6.QtWidgets import (QApplication, QWidget, QCheckBox, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+                             QPushButton, QSpinBox, QTabWidget, QComboBox, QDialogButtonBox, QGridLayout,
+                             QGroupBox, QLayout, QMessageBox, QRadioButton, QStyleFactory, QHeaderView,
+                             QTableWidget, QTableWidgetItem, QFrame, QButtonGroup)
 
 
 _log: Final[logging.Logger] = logging.getLogger(__name__)
@@ -257,7 +252,7 @@ class equDataDlg(ArtisanDialog):
                     fields.append(item.text())
             tbl.field_names = fields
             for r in range(nrows):
-                rows = []
+                rows:list[str] = []
                 for c in range(ncols):
                     item = self.datatable.item(r,c)
                     if item is not None:
@@ -300,7 +295,7 @@ class CurvesDlg(ArtisanDialog):
         self.setWindowTitle(QApplication.translate('Form Caption','Curves'))
         self.setModal(True)
 
-        self.helpdialog = None
+        self.helpdialog:HelpDlg|None = None
 
         # keep old values to be restored on Cancel
         self.org_DeltaET = self.aw.qmc.DeltaETflag
@@ -845,7 +840,7 @@ class CurvesDlg(ArtisanDialog):
         saveImgButton.setToolTip(QApplication.translate('Tooltip','Save image using current graph size to a png format'))
         saveImgButton.clicked.connect(self.aw.resizeImg_0_1)
         helpcurveDialogButton = QDialogButtonBox()
-        helpcurveButton: Optional[QPushButton] = helpcurveDialogButton.addButton(QDialogButtonBox.StandardButton.Help)
+        helpcurveButton: QPushButton|None = helpcurveDialogButton.addButton(QDialogButtonBox.StandardButton.Help)
         if helpcurveButton is not None:
             helpcurveButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             self.setButtonTranslations(helpcurveButton,'Help',QApplication.translate('Button','Help'))
@@ -915,9 +910,12 @@ class CurvesDlg(ArtisanDialog):
         self.interpComboBox = QComboBox()
         self.interpComboBox.setMaximumWidth(100)
         self.interpComboBox.setMinimumWidth(55)
-        self.interpComboBox.addItems([QApplication.translate('ComboBox','linear'),
-                                      QApplication.translate('ComboBox','cubic'),
-                                      QApplication.translate('ComboBox','nearest')])
+        self.interp_items:list[tuple[str, Interp1dKind]] = [
+            (QApplication.translate('ComboBox','linear'), 'linear'),
+            (QApplication.translate('ComboBox','cubic'), 'cubic'),
+            (QApplication.translate('ComboBox','nearest'), 'nearest')
+        ]
+        self.interpComboBox.addItems(label for (label, _) in self.interp_items)
         self.interpComboBox.setToolTip(QApplication.translate('Tooltip', 'linear: linear interpolation\ncubic: 3rd order spline interpolation\nnearest: y value of the nearest point'))
         self.interpComboBox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.interpComboBox.currentIndexChanged.connect(self.changeInterpolationMode)
@@ -1019,10 +1017,10 @@ class CurvesDlg(ArtisanDialog):
         self.polyfitdeg.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.polyfitdeg.setMinimumWidth(20)
         # build list of available curves
-#        self.curves:List[Union[List[Optional[float]], List[float]]] = []
-        self.curves:List[Sequence[Optional[float]]] = []
-        self.curvenames:List[str] = []
-        self.deltacurves:List[bool] = [] # list of flags. True if delta curve, False otherwise
+#        self.curves:list[Union[list[float|None], list[float]]] = []
+        self.curves:list[Sequence[float|None]] = []
+        self.curvenames:list[str] = []
+        self.deltacurves:list[bool] = [] # list of flags. True if delta curve, False otherwise
         self.c1ComboBox = QComboBox()
         self.c2ComboBox = QComboBox()
         univarButton.clicked.connect(self.showunivarinfo)
@@ -1455,7 +1453,7 @@ class CurvesDlg(ArtisanDialog):
         self.c1ComboBox.currentIndexChanged.connect(self.polyfitcurveschanged)
         self.c2ComboBox.currentIndexChanged.connect(self.polyfitcurveschanged)
         if platform.system() != 'Windows':
-            ok_button: Optional[QPushButton] = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
+            ok_button: QPushButton|None = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
             if ok_button is not None:
                 ok_button.setFocus()
         else:
@@ -1741,7 +1739,7 @@ class CurvesDlg(ArtisanDialog):
         else:
             # Check for incompatible vars from in the equations
             EQU = [str(self.equedit1.text()),str(self.equedit2.text())]
-            incompatiblevars:List[str] = ['P','F','$','#']
+            incompatiblevars:list[str] = ['P','F','$','#']
             error = ''
             for iv in incompatiblevars:
                 if iv in EQU[0]:
@@ -1755,11 +1753,11 @@ class CurvesDlg(ArtisanDialog):
                     QApplication.translate('Message','Assignment problem'),string)
 
             else:
-                extratemp1:List[float] = []
-                extratemp2:List[float] = []
+                extratemp1:list[float] = []
+                extratemp2:list[float] = []
                 for e in range(2):
                     #create y range
-                    y_range:List[float] = []
+                    y_range:list[float] = []
                     if self.aw.qmc.timeindex[0] > -1:
                         toff = self.aw.qmc.timex[self.aw.qmc.timeindex[0]]
                     else:
@@ -1870,10 +1868,7 @@ class CurvesDlg(ArtisanDialog):
                 except Exception: # pylint: disable=broad-except
                     pass
                 anno = self.aw.qmc.ax.annotate(text, xy=(time,temp),xytext=(time,temp),alpha=5.,color=self.aw.qmc.plotcurvecolor[cindex],fontsize=fsize)
-                try:
-                    anno.set_in_layout(False)  # remove text annotations from tight_layout calculation
-                except Exception: # mpl before v3.0 do not have this set_in_layout() function # pylint: disable=broad-except
-                    pass
+                anno.set_in_layout(False)  # remove text annotations from tight_layout calculation
 #            else:
 #                self.aw.qmc.plottermessage = QApplication.translate("Error Message","Plotter: incorrect syntax: annotate(text,time,temperature,fontsize)")
         except Exception as e: # pylint: disable=broad-except
@@ -1945,6 +1940,7 @@ class CurvesDlg(ArtisanDialog):
 
                     toff:float = 0
                     #create x range and set the time offset generated by CHARGE
+                    x_range:list[float]
                     if len(self.aw.qmc.timex):
                         x_range = self.aw.qmc.timex
                         if self.aw.qmc.timeindex[0] > -1:
@@ -1954,9 +1950,9 @@ class CurvesDlg(ArtisanDialog):
                         if self.aw.qmc.timeindexB[0] > -1:
                             toff = self.aw.qmc.timeB[self.aw.qmc.timeindexB[0]]
                     else:
-                        x_range = list(range(int(self.aw.qmc.startofx),int(self.aw.qmc.endofx)))
+                        x_range = [float(x) for x in range(int(round(self.aw.qmc.startofx)),int(round(self.aw.qmc.endofx)))]
                     #create y range
-                    y_range = []
+                    y_range:list[float] = []
 
                     if not commentoutplot[e]:
                         for xr in x_range:
@@ -2049,7 +2045,7 @@ class CurvesDlg(ArtisanDialog):
 
     def redraw_enabled_math_curves(self) -> None:
         if self.interpCheck.isChecked():
-            self.aw.qmc.drawinterp(str(self.interpComboBox.currentText()))
+            self.aw.qmc.drawinterp(self.interp_items[self.interpComboBox.currentIndex()][1])
         if self.univarCheck.isChecked():
             self.aw.qmc.univariate()
         if self.lnvarCheck.isChecked():
@@ -2111,8 +2107,8 @@ class CurvesDlg(ArtisanDialog):
             self.endEdit.blockSignals(False)
         self.polyfitcurveschanged(0)
 
-    def eventlist(self) -> List[Tuple[str,int]]:
-        events:List[Tuple[str,int]] = []
+    def eventlist(self) -> list[tuple[str,int]]:
+        events:list[tuple[str,int]] = []
         if self.aw.qmc.timeindex[0] > -1:
             events.append((QApplication.translate('Label', 'CHARGE'),self.aw.qmc.timeindex[0]))
         names = [
@@ -2285,7 +2281,7 @@ class CurvesDlg(ArtisanDialog):
 
     @pyqtSlot(int)
     def interpolation(self,_:int = 0) -> None:
-        mode = str(self.interpComboBox.currentText())
+        mode = self.interp_items[self.interpComboBox.currentIndex()][1]
         if self.interpCheck.isChecked():
             #check for finished roast
             if self.aw.qmc.timeindex[6]:
@@ -2314,10 +2310,13 @@ class CurvesDlg(ArtisanDialog):
 
     @pyqtSlot(int)
     def changeDeltaET(self, _:int = 0) -> None:
+        twoAxis_before = self.aw.qmc.twoAxisMode()
         self.aw.qmc.DeltaETflag = not self.aw.qmc.DeltaETflag
+        twoAxis_after = self.aw.qmc.twoAxisMode()
         if self.aw.qmc.crossmarker:
             self.aw.qmc.togglecrosslines() # turn crossmarks off to adjust for new coordinate system
-        self.aw.qmc.redraw_keep_view(recomputeAllDeltas=True)
+        self.aw.qmc.redraw_keep_view(recomputeAllDeltas=True, forceRenewAxis=twoAxis_before != twoAxis_after)
+        self.aw.setLabelColor(self.aw.label4,self.aw.qmc.palette['deltaet'], self.aw.qmc.DeltaETflag)
 
     @pyqtSlot(int)
     def changeDeltaBTspan(self, i:int) -> None:
@@ -2356,6 +2355,7 @@ class CurvesDlg(ArtisanDialog):
         if self.aw.qmc.crossmarker:
             self.aw.qmc.togglecrosslines() # turn crossmarks off to adjust for new coordinate system
         self.aw.qmc.redraw_keep_view(recomputeAllDeltas=True, forceRenewAxis=twoAxis_before != twoAxis_after)
+        self.aw.setLabelColor(self.aw.label5,self.aw.qmc.palette['deltabt'], self.aw.qmc.DeltaBTflag)
 
     @pyqtSlot(int)
     def changeDeltaETlcd(self, _:int = 0) -> None:
@@ -2538,11 +2538,14 @@ class CurvesDlg(ArtisanDialog):
         self.aw.closeHelpDialog(self.helpdialog)
 
     @pyqtSlot('QCloseEvent')
-    def closeEvent(self,_:Optional['QCloseEvent'] = None) -> None:
+    @override
+    def closeEvent(self, a0:'QCloseEvent|None' = None) -> None:
+        del a0
         self.close()
 
     #cancel button
     @pyqtSlot()
+    @override
     def close(self) -> bool:
         self.closeHelp()
         #save window position (only; not size!)

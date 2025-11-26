@@ -19,10 +19,11 @@ import os
 import sys
 import platform
 import logging
-from typing import Final, Dict, Union, List, Optional, cast, TYPE_CHECKING
+from typing import override, Final, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
+    from artisanlib.dialogs import HelpDlg # noqa: F401 # pylint: disable=unused-import
     from artisanlib.atypes import ProfileData, AlarmSet # pylint: disable=unused-import
     from PyQt6.QtGui import QCloseEvent # pylint: disable=unused-import
     from PyQt6.QtWidgets import QStyleOptionViewItem  # pylint: disable=unused-import
@@ -34,18 +35,11 @@ from artisanlib.widgets import (MyQComboBox, MyTableWidgetItemNumber, MyTableWid
                                 MyTableWidgetItemQComboBox, MyTableWidgetItemQLineEdit, MyTableWidgetItemQTime)
 
 
-try:
-    from PyQt6.QtCore import (Qt, pyqtSlot, QSettings, QTimer) # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtGui import QColor, QIntValidator # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, QDialogButtonBox, # @UnusedImport @Reimport  @UnresolvedImport
-                QTableWidget, QHBoxLayout, QVBoxLayout, QCheckBox, QPushButton, QSizePolicy, QSpinBox, # @UnusedImport @Reimport  @UnresolvedImport
-                QTableWidgetSelectionRange, QTimeEdit, QTabWidget, QGridLayout, QGroupBox, QHeaderView, QStyledItemDelegate, QAbstractSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
-except ImportError:
-    from PyQt5.QtCore import (Qt, pyqtSlot, QSettings, QTimer) # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtGui import QColor, QIntValidator # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, QDialogButtonBox, # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-                QTableWidget, QHBoxLayout, QVBoxLayout, QCheckBox, QPushButton, QSizePolicy, QSpinBox, # # @UnusedImport @Reimport  @UnresolvedImport
-                QTableWidgetSelectionRange, QTimeEdit, QTabWidget, QGridLayout, QGroupBox, QHeaderView, QStyledItemDelegate, QAbstractSpinBox) # @UnusedImport @Reimport  @UnresolvedImport
+from PyQt6.QtCore import (Qt, pyqtSlot, QSettings, QTimer)
+from PyQt6.QtGui import QColor, QIntValidator
+from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, QDialogButtonBox,
+            QTableWidget, QHBoxLayout, QVBoxLayout, QCheckBox, QPushButton, QSizePolicy, QSpinBox,
+            QTableWidgetSelectionRange, QTimeEdit, QTabWidget, QGridLayout, QGroupBox, QHeaderView, QStyledItemDelegate, QAbstractSpinBox)
 
 
 
@@ -53,7 +47,8 @@ _log: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class AlignDelegate(QStyledItemDelegate): # pyrefly:ignore[invalid-inheritance] # pyright:ignore[reportGeneralTypeIssues]
-    def initStyleOption(self, option:Optional['QStyleOptionViewItem'], index:'QModelIndex') -> None:
+    @override
+    def initStyleOption(self, option:'QStyleOptionViewItem|None', index:'QModelIndex') -> None:
         super().initStyleOption(option, index)
         if option is not None:
             option.displayAlignment = Qt.AlignmentFlag.AlignCenter # pyrefly: ignore[bad-assignment]
@@ -64,7 +59,7 @@ class AlarmDlg(ArtisanResizeablDialog):
         self.activeTab = activeTab
         self.setModal(True)
         self.setWindowTitle(QApplication.translate('Form Caption','Alarms'))
-        self.helpdialog = None
+        self.helpdialog:HelpDlg|None = None
 
         # restore window position
         settings = QSettings()
@@ -250,7 +245,7 @@ class AlarmDlg(ArtisanResizeablDialog):
         mainlayout.addLayout(okbuttonlayout)
         self.setLayout(mainlayout)
         if platform.system() != 'Windows':
-            ok_button: Optional[QPushButton] = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
+            ok_button: QPushButton|None = self.dialogbuttons.button(QDialogButtonBox.StandardButton.Ok)
             if ok_button is not None:
                 ok_button.setFocus()
         else:
@@ -269,7 +264,7 @@ class AlarmDlg(ArtisanResizeablDialog):
     def setAlarmSetLabels(self) -> None:
         alarmset_labels = []
         for i in range(self.aw.qmc.ALARMSET_COUNT):
-            alarmset:Optional[AlarmSet] = self.aw.qmc.getAlarmSet(i)
+            alarmset:AlarmSet|None = self.aw.qmc.getAlarmSet(i)
             if alarmset is not None:
                 alarmset_labels.append(f"{str(i)} {alarmset['label']}")
         self.transferalarmsetcombobox.clear()
@@ -685,7 +680,7 @@ class AlarmDlg(ArtisanResizeablDialog):
     def exportalarmsJSON(self, filename:str) -> bool:
         try:
             self.savealarms()
-            alarms:Dict[str,Union[List[int],List[float],List[str]]] = {}
+            alarms:dict[str, list[int]|list[float]|list[str]] = {}
             alarms['alarmflags'] = self.aw.qmc.alarmflag
             alarms['alarmguards'] = self.aw.qmc.alarmguard
             alarms['alarmnegguards'] = self.aw.qmc.alarmnegguard
@@ -725,7 +720,9 @@ class AlarmDlg(ArtisanResizeablDialog):
         self.aw.AlarmDlg_activeTab = self.TabWidget.currentIndex()
         self.accept()
 
-    def closeEvent(self, _:Optional['QCloseEvent']) -> None: # pyrefly: ignore
+    @override
+    def closeEvent(self, a0:'QCloseEvent|None') -> None: # pyrefly: ignore
+        del a0
         self.closealarms()
 
     def savealarms(self) -> None:
@@ -787,8 +784,9 @@ class AlarmDlg(ArtisanResizeablDialog):
                 if beepLayout is not None:
                     item0 = beepLayout.itemAt(0)
                     if item0 is not None:
-                        beep = cast(QCheckBox, item0.widget())
-                        if beep and beep is not None:
+                        beep = item0.widget()
+                        if beep is not None:
+                            beep = cast(QCheckBox, beep)
                             self.aw.qmc.alarmbeep[i] = int(beep.isChecked())
                 description = cast(QLineEdit, self.alarmtable.cellWidget(i,11))
                 self.aw.qmc.alarmstrings[i] = description.text()
@@ -797,7 +795,7 @@ class AlarmDlg(ArtisanResizeablDialog):
             _, _, exc_tb = sys.exc_info()
             self.aw.qmc.adderror((QApplication.translate('Error Message', 'Exception:') + ' savealarms(): {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
 
-    def buildAlarmSourceList(self) -> List[str]:
+    def buildAlarmSourceList(self) -> list[str]:
         extra_names = []
         for i in range(len(self.aw.qmc.extradevices)):
             extra_names.append(self.aw.qmc.device_name_subst(self.aw.qmc.extraname1[i]))
@@ -1015,7 +1013,7 @@ class AlarmDlg(ArtisanResizeablDialog):
             #populate table
             for i in range(nalarms):
                 self.setalarmtablerow(i)
-            fixed_columns:Final[List[int]] = [0,1,5,7,10]
+            fixed_columns:Final[list[int]] = [0,1,5,7,10]
             header = self.alarmtable.horizontalHeader()
             if header is not None:
                 header.setStretchLastSection(True)
@@ -1066,7 +1064,7 @@ class AlarmDlg(ArtisanResizeablDialog):
                     fields.append(item.text())
             tbl.field_names = fields
             for r in range(nrows):
-                rows = []
+                rows:list[str] = []
                 item0 = self.alarmtable.item(r,0)
                 if item0 is not None:
                     rows.append(item0.text())
@@ -1093,8 +1091,9 @@ class AlarmDlg(ArtisanResizeablDialog):
                 if beepLayout is not None:
                     item1 = beepLayout.itemAt(0)
                     if item1 is not None:
-                        beepCheckBox = cast(QCheckBox, item1.widget())
-                        if beepCheckBox and beepCheckBox is not None:
+                        beepCheckBox = item1.widget()
+                        if beepCheckBox is not None:
+                            beepCheckBox = cast(QCheckBox, beepCheckBox)
                             rows.append(str(beepCheckBox.isChecked()))
                 descriptionedit = cast(QLineEdit, self.alarmtable.cellWidget(r,11))
                 rows.append(descriptionedit.text())
@@ -1135,8 +1134,9 @@ class AlarmDlg(ArtisanResizeablDialog):
                 if beepLayout is not None:
                     item1 = beepLayout.itemAt(0)
                     if item1 is not None:
-                        beepCheckBox = cast(QCheckBox, item1.widget())
-                        if beepCheckBox and beepCheckBox is not None:
+                        beepCheckBox = item1.widget()
+                        if beepCheckBox is not None:
+                            beepCheckBox = cast(QCheckBox, beepCheckBox)
                             clipboard += str(beepCheckBox.isChecked()) + '\t'
                         else:
                             clipboard += ' ' + '\t'

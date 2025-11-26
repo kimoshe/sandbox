@@ -51,7 +51,8 @@ cross-file contamination.
 =============================================================================
 """
 
-from typing import Any, Generator, List
+from collections.abc import Generator
+from typing import override, Any
 from unittest.mock import Mock, patch
 
 import numpy # noqa: F401 # explicitly import numpy here to prevent duplicate imports after the sys.modules hack below
@@ -68,7 +69,7 @@ import pytest
 class MockQtSingleApplication:
     """Mock QtSingleApplication that behaves like the real one but with controllable behavior."""
 
-    def __init__(self, *_args, **_kwargs) -> None:
+    def __init__(self, *_args:Any, **_kwargs:Any) -> None:
         self.sendmessage2ArtisanInstanceSignal = Mock()
         self.sendmessage2ArtisanViewerSignal = Mock()
         self.sentToBackground = False
@@ -108,7 +109,7 @@ class MockQtSingleApplication:
             if hasattr(attr_value, 'connect'):
                 attr_value.connect = Mock()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name:str) -> Any:
         """Dynamically create mock attributes for any Qt method/signal that's accessed."""
         if name not in self._mock_attributes:
             mock_obj = Mock()
@@ -131,7 +132,7 @@ class MockQApplication:
     def instance():
         return None
 
-    def __init__(self, *_args, **_kwargs) -> None:
+    def __init__(self, *_args:Any, **_kwargs:Any) -> None:
         self.processEvents = Mock()
         self.quit = Mock()
         self.exit = Mock()
@@ -146,7 +147,7 @@ class MockQSemaphore:
         self.release = Mock()
         self.available = Mock(return_value=initial_count)
 
-    def __call__(self, *_args, **_kwargs) -> 'MockQSemaphore':
+    def __call__(self, *_args:Any, **_kwargs:Any) -> 'MockQSemaphore':
         return self
 
 
@@ -163,13 +164,13 @@ class MockQImageReader:
 class MockQSettings:
     """Mock QSettings for configuration management."""
 
-    def __init__(self, *_args, **_kwargs) -> None:
+    def __init__(self, *_args:Any, **_kwargs:Any) -> None:
         self._values = {}
 
-    def setValue(self, key: str, value) -> None:
+    def setValue(self, key: str, value:Any) -> None:
         self._values[key] = value
 
-    def value(self, key: str, default=None):
+    def value(self, key: str, default:Any = None) -> Any:
         return self._values.get(key, default)
 
     def sync(self) -> None:
@@ -182,7 +183,7 @@ class MockQSettings:
 class MockQTimer:
     """Mock QTimer for timing functionality."""
 
-    def __init__(self, *_args, **_kwargs) -> None:
+    def __init__(self, *_args:Any, **_kwargs:Any) -> None:
         self.timeout = Mock()
         self.singleShot = Mock()
         self.start = Mock()
@@ -193,16 +194,16 @@ class MockQTimer:
 class MockQVersionNumber:
     """Mock QVersionNumber for version handling."""
 
-    def __init__(self, major=6, minor=0, patch_version=0):
+    def __init__(self, major:int=6, minor:int=0, patch_version:int=0):
         self.major = major
         self.minor = minor
         self.patch = patch_version
 
-    def segments(self) -> List[int]:
+    def segments(self) -> list[int]:
         return [self.major, self.minor, self.patch]
 
     @classmethod
-    def fromString(cls, version_string):
+    def fromString(cls, version_string:str) -> Any:
         """Parse version string and return MockQVersionNumber instance."""
         # Simple parsing for version strings like "6.5.0"
         try:
@@ -231,12 +232,14 @@ class MockQVersionNumber:
             return self.segments() > other.segments()
         return False
 
+    @override
     def __eq__(self, other: Any) -> bool:
         """Support equality comparison."""
         if isinstance(other, MockQVersionNumber):
             return self.segments() == other.segments()
         return False
 
+    @override
     def __hash__(self) -> int:
         """Support hashing for use in sets and as dict keys."""
         return hash(tuple(self.segments()))
@@ -268,7 +271,7 @@ class MockQStandardPaths:
         TempLocation = 5
 
     @staticmethod
-    def standardLocations(_location_type: Any) -> List[str]:
+    def standardLocations(_location_type: Any) -> list[str]:
         # Return a list of standard paths
         return ['/mock/standard/path']
 

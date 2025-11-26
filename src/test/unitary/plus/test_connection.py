@@ -5,12 +5,13 @@
 
 import json
 import sys
-from typing import Any, Dict, Generator
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import Mock, patch
 
 # Store original modules before any mocking to enable restoration
-original_modules: Dict[str, Any] = {}
-original_functions: Dict[str, Any] = {}
+original_modules: dict[str, Any] = {}
+original_functions: dict[str, Any] = {}
 modules_to_isolate = [
     'PyQt6.QtCore',
     'PyQt5.QtCore',
@@ -299,7 +300,7 @@ def mock_app_window() -> Mock:
     # Configure default attributes and behaviors
     mock_aw.plus_account = 'test@example.com'
     mock_aw.qmc = Mock()
-    mock_aw.qmc.operator = None
+    mock_aw.qmc.operator = 'OperatorName'
     mock_aw.get_os = Mock(return_value=('macOS', '13.0', 'x86_64'))
     mock_aw.updateLimitsSignal = Mock()
     mock_aw.updateLimitsSignal.emit = Mock()
@@ -358,7 +359,7 @@ def mock_response() -> Mock:
 
 
 @pytest.fixture
-def sample_auth_response() -> Dict[str, Any]:
+def sample_auth_response() -> dict[str, Any]:
     """Create fresh sample authentication response data for each test."""
     return {
         'success': True,

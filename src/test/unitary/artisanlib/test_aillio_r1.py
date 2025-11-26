@@ -29,7 +29,7 @@ modules that handle complex USB communication and binary protocol processing.
 """
 
 import sys
-from typing import Generator
+from collections.abc import Generator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -237,7 +237,7 @@ class TestAillioR1Constants:
                 assert isinstance(cmd_name, str)
                 assert isinstance(cmd_bytes, list)
                 assert len(cmd_bytes) >= 2  # All commands have at least 2 bytes
-                assert all(isinstance(b, int) and 0x00 <= b <= 0xFF for b in cmd_bytes)
+                assert all(0x00 <= b <= 0xFF for b in cmd_bytes)
 
             # Test specific command patterns from actual implementation
             assert commands['INFO1'][0] == 0x30  # Info commands start with 0x30

@@ -5,7 +5,8 @@
 import openpyxl
 import logging
 from pathlib import Path
-from typing import Final, Union, List, Dict, Tuple, Optional, Callable
+from collections.abc import Callable
+from typing import Final
 
 from artisanlib.util import stringtoseconds, encodeLocalStrict
 from artisanlib.atypes import ProfileData
@@ -15,9 +16,9 @@ _log: Final[logging.Logger] = logging.getLogger(__name__)
 
 # returns a dict containing all profile information contained in the given Stronghold XLSX file
 def extractProfileStrongholdXLSX(file:str,
-        _etypesdefault:List[str],
-        alt_etypesdefault:List[str],
-        _artisanflavordefaultlabels:List[str],
+        _etypesdefault:list[str],
+        alt_etypesdefault:list[str],
+        _artisanflavordefaultlabels:list[str],
         eventsExternal2InternalValue:Callable[[int],float]) -> ProfileData:
 
     res:ProfileData = ProfileData() # the interpreted data set
@@ -28,7 +29,7 @@ def extractProfileStrongholdXLSX(file:str,
     book = openpyxl.load_workbook(file)
     sheet = book.worksheets[0] # first sheet
     first_row = sheet[1]  # pyrefly: ignore[bad-argument-type]
-    keys:Optional[List[str]] = None # data of columns with empty string as key are ignored
+    keys:list[str]|None = None # data of columns with empty string as key are ignored
     machine:str = ''
     machine_size:float = 0
     if len(first_row) == 9: # S7Pro
@@ -56,9 +57,9 @@ def extractProfileStrongholdXLSX(file:str,
         # "Time" "Internal" "Bean Surface" "Drum Surface" "Hot Air Temp" "RoR" "B.S RoR" "Hot Air" "Halogen" "Drum Heater" "Bean Agitation" "Blower" "Note"
         keys = ['Time', 'ET', 'BT', 'DT', 'IT', '', '', 'Air', 'Halogen', 'DrumHeater', 'DrumSpeed', 'Blower', 'Note']
 
-    if keys is not None and sheet.max_row is not None:
+    if keys is not None:
         # import
-        data:Dict[str, List[Union[float,int,str]]] = {}
+        data:dict[str, list[float|int|str]] = {}
         # read keys
         for key in keys:
             if key != '':
@@ -71,7 +72,7 @@ def extractProfileStrongholdXLSX(file:str,
                         if key == 'Time':
                             data[key].append(stringtoseconds(str(sheet.cell(row, i+1).value))) # pyrefly: ignore[bad-argument-type]
                         else:
-                            data[key].append(sheet.cell(row, i+1).value) # type:ignore
+                            data[key].append(sheet.cell(row, i+1).value) # type:ignore[arg-type]
             except Exception as e:  # pylint: disable=broad-except
                 _log.error(e)
 
@@ -80,7 +81,7 @@ def extractProfileStrongholdXLSX(file:str,
             res['title'] = encodeLocalStrict(Path(file).stem)
             res['roastertype'] = machine
             res['roastersize'] = machine_size
-            res['timex'] = data['Time'] # type:ignore
+            res['timex'] = data['Time'] # type:ignore[typeddict-item]
             tx_len = len(res['timex'])
             res['mode'] = 'C'
             # add CHARGE/DROP
@@ -93,11 +94,11 @@ def extractProfileStrongholdXLSX(file:str,
                     pass
             # add ET/BT
             if 'ET' in data and len(data['ET']) == tx_len:
-                res['temp1'] = data['ET'] # type:ignore
+                res['temp1'] = data['ET'] # type:ignore[typeddict-item]
             else:
                 res['temp2'] = [-1.0]*tx_len
             if 'BT' in data and len(data['BT']) == tx_len:
-                res['temp2'] = data['BT'] # type:ignore
+                res['temp2'] = data['BT'] # type:ignore[typeddict-item]
             else:
                 res['temp2'] = [-1.0]*tx_len
             res['extradevices'] = [25] # one extra virtual device
@@ -105,11 +106,11 @@ def extractProfileStrongholdXLSX(file:str,
             res['extraname2'] = ['DT']
             res['extratimex'] = [res['timex'][:]] # pyright:ignore
             if 'IT' in data and len(data['IT']) == tx_len:
-                res['extratemp1'] = [data['IT']] # type:ignore
+                res['extratemp1'] = [data['IT']] # type:ignore[list-item]
             else:
                 res['extratemp1'] = [[-1.0]*tx_len]
             if 'DT' in data and len(data['DT']) == tx_len:
-                res['extratemp2'] = [data['DT']] # type:ignore
+                res['extratemp2'] = [data['DT']] # type:ignore[list-item]
             else:
                 res['extratemp2'] = [[-1.0]*tx_len]
             res['extramathexpression1'] = ['']
@@ -125,7 +126,7 @@ def extractProfileStrongholdXLSX(file:str,
 
             # add events
 
-            events:List[Tuple[int, int, float]] = [] # list of triples (tx_idx, event_nr, value)
+            events:list[tuple[int, int, float]] = [] # list of triples (tx_idx, event_nr, value)
             try:
                 for event_name, event_nr in [('DrumHeater', 0), ('DrumSpeed', 1), ('Halogen', 2), ('Air', 3), ('Blower', 4)]:
                     if event_name in data and len(data[event_name]) == tx_len:

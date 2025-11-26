@@ -27,7 +27,8 @@ Key Features:
 
 import sys
 import threading
-from typing import Any, Dict, Generator
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -42,7 +43,7 @@ def session_level_isolation() -> Generator[None, None, None]:
     comm tests. It handles PyQt6, serial, Phidget, and Yoctopuce mocking.
     """
     # Store original modules if they exist and aren't mocked
-    original_modules: Dict[str, Any] = {}
+    original_modules: dict[str, Any] = {}
     modules_to_check = [
         'PyQt6',
         'PyQt6.QtCore',
@@ -487,8 +488,8 @@ class TestSerialportClass:
             ser = serialport(mock_aw)
 
             # Assert
-            # Should have 187 device functions (indices 0-186)
-            assert len(ser.devicefunctionlist) == 187
+            # Should have 187 device functions (indices 0-190)
+            assert len(ser.devicefunctionlist) == 191
             # All functions should be callable
             for i, func in enumerate(ser.devicefunctionlist):
                 assert callable(func), f"Function at index {i} is not callable"

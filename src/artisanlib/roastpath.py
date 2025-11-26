@@ -10,16 +10,14 @@ import re
 import json
 from lxml import html
 import logging
-from typing import Final, TypedDict, Optional, List, Callable, TYPE_CHECKING
+from collections.abc import Callable
+from typing import Final, TypedDict, cast, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
     from PyQt6.QtCore import QUrl # pylint: disable=unused-import
 
-try:
-    from PyQt6.QtCore import QDateTime, Qt # @UnusedImport @Reimport  @UnresolvedImport
-except ImportError:
-    from PyQt5.QtCore import QDateTime, Qt # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
+from PyQt6.QtCore import QDateTime, Qt
 
 from artisanlib.util import encodeLocal
 from artisanlib.atypes import ProfileData
@@ -37,27 +35,27 @@ class RoastPathDataItem(TypedDict, total=False):
 #    ReadingTypeId: int
 #    IsRateOfRiseReading: bool
 #    RoastStageId: int
-    EventName: Optional[str]
+    EventName: str|None
     Note: float
     NoteTypeId: int
 
 class RoastPathData(TypedDict, total=False):
-    btData: List[RoastPathDataItem]
-    etData: List[RoastPathDataItem]
-    atData: List[RoastPathDataItem]
-    eventData: List[RoastPathDataItem]
-    rorData: List[RoastPathDataItem]
-    noteData: List[RoastPathDataItem]
-    fuelData: List[RoastPathDataItem]
-    fanData: List[RoastPathDataItem]
-    drumData: List[RoastPathDataItem]
+    btData: list[RoastPathDataItem]
+    etData: list[RoastPathDataItem]
+    atData: list[RoastPathDataItem]
+    eventData: list[RoastPathDataItem]
+    rorData: list[RoastPathDataItem]
+    noteData: list[RoastPathDataItem]
+    fuelData: list[RoastPathDataItem]
+    fanData: list[RoastPathDataItem]
+    drumData: list[RoastPathDataItem]
 
 # returns a dict containing all profile information contained in the given RoastPATH document pointed by the given QUrl
 def extractProfileRoastPathHTML(url:'QUrl',
-        _etypesdefault:List[str],
-        _alt_etypesdefault:List[str],
-        _artisanflavordefaultlabels:List[str],
-        eventsExternal2InternalValue:Callable[[int],float]) -> Optional[ProfileData]:
+        _etypesdefault:list[str],
+        _alt_etypesdefault:list[str],
+        _artisanflavordefaultlabels:list[str],
+        eventsExternal2InternalValue:Callable[[int],float]) -> ProfileData|None:
     res:ProfileData = ProfileData() # the interpreted data set
     try:
         sess = requests.Session()
@@ -72,13 +70,13 @@ def extractProfileRoastPathHTML(url:'QUrl',
             if len(date_str) > 2:
                 dateQt = QDateTime.fromString(date_str[-2]+date_str[-1], 'yyyy-MM-ddhh:mm')
                 if dateQt.isValid():
-                    rd:Optional[str] = encodeLocal(dateQt.date().toString())
+                    rd:str|None = encodeLocal(dateQt.date().toString())
                     if rd is not None:
                         res['roastdate'] = rd
-                    rd_iso:Optional[str] = encodeLocal(dateQt.date().toString(Qt.DateFormat.ISODate))
+                    rd_iso:str|None = encodeLocal(dateQt.date().toString(Qt.DateFormat.ISODate))
                     if rd_iso is not None:
                         res['roastisodate'] = rd_iso
-                    rt:Optional[str] = encodeLocal(dateQt.time().toString())
+                    rt:str|None = encodeLocal(dateQt.time().toString())
                     if rt is not None:
                         res['roasttime'] = rt
                     res['roastepoch'] = int(dateQt.toSecsSinceEpoch())
@@ -139,7 +137,7 @@ def extractProfileRoastPathHTML(url:'QUrl',
                 page_content = page.content.decode('latin-1')
             d = re.findall(fr"var {elem} = JSON\.parse\('(.+?)'\);", page_content, re.S)  # @UndefinedVariable
             if d:
-                data[elem] = json.loads(d[0]) # type: ignore # generic strings accessors cannot be handled by mypy
+                data[elem] = json.loads(d[0]) # type: ignore[literal-required] # generic strings accessors cannot be handled by mypy
 
         if 'btData' in data and len(data['btData']) > 0 and 'Timestamp' in data['btData'][0]:
             # BT
@@ -181,17 +179,16 @@ def extractProfileRoastPathHTML(url:'QUrl',
             res['timeindex'] = timeindex
 
             # Notes
-            noteData = None
+            noteData:list[RoastPathDataItem] = []
             for tag in ['noteData','fuelData','fanData','drumData']:
                 if tag in data:
-                    if noteData is None:
-                        noteData = data[tag] # type: ignore # mypy cannot check generic tags on TypedDicts
-                    noteData = noteData + data[tag] # type: ignore # mypy cannot check generic tags on TypedDicts
-            if noteData is not None:
-                specialevents = []
-                specialeventstype = []
-                specialeventsvalue = []
-                specialeventsStrings = []
+                    noteData.append(cast(RoastPathDataItem, data[tag])) # type:ignore[literal-required]
+            if len(noteData)>0:
+                specialevents:list[int] = []
+                specialeventstype:list[int] = []
+                specialeventsvalue:list[float] = []
+                specialeventsStrings:list[str] = []
+                n:RoastPathDataItem
                 for n in noteData:
                     if 'Timestamp' in n and 'NoteTypeId' in n and 'Note' in n:
                         c = dateutil.parser.parse(n['Timestamp']).timestamp() - baseTime
@@ -213,11 +210,13 @@ def extractProfileRoastPathHTML(url:'QUrl',
                                 else: # n == 3: # Notes
                                     specialeventstype.append(4)
                                 try:
-                                    vv:float = float(n['Note'])
-                                    specialeventsvalue.append(eventsExternal2InternalValue(round(vv)))
+                                    if 'Note' in n:
+                                        vv:float = float(n['Note'])
+                                        specialeventsvalue.append(eventsExternal2InternalValue(round(vv)))
                                 except Exception: # pylint: disable=broad-except
                                     specialeventsvalue.append(0)
-                                specialeventsStrings.append(n['Note'])
+                                if 'Note' in n:
+                                    specialeventsStrings.append(str(n['Note']))
                         except Exception as e: # pylint: disable=broad-except
                             _log.exception(e)
                 if len(specialevents) > 0:

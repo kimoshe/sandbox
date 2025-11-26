@@ -29,7 +29,7 @@ modules that handle complex serial communication and hardware interfaces.
 =============================================================================
 """
 
-from typing import Generator
+from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -123,7 +123,7 @@ class TestHottopInitialization:
         from artisanlib.atypes import SerialSettings
         from artisanlib.hottop import Hottop
 
-        serial_settings = SerialSettings() # type: ignore
+        serial_settings = SerialSettings() # type: ignore[typeddict-item]
 
         # Act
         hottop = Hottop(serial=serial_settings)

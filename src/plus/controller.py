@@ -21,20 +21,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-try:
-    #pylint: disable = E, W, R, C
-    from PyQt6.QtCore import QSemaphore, QTimer, Qt, pyqtSlot # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt6.QtWidgets import QWidget, QApplication, QMessageBox # @UnusedImport @Reimport  @UnresolvedImport
-except Exception: # pylint: disable=broad-except
-    #pylint: disable = E, W, R, C
-    from PyQt5.QtCore import QSemaphore, QTimer, Qt, pyqtSlot # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-    from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox # type: ignore # @UnusedImport @Reimport  @UnresolvedImport
-
+from PyQt6.QtCore import QSemaphore, QTimer, Qt, pyqtSlot
+from PyQt6.QtWidgets import QWidget, QApplication, QMessageBox
 
 import platform
 import threading
 import logging
-from typing import Final, Optional, TYPE_CHECKING
+from typing import Final, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
@@ -84,7 +77,7 @@ def start(app_window:'ApplicationWindow') -> None:
 def toggle(app_window:'ApplicationWindow') -> None:
     _log.debug('toggle()')
     config.app_window = app_window
-    if app_window is not None and app_window.plus_account is None:  # @UndefinedVariable
+    if app_window.plus_account is None:  # @UndefinedVariable
         connect()
         if (
             is_connected()
@@ -141,7 +134,7 @@ def connect(clear_on_failure: bool =False, interactive: bool = True) -> None:
                     account = aw.plus_email
                     if isinstance(
                         # pylint: disable=protected-access
-                        threading.current_thread(), threading._MainThread # type: ignore
+                        threading.current_thread(), threading._MainThread # type: ignore[attr-defined]
                     ):  # this is dangerous and should only be done while
                         # running in the main GUI thread as a consequence are
                         # GUI actions which might crash in other threads
@@ -263,12 +256,9 @@ def connect(clear_on_failure: bool =False, interactive: bool = True) -> None:
                         message = QApplication.translate(
                             'Plus', 'Authentication failed'
                         )
-                        if (
-                            aw.plus_account is not None
-                        ):  # @UndefinedVariable
-                            message = (
-                                f'{aw.plus_account} {message}'
-                            )  # @UndefinedVariable
+                        message = (
+                            f'{aw.plus_account} {message}'
+                        )  # @UndefinedVariable
                         aw.sendmessageSignal.emit(
                             message, True, None
                         )  # @UndefinedVariable
@@ -294,7 +284,7 @@ def connect(clear_on_failure: bool =False, interactive: bool = True) -> None:
                         True,
                         None,
                     )
-                if (aw.plus_account is not None and queue.queue is None):
+                if aw.plus_account is not None:
                     # connect failed (most likely due to network issues)
                     # we anyhow initialize the queue if not yet done to get roasts queued up
                     try:
@@ -408,9 +398,9 @@ def reconnected() -> None:
 # if plus is ON and synced, computes the sync record hash, updates the
 # sync record cache and returns the sync record hash
 # otherwise return None
-# this function is called by filesave() and returns the sync_record hash
-# to be added to the saved file
-def updateSyncRecordHashAndSync() -> Optional[str]:
+# this function is called by filesave(), automaticsave(), scheduler:register_roast()
+# it returns the sync_record hash to be added to the saved file
+def updateSyncRecordHashAndSync() -> str|None:
     try:
         _log.debug('updateSyncRecordHashAndSync()')
         if is_on():

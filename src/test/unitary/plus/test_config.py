@@ -4,11 +4,12 @@
 # Ensure proper module isolation to prevent cross-file contamination
 
 import sys
-from typing import Any, Dict, Generator
+from collections.abc import Generator
+from typing import Any
 
 # Store original modules before any mocking to enable restoration
-original_modules: Dict[str, Any] = {}
-original_functions: Dict[str, Any] = {}
+original_modules: dict[str, Any] = {}
+original_functions: dict[str, Any] = {}
 modules_to_isolate = [
     'PyQt6.QtCore',
     'PyQt5.QtCore',
@@ -405,7 +406,7 @@ class TestCacheAndQueueParameters:
     def test_queue_task_delay(self) -> None:
         """Test queue task delay setting."""
         # Assert
-        assert config.queue_task_delay == 1.0
+        assert config.queue_task_delay == 2.0
         assert isinstance(config.queue_task_delay, float)
         assert config.queue_task_delay > 0
 
