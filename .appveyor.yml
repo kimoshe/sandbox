@@ -166,6 +166,9 @@ for:
     # run the install script
     - cmd: .ci/install-win.bat
         
+    # patch for libusb_package
+    - cmd: pip install src\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
+        
     # patch for pylupdate6
     - cmd: echo *** PATCH pylupdate6
     - cmd: copy /Y src\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py
