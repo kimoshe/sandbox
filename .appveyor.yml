@@ -95,6 +95,14 @@ for:
             Write-Host "~~~~~DIAG~~~~~  Environment variable PYUPGRADE_WIN_V is set. Executing batch script."
             & ".ci/upgrade-py-win.bat"
         }
+    
+    # sanity check that there is indeeda python.exe that matches the presumed version
+    - ps: |
+      $filePath = "$env:PYTHON_PATH/python.exe"
+      if (-Not (Test-Path $filePath)) {
+          Write-Host ">> Error: $env:PYTHON_PATH/python.exe does not exist"
+          exit 1  # Generates an error if the file does not exist
+      }
 
     # generate the path to PyQt translations files
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
