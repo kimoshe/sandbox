@@ -154,7 +154,7 @@ for:
     - ps: Write-Host $env:PYTHON_PATH
 
     # run the upgrade script, note that it checks for existing versions
-    - cmd: upgrade_py_win.bat
+    - cmd: .ci/upgrade_py_win.bat
 
     # generate the path to PyQt translations files
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
