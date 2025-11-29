@@ -12,12 +12,12 @@ if "%PYUPGRADE_WIN_V%"=="" (
 
 :: Check that python.exe exists, if not go straight to the upgrade. 
 :: Note: goto used to avoid comments in nested brackets issues.  Better to have comments.
-if Not Exist "%PYTHON_PATH%/python.exe" (
+if Not Exist "%PYTHON_PATH%\python.exe" (
     goto Upgrade
 )
 
 :: Get the current Python version if python.exe exists
-for /f "tokens=2 delims= " %%a in ('python -V 2^>^&1') do set "PYTHON_VERSION=%%a"
+for /f "tokens=2 delims= " %%a in ('%PyTHON_path%\python.exe -V 2^>^&1') do set "PYTHON_VERSION=%%a"
 
 set "version1=%PYTHON_VERSION%"
 set "version2=%PYUPGRADE_WIN_V%"
@@ -70,14 +70,14 @@ if %patch_py% lss %patch_up% (
 :Upgrade
     echo ***** Upgrading to %PYUPGRADE_WIN_V%
     echo *** Downloading Python install exe
-rem     curl -L -O https://www.python.org/ftp/python/%PYUPGRADE_WIN_V%/python-%PYUPGRADE_WIN_V%-amd64.exe
-rem     if not exist python-%PYUPGRADE_WIN_V%-amd64.exe (exit /b 80)
-rem     echo *** Installing Python %PYUPGRADE_WIN_V%
-rem     python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1
-rem     if not exist %PYTHON_PATH%\python.exe (exit /b 90)
-rem     echo ***** Upgrade Complete
-rem     echo Python Version Now:
-rem     python -V
+    curl -L -O https://www.python.org/ftp/python/%PYUPGRADE_WIN_V%/python-%PYUPGRADE_WIN_V%-amd64.exe
+    if not exist python-%PYUPGRADE_WIN_V%-amd64.exe (exit /b 80)
+    echo *** Installing Python %PYUPGRADE_WIN_V%
+    python-%PYUPGRADE_WIN_V%-amd64.exe /quiet PrependPath=1
+    if not exist %PYTHON_PATH%\python.exe (exit /b 90)
+    echo ***** Upgrade Complete
+    echo Python Version Now:
+    python -V
 
 goto End
 
