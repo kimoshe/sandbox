@@ -155,11 +155,11 @@ for:
 
     # run the upgrade script, note that it checks for existing versions
     - ps: |
-        if (-not [string]::IsNullOrEmpty($env:MY_ENV_VAR)) {
-            Write-Host "~~~~~ Environment variable MY_ENV_VAR is set. Executing batch script."
+        if (-not [string]::IsNullOrEmpty($env:PYUPGRADE_WIN_V)) {
+            Write-Host "~~~~~ Environment variable PYUPGRADE_WIN_V is set. Executing batch script."
             & ".ci/upgrade-py-win.bat"
         } else {
-            Write-Host "~~~~~ Environment variable MY_ENV_VAR is not set. Skipping batch script execution."
+            Write-Host "~~~~~ Environment variable PYUPGRADE_WIN_V is not set. Skipping batch script execution."
         }
 #    - cmd: .ci/upgrade-py-win.bat
 
