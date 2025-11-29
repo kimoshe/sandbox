@@ -64,5 +64,7 @@ python -V
 goto End
 
 :NoUpgrade
+echo **** Python upgrade not happening from %PYTHON_VERSION% to %PYUPGRADE_WIN_V%
+
 :End
 endlocal

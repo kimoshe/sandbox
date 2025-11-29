@@ -20,7 +20,7 @@ environment:
   # Set the default Appveyor Python version here. Does not affect windows_legacy. Can be overridden in platform environment.
   PYTHON_V: 3.13
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  PYUPGRADE_WIN_V: 3.14.6
+  PYUPGRADE_WIN_V: 3.1.0
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   matrix:
@@ -59,70 +59,6 @@ stack:
   python ${PYTHON_V}
 
 for:
-#-
-#  matrix:
-#    only:
-#      - job_name: windows_legacy
-#    fast_finish: false
-#
-#  environment:
-#    PYTHON_PATH: "C:/Python38-x64"
-#    QT_PATH: "C:/qt/5.15/msvc2019_64"
-#    PYUIC: "pyuic5.exe"
-#    PYQT: "5"
-#    BUILD_PYINSTALLER: "True"
-#    ARTISAN_LEGACY: "True"
-#    VC_REDIST: "https://aka.ms/vs/16/release/vc_redist.x64.exe"  #redistributable for VS 2015-2019
-#    VCVARSALL: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvarsall.bat"
-#
-#  install:
-#    - cmd: echo Windows Legacy Install
-#
-#    # generate the path to PyQt translations files
-#    - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt5/Qt5/translations"
-#
-#    # pull library versions from requirments file
-#    - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
-#    - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
-#
-#    # update path env var
-#    - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
-#
-#    # run the install script
-#    - cmd: .ci\install-win.bat
-#
-#  build_script:
-#    - cmd: echo Windows Legacy Build
-#    - cmd: cd src
-#
-#    #update the copyright year used by pyinstaller to set exe properties for Windows
-#    - ps: $YEAR=(Get-Date).year
-#    - ps: gc version-metadata.yml | %{ $_ -replace "yyyy", "$YEAR" } | out-file newfile -encoding ascii
-#    - ps: move -force newfile version-metadata.yml
-#
-#    # update the __revision__ field with the left seven of the GIT commit hash
-#    - ps: $GIT_VERSION=git rev-parse --verify --short HEAD
-#    - ps: gc artisanlib/__init__.py | %{ $_ -replace "__revision__ = '.*'", "__revision__ = '$GIT_VERSION'" } | out-file newfile -encoding ascii
-#    - ps: move -force newfile artisanlib/__init__.py
-#
-#    # run the build script
-#    - cmd: build-win3-pi.bat
-#
-##  test_script:
-##    - cmd: python -m unittest discover
-#
-#  artifacts:
-##    - path: 'generated-win-legacy.zip'
-#    - path: 'src\%artifact_prefix%-win*setup.exe'
-#
-#  deploy_script:
-#    - cmd: bash ../.ci/upload.sh artisan-win*setup.exe
-#
-##  # uncomment this section for remote desktop connection to build image
-##  on_finish:
-##    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-#
-
 -
   matrix:
     only:
@@ -153,15 +89,12 @@ for:
     - ps: $env:PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
     - ps: Write-Host $env:PYTHON_PATH
 
-    # run the upgrade script, note that it checks for existing versions
+    # run the python upgrade script
     - ps: |
-        if (-not [string]::IsNullOrEmpty($env:PYUPGRADE_WIN_V)) {
-            Write-Host "~~~~~ Environment variable PYUPGRADE_WIN_V is set. Executing batch script."
+        if (Test-Path env:PYUPGRADE_WIN_V) {
+            Write-Host "~~~~~DIAG~~~~~  Environment variable PYUPGRADE_WIN_V is set. Executing batch script."
             & ".ci/upgrade-py-win.bat"
-        } else {
-            Write-Host "~~~~~ Environment variable PYUPGRADE_WIN_V is not set. Skipping batch script execution."
         }
-#    - cmd: .ci/upgrade-py-win.bat
 
     # generate the path to PyQt translations files
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
@@ -173,13 +106,6 @@ for:
     # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
         
-#    - ps: |
-#      $filePath = "$env:PYTHON_PATH/python.exe"
-#      if (-Not (Test-Path $filePath)) {
-#          Write-Host ">> Error: Python 3.14 x64 has vanished from Appveyor.  Revert to using a manual upgrade."
-#          exit 1  # Generates an error if the file does not exist
-#      }
-
     # patch for libusb_package until a Python 3.14 version is available on pypi.org
     - cmd: echo *** PATCH install version of libusb_package modified for Python 3.14
     - cmd: pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
