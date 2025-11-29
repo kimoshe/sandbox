@@ -20,7 +20,7 @@ environment:
   # Set the default Appveyor Python version here. Does not affect windows_legacy. Can be overridden in platform environment.
   PYTHON_V: 3.13
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  PYUPGRADE_WIN_V: 3.14.0
+  PYUPGRADE_WIN_V: 3.14.6
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   matrix:
@@ -141,7 +141,7 @@ for:
   install:
     - cmd: echo Windows Install
 
-    # Update the Python version when PYUPGRADE_WIN_V is set.  The upgrade happens in install-win.bat
+    # Update the Python version when PYUPGRADE_WIN_V is set.  The upgrade happens in upgrade-py-win.bat
     # Note that the paths set below may not exist yet.
     - ps: |
         if (Test-Path env:PYUPGRADE_WIN_V) {
@@ -154,7 +154,14 @@ for:
     - ps: Write-Host $env:PYTHON_PATH
 
     # run the upgrade script, note that it checks for existing versions
-    - cmd: .ci/upgrade_py_win.bat
+    - ps: |
+        if (-not [string]::IsNullOrEmpty($env:MY_ENV_VAR)) {
+            Write-Host "~~~~~ Environment variable MY_ENV_VAR is set. Executing batch script."
+            & ".ci/upgrade-py-win.bat"
+        } else {
+            Write-Host "~~~~~ Environment variable MY_ENV_VAR is not set. Skipping batch script execution."
+        }
+#    - cmd: .ci/upgrade-py-win.bat
 
     # generate the path to PyQt translations files
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
@@ -177,23 +184,17 @@ for:
     - cmd: echo *** PATCH install version of libusb_package modified for Python 3.14
     - cmd: pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
         
-    # Pause Build Here For Remote Desktop Access
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-    
     # run the install script
     - cmd: .ci/install-win.bat
         
-    # Pause Build Here For Remote Desktop Access
- #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-    
     # patch for pylupdate6 until this is fixed on pypi.org
     - cmd: echo *** PATCH pylupdate6 for Python 3.14
     - cmd: copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py
 
     # Pause Build Here For Remote Desktop Access
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-    
+#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
     - exit 1
+
   build_script:
     - cmd: echo Windows Build
     - cmd: cd src
