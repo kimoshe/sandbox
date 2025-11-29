@@ -153,6 +153,9 @@ for:
     - ps: $env:PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
     - ps: Write-Host $env:PYTHON_PATH
 
+    # run the upgrade script, note that it checks for existing versions
+    - cmd: upgrade_py_win.bat
+
     # generate the path to PyQt translations files
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
 
@@ -162,24 +165,35 @@ for:
 
     # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
+        
+#    - ps: |
+#      $filePath = "$env:PYTHON_PATH/python.exe"
+#      if (-Not (Test-Path $filePath)) {
+#          Write-Host ">> Error: Python 3.14 x64 has vanished from Appveyor.  Revert to using a manual upgrade."
+#          exit 1  # Generates an error if the file does not exist
+#      }
 
     # patch for libusb_package until a Python 3.14 version is available on pypi.org
     - cmd: echo *** PATCH install version of libusb_package modified for Python 3.14
     - cmd: pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
         
     # Pause Build Here For Remote Desktop Access
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
     
     # run the install script
     - cmd: .ci/install-win.bat
         
     # Pause Build Here For Remote Desktop Access
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+ #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
     
     # patch for pylupdate6 until this is fixed on pypi.org
     - cmd: echo *** PATCH pylupdate6 for Python 3.14
     - cmd: copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py
 
+    # Pause Build Here For Remote Desktop Access
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    
+    - exit 1
   build_script:
     - cmd: echo Windows Build
     - cmd: cd src
