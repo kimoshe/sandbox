@@ -12,10 +12,10 @@ setlocal enabledelayedexpansion
 
 :: Check that python.exe exists, if not go straight to the upgrade. 
 :: Note: goto used to avoid comments in nested brackets issues.  Better to have comments.
-if Not Exist "%PYTHON_PATH%\python.exe" (
-    echo ***DIAG*** Going straight to upgrade, python.exe does not exist
-    goto Upgrade
-)
+::if Not Exist "%PYTHON_PATH%\python.exe" (
+::    echo ***DIAG*** Going straight to upgrade, python.exe does not exist
+::    goto Upgrade
+::)
 
 :: Get the current Python version if python.exe exists
 for /f "tokens=2 delims= " %%a in ('%PyTHON_path%\python.exe -V 2^>^&1') do set "PYTHON_VERSION=%%a"
