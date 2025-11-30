@@ -96,30 +96,19 @@ for:
     # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
 
-    # sanity check that there is indeed a python.exe that matches the presumed version
-    - ps: |
-        $filePath = "$env:PYTHON_PATH/python.exe"
-        if (-Not (Test-Path $filePath)) {
-            Write-Host ">> Error: $env:PYTHON_PATH/python.exe does not exist"
-            exit 1  # Generates an error if the file does not exist
-        }
-
     # expose the python version
     - cmd: python -V
 
     # generate the path to PyQt translations files
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
 
-    # pull library versions from requirments file
+    # pull library versions from requirements file
     - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
     - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
 
     # patch for libusb_package until a Python 3.14 version is available on pypi.org
-    - cmd: |
-        if "%PYTHON_V%"=="3.14" (
-            echo *** PATCH install version of libusb_package modified for Python 3.14
-            pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
-        )
+    - cmd: if "%PYTHON_V%"=="3.14" (echo *** PATCH install version of libusb_package modified for Python 3.14)
+    - cmd: if "%PYTHON_V%"=="3.14" (pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl)
 
     # run the install script
 #dave    - cmd: .ci/install-win.bat
