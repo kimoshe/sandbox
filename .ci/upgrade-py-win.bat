@@ -20,7 +20,7 @@ setlocal enabledelayedexpansion
 :: Get the current Python version if python.exe exists
 for /f "tokens=2 delims= " %%a in ('%PREV_PYTHON_PATH%\python.exe -V 2^>^&1') do set "PYTHON_V=%%a"
 
-echo *** Current Python Version: %PREV_PYTHON_V%  Upgrade to: %PYUPGRADE_WIN_V%
+echo *** Current Python Version: %PREV_PYTHON_V%  Upgrade to: %PYUPGRADE_WIN_V% requested
 
 :: Split the version strings into components - major.minor.patch
 for /f "tokens=1,2,3 delims=." %%a in ("%PREV_PYTHON_V%") do (
@@ -64,7 +64,8 @@ python -V
 goto End
 
 :NoUpgrade
-echo **** Python upgrade not happening from %PREV_PYTHON_V% to %PYUPGRADE_WIN_V%
+echo **** ERROR: Python upgrade not happening from %PREV_PYTHON_V% to %PYUPGRADE_WIN_V%
+exit /b 91
 
 :End
 endlocal
