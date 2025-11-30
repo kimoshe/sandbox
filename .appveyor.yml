@@ -94,6 +94,9 @@ for:
     - ps: Write-Host "~~~~ DIAG ~~~~ PREV_PYTHON_PATH $env:PREV_PYTHON_PATH, PYTHON_PATH $env:PYTHON_PATH"
     - ps: Write-Host $env:PYTHON_PATH
         
+    - cmd: if not %PYUPGRADE_WIN_VER%=="" (set PYUPGRADE_WIN_VER)
+    - exit 1
+        
     # upgrade python version when necessary
     - cmd: .ci/upgrade-py-win.bat
         
