@@ -74,7 +74,7 @@ if !minor_py! lss !minor_up! (
             set "INSTALLED_PYTHON_VER=%%a"
         )
         if "!INSTALLED_PYTHON_VER!"=="!PYUPGRADE_WIN_VER!" (
-            echo **** WARNING Python !INSTALLED_PYTHON_VER! is already installed.  Upgrade is skipped.
+            echo **** WARNING Python !INSTALLED_PYTHON_VER! is already installed.  Upgrade installation is skipped.
             goto End
         )
     ) else (
