@@ -18,12 +18,18 @@ setlocal enabledelayedexpansion
 ::)
 
 :: Get the current Python version if python.exe exists
-for /f "tokens=2 delims= " %%a in ('%PREV_PYTHON_PATH%\python.exe -V 2^>^&1') do set "PYTHON_V=%%a"
+if exist %PREV_PYTHON_PATH%\python.exe
+(
+    for /f "tokens=2 delims= " %%a in ('%PREV_PYTHON_PATH%\python.exe -V 2^>^&1') do set "PREV_PYTHON_VER=%%a"
+) else (
+    echo **** ERROR: %PREV_PYTHON_PATH%\python.exe does not exist in the build environment
+    exit /b 91
+)
 
-echo *** Current Python Version: %PREV_PYTHON_V%  Upgrade to: %PYUPGRADE_WIN_V% requested
+echo *** Current Python Version: %PREV_PYTHON_VER%  Upgrade to: %PYUPGRADE_WIN_V% requested
 
 :: Split the version strings into components - major.minor.patch
-for /f "tokens=1,2,3 delims=." %%a in ("%PREV_PYTHON_V%") do (
+for /f "tokens=1,2,3 delims=." %%a in ("%PREV_PYTHON_VER%") do (
     set "major_py=%%a"
     set "minor_py=%%b"
     set "patch_py=%%c"
@@ -64,8 +70,8 @@ python -V
 goto End
 
 :NoUpgrade
-echo **** ERROR: Python upgrade not happening from %PREV_PYTHON_V% to %PYUPGRADE_WIN_V%
-exit /b 91
+echo **** ERROR: Python upgrade not happening from %PREV_PYTHON_VER% to %PYUPGRADE_WIN_V%
+exit /b 92
 
 :End
 endlocal
