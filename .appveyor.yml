@@ -101,9 +101,9 @@ for:
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
 
     # DEBUG
-    -cmd: eco ~~~ DIAG ~~~
-    -cmd: python -V
-    -cmd: set
+    - cmd: echo ~~~ DIAG ~~~
+    - cmd: python -V
+    - cmd: set
 
 
     # sanity check that there is indeed a python.exe that matches the presumed version
