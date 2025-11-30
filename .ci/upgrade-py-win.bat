@@ -18,12 +18,12 @@ setlocal enabledelayedexpansion
 ::)
 
 :: Get the current Python version if python.exe exists
-for /f "tokens=2 delims= " %%a in ('%PyTHON_path%\python.exe -V 2^>^&1') do set "PYTHON_V=%%a"
+for /f "tokens=2 delims= " %%a in ('%PREV_PYTHON_PATH%\python.exe -V 2^>^&1') do set "PYTHON_V=%%a"
 
-echo *** Current Python Version: %PYTHON_V%  Upgrade to: %PYUPGRADE_WIN_V%
+echo *** Current Python Version: %PREV_PYTHON_V%  Upgrade to: %PYUPGRADE_WIN_V%
 
 :: Split the version strings into components - major.minor.patch
-for /f "tokens=1,2,3 delims=." %%a in ("%PYTHON_V%") do (
+for /f "tokens=1,2,3 delims=." %%a in ("%PREV_PYTHON_V%") do (
     set "major_py=%%a"
     set "minor_py=%%b"
     set "patch_py=%%c"
