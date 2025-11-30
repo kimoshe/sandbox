@@ -101,9 +101,13 @@ for:
 #            & ".ci/upgrade-py-win.bat"
 #        }
 
-    # run the python upgrade script
+    # Run the python upgrade script
+    - cmd: echo "~~~~~DIAG~~~~~ Checking if PYUPGRADE_WIN_VER is set. %PYUPGRADE_WIN_VER%"
     - cmd: |
-        if not "%PYUPGRADE_WIN_VER%"=="" (
+        echo "~~~~~DIAG~~~~~ Checking if PYUPGRADE_WIN_VER is set. %PYUPGRADE_WIN_VER%"
+        if "%PYUPGRADE_WIN_VER%"=="" (
+            echo "**** ERROR: PYUPGRADE_WIN_VER is not set."
+        ) else (
             echo "~~~~~DIAG~~~~~  Environment variable PYUPGRADE_WIN_VER is set. Executing batch script."
             call ".ci/upgrade-py-win.bat"
         )
