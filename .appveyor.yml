@@ -94,17 +94,6 @@ for:
     - ps: Write-Host "~~~~ DIAG ~~~~ PREV_PYTHON_PATH $env:PREV_PYTHON_PATH, PYTHON_PATH $env:PYTHON_PATH"
     - ps: Write-Host $env:PYTHON_PATH
 
-    # Check with PowerShell and run the batch script in CMD
-    - ps: |
-        if (Test-Path env:PYUPGRADE_WIN_VER) {
-            Write-Host "~~~~~DIAG~~~~~  Environment variable PYUPGRADE_WIN_VER is set: $env:PYUPGRADE_WIN_VER"
-            # Invoke CMD to run the batch file
-            cmd /C ".ci/upgrade-py-win.bat"
-        } else {
-            Write-Host "**** ERROR: PYUPGRADE_WIN_VER is not set."
-            exit 1
-        }
-
     # sanity check that there is indeed a python.exe that matches the presumed version
     - ps: |
         $filePath = "$env:PYTHON_PATH/python.exe"

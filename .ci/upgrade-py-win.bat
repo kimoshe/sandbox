@@ -6,10 +6,10 @@ setlocal enabledelayedexpansion
 ::
 
 :: If there is no upgrade version then simply return
-::if "%PYUPGRADE_WIN_VER%"=="" (
-::    goto End
-::)
-::
+if "%PYUPGRADE_WIN_VER%"=="" (
+    goto End
+)
+
 :: Check that python.exe exists, if not go straight to the upgrade. 
 :: Note: goto used to avoid comments in nested brackets issues.  Better to have comments.
 ::if Not Exist "%PYTHON_PATH%\python.exe" (
