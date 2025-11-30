@@ -103,9 +103,9 @@ for:
 
     # run the python upgrade script
     - cmd: |
-        if defined %PYUPGRADE_WIN_VER% (
+        if not "%PYUPGRADE_WIN_VER%"=="" (
             echo "~~~~~DIAG~~~~~  Environment variable PYUPGRADE_WIN_VER is set. Executing batch script."
-            ".ci/upgrade-py-win.bat"
+            call ".ci/upgrade-py-win.bat"
         )
 
     # sanity check that there is indeed a python.exe that matches the presumed version
