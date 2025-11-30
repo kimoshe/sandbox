@@ -96,6 +96,15 @@ for:
         
     # upgrade python version when necessary
     - cmd: .ci/upgrade-py-win.bat
+        
+    # update path env var
+    - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
+
+    # DEBUG
+    -cmd: eco ~~~ DIAG ~~~
+    -cmd: python -V
+    -cmd: set
+
 
     # sanity check that there is indeed a python.exe that matches the presumed version
     - ps: |
@@ -112,9 +121,6 @@ for:
     - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
     - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
 
-    # update path env var
-    - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
-
     # patch for libusb_package until a Python 3.14 version is available on pypi.org
     - cmd: echo *** PATCH install version of libusb_package modified for Python 3.14
     - cmd: pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
@@ -128,7 +134,6 @@ for:
 
     # Pause Build Here For Remote Desktop Access
 #    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-    - exit 1
 
   build_script:
     - cmd: echo Windows Build

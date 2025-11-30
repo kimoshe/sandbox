@@ -70,7 +70,7 @@ python-!PYUPGRADE_WIN_VER!-amd64.exe /quiet PrependPath=1
 if not exist !PYTHON_PATH!\python.exe (exit /b 90)
 echo ***** Upgrade Complete
 echo Python Version Now:
-python -V
+!PYTHON_PATH!\python -V
 goto End
 
 :NoUpgrade
