@@ -113,18 +113,16 @@ for:
     - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
 
     # patch for libusb_package until a Python 3.14 version is available on pypi.org
-    - cmd: echo *** PATCH install version of libusb_package modified for Python 3.14
-    - cmd: pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
-
-    - cmd: pip freeze
-    - exit 1
+    - cmd: |
+        echo *** PATCH install version of libusb_package modified for Python 3.14
+        pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl
 
     # run the install script
     - cmd: .ci/install-win.bat
 
     # patch for pylupdate6 until this is fixed on pypi.org
-    - cmd: echo *** PATCH pylupdate6 for Python 3.14
-    - cmd: copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py
+    - cmd: if "%PYTHON_V%"=="3.14" (echo *** PATCH pylupdate6 for Python 3.14)
+    - cmd: if "%PYTHON_V%"=="3.14" (copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py)
 
     # Pause Build Here For Remote Desktop Access
 #    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
