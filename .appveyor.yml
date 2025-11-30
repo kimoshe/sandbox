@@ -93,6 +93,9 @@ for:
     - ps: $env:PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
     - ps: Write-Host "~~~~ DIAG ~~~~ PREV_PYTHON_PATH $env:PREV_PYTHON_PATH, PYTHON_PATH $env:PYTHON_PATH"
     - ps: Write-Host $env:PYTHON_PATH
+        
+    # upgrade python version when necessary
+    - cmd: .ci/upgrade-py-win.bat
 
     # sanity check that there is indeed a python.exe that matches the presumed version
     - ps: |
