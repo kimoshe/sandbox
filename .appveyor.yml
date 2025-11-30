@@ -95,7 +95,8 @@ for:
     - ps: Write-Host $env:PYTHON_PATH
         
     # upgrade python version when requested
-    - cmd: if not %PYUPGRADE_WIN_VER%=="" (.ci/upgrade-py-win.bat)
+    - cmd set UPGD=.ci/upgrade-py-win.bat
+    - cmd: if not %PYUPGRADE_WIN_VER%=="" (%UPGD%)
         
     # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
