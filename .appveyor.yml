@@ -96,7 +96,7 @@ for:
         
     # upgrade python version when requested
     - cmd set UPGD=.ci/upgrade-py-win.bat
-    - cmd: if not %PYUPGRADE_WIN_VER%=="" (%UPGD%)
+    - cmd: if not %PYUPGRADE_WIN_VER%=="" (call .ci/upgrade-py-win.bat)
         
     # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
