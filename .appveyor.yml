@@ -77,9 +77,6 @@ for:
   install:
     - cmd: echo Windows Install
 
-    # DEBUG
-    - ps: 'Write-Host "~~~~~ DIAG~~~~~ PYTHON_V: $env:PYTHON_V"'
-
     # Update the Python version when PYUPGRADE_WIN_VER is set.  The upgrade happens in upgrade-py-win.bat
     # Note that the paths set below may not exist yet.
     - ps: |
@@ -89,22 +86,16 @@ for:
             $env:PYTHON_V = ($env:PYUPGRADE_WIN_VER -split '\.')[0..1] -join '.'
         }
 
-    # derive the python path from the version number
+    # derive the path to python.exe from the version number
     - ps: $env:PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
     - ps: Write-Host "~~~~ DIAG ~~~~ PREV_PYTHON_PATH $env:PREV_PYTHON_PATH, PYTHON_PATH $env:PYTHON_PATH"
     - ps: Write-Host $env:PYTHON_PATH
-        
-    # upgrade python version when necessary
-    - cmd: if not %PYUPGRADE_WIN_VER%=="" (.ci/upgrade-py-win.bat)
-        
+
+    # upgrade the python version installed if necessary
+    - cmd: .ci/upgrade-py-win.bat
+
     # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
-
-    # DEBUG
-    - cmd: echo ~~~ DIAG ~~~
-    - cmd: python -V
-#    - cmd: set
-
 
     # sanity check that there is indeed a python.exe that matches the presumed version
     - ps: |
