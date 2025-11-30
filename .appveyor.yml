@@ -78,7 +78,7 @@ for:
     - cmd: echo Windows Install
 
     # DEBUG
-    - ps: Write-Host "~~~~~ DIAG~~~~~ PYTHON_V: $env:PYTHON_V"
+    - ps: 'Write-Host "~~~~~ DIAG~~~~~ PYTHON_V: $env:PYTHON_V"'
 
     # Update the Python version when PYUPGRADE_WIN_V is set.  The upgrade happens in upgrade-py-win.bat
     # Note that the paths set below may not exist yet.
