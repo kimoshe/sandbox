@@ -18,9 +18,9 @@
 # Include "skip ci" in the commit message to prevent this build process from running
 environment:
   # Set the default Appveyor Python version here. Does not affect windows_legacy. Can be overridden in platform environment.
-  PYTHON_V: 3.13
+  PYTHON_V: 3.14
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  PYUPGRADE_WIN_VER: 3.14.0
+  #PYUPGRADE_WIN_VER: 3.14.0
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   matrix:
@@ -69,7 +69,7 @@ for:
     QT_PATH: "C:/qt/6.5.1/msvc2019_64"  #there is no msvc2022_64 under /qt*
     PYQT: "6"
     PYUIC: "pyuic6.exe"
-    BUILD_PYINSTALLER: "True"
+    BUILD_PYINSTALLER: "False"
     ARTISAN_LEGACY: "False"
     VC_REDIST: "https://aka.ms/vs/17/release/vc_redist.x64.exe"  #redistributable for VS 2015-2022
     VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
@@ -116,13 +116,9 @@ for:
     # patch for pylupdate6 until this is fixed on pypi.org
     - cmd: if "%PYTHON_V%"=="3.14" (echo *** PATCH pylupdate6 for Python 3.14)
     - cmd: if "%PYTHON_V%"=="3.14" (copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py)
-    - cmd: cmd /c "if \"%PYTHON_V%\"==\"3.14\" copy /Y %APPVEYOR_BUILD_FOLDER%\.ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py"
-    - cmd: if "%PYTHON_V%"=="3.14" (copy /Y %APPVEYOR_BUILD_FOLDER%\.ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py)
 
 #dave
-    - exit 0
-    # Pause Build Here For Remote Desktop Access
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    - exit: 0
 
   build_script:
     - cmd: echo Windows Build
