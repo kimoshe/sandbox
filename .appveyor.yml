@@ -112,11 +112,13 @@ for:
 
     # run the install script
 #dave    - cmd: .ci/install-win.bat
+    - cmd: echo ~~~ DIAG ~~~ APPVEYOR_BUILD_FOLDER %APPVEYOR_BUILD_FOLDER%
 
     # patch for pylupdate6 until this is fixed on pypi.org
     - cmd: if "%PYTHON_V%"=="3.14" (echo *** PATCH pylupdate6 for Python 3.14)
 #    - cmd: if "%PYTHON_V%"=="3.14" (copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py)
-    - cmd: cmd /c "if \"%PYTHON_V%\"==\"3.14\" copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py"
+    - cmd: cmd /c "if \"%PYTHON_V%\"==\"3.14\" copy /Y %APPVEYOR_BUILD_FOLDER%\.ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py"
+    - cmd: if "%PYTHON_V%"=="3.14" (copy /Y %APPVEYOR_BUILD_FOLDER%\.ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py)
 
 #dave
     - exit 0
