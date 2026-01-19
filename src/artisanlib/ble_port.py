@@ -18,7 +18,8 @@
 import asyncio
 import logging
 from bleak import BleakScanner, BleakClient
-from bleak.exc import BleakCharacteristicNotFoundError
+from bleak.exc import BleakCharacteristicNotFoundError, BleakBluetoothNotAvailableError
+
 
 from PyQt6.QtCore import QObject
 
@@ -169,7 +170,6 @@ class BLE:
             try:
                 return bytes(fut.result())
             except Exception: # pylint: disable=broad-except
-                #raise fut.exception() from e # type: ignore[misc]
                 _log.error('exception in read: %s', fut.exception())
         return None
 
@@ -197,8 +197,10 @@ class BLE:
                 self._asyncLoopThread.loop)
         try:
             return fut.result()
+        except BleakBluetoothNotAvailableError:
+            _log.error('Bluetooth is not supported, turned off or permission is denied')
+            return None, None, None
         except Exception: # pylint: disable=broad-except
-            #raise fut.exception() from e # type: ignore[misc]
             _log.error('exception in scan_and_connect: %s', fut.exception())
             return None, None, None
 
@@ -216,7 +218,6 @@ class BLE:
             try:
                 fut.result()
             except Exception:  # pylint: disable=broad-except
-                #raise fut.exception() from e # type: ignore[misc]
                 _log.error('exception in start_notify: %s', fut.exception())
 
     def stop_notify(self, client:'BleakClient', uuid:str) -> None:
@@ -227,7 +228,6 @@ class BLE:
             try:
                 fut.result()
             except Exception:  # pylint: disable=broad-except
-                #raise fut.exception() from e # type: ignore[misc]
                 _log.error('exception in stop_notify: %s', fut.exception())
 
 ble = BLE() # unique to module
@@ -238,7 +238,7 @@ ble = BLE() # unique to module
 
 
 
-class ClientBLE(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ignore[reportGeneralTypeIssues] # error: Argument to class must be a base class
+class ClientBLE(QObject):
 
     SCAN_BETWEEN_SCANS_START:Final[float] = 0.1 # initial sleep between scans in seconds
     SCAN_BETWEEN_SCANS_INC:Final[float] = 0.1   # increase of sleep time per scan
@@ -422,7 +422,7 @@ class ClientBLE(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ignore
             self._keep_alive())
 
 
-    def scan(self, scan_timeout:float = 3.0) -> 'list[tuple[BLEDevice, AdvertisementData]]':
+    def scan(self, scan_timeout:float = 5.0) -> 'list[tuple[BLEDevice, AdvertisementData]]':
         try:
             if not hasattr(self, '_async_loop_thread') or self._async_loop_thread is None:
                 self._running = True # enable automatic reconnects
@@ -437,6 +437,8 @@ class ClientBLE(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ignore
                 _log.debug('scan_ble ended')
                 if res:
                     return list(res.values())
+        except BleakBluetoothNotAvailableError:
+            _log.error('Bluetooth is not supported, turned off or permission is denied')
         except Exception as e:  # pylint: disable=broad-except
             _log.exception(e)
         return []

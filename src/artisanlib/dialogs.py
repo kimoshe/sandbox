@@ -36,12 +36,12 @@ if TYPE_CHECKING:
 
 _log: Final[logging.Logger] = logging.getLogger(__name__)
 
-class ArtisanDialog(QDialog): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+class ArtisanDialog(QDialog):
 
     __slots__ = ['aw', 'dialogbuttons']
 
     def __init__(self, parent:QWidget|None, aw:'ApplicationWindow') -> None:
-        super().__init__(parent)  # pyrefly: ignore[bad-argument-count]
+        super().__init__(parent)
         self.aw = aw # the Artisan application window
 
         # IMPORTANT NOTE: if dialog items have to be access after it has been closed, this Qt.WidgetAttribute.WA_DeleteOnClose attribute
@@ -132,12 +132,12 @@ class ArtisanResizeablDialog(ArtisanDialog):
             self.setWindowFlags(windowFlags)
 
 # if modal=False the message box is not rendered as native dialog on macOS!
-class ArtisanMessageBox(QMessageBox): # pyrefly:ignore[invalid-inheritance] # pyright: ignore [reportGeneralTypeIssues] # Argument to class must be a base class
+class ArtisanMessageBox(QMessageBox):
 
     __slots__ = ['timeout', 'currentTime']
 
     def __init__(self, parent:QWidget|None = None, title:str|None = None, text:str|None = None, timeout:int = 0, modal:bool = True) -> None:
-        super().__init__(parent) # pyrefly: ignore[bad-argument-count]
+        super().__init__(parent)
         self.setWindowTitle(title)
         self.setText(text)
         self.setModal(modal)
@@ -722,7 +722,7 @@ class tareDlg(ArtisanDialog):
     @pyqtSlot()
     def weightEdited(self) -> None:
         sender = self.sender()
-        if sender and isinstance(sender, QLineEdit): # pyrefly: ignore[invalid-argument]
+        if sender and isinstance(sender, QLineEdit):
             text = sender.text().strip()
             if text == '':
                 w:float|None = self.get_scale_weight() # read value from scale in 'g'
@@ -772,30 +772,30 @@ class DesignerSplineNodesDlg(ArtisanDialog):
 
         # Info label
         info_label = QLabel(QApplication.translate('Label',
-            'Choose how to convert the profile to Designer mode:'))
+            'Choose how to convert the profile'))
         info_label.setWordWrap(True)
 
+        # Spline info label
+        self.spline_info_label = QLabel(QApplication.translate('Label',
+            'More nodes: better fit but harder to edit\n'
+            'Fewer nodes: simpler curve but may lose detail'))
+        self.spline_info_label.setWordWrap(True)
+
         # Legacy mode checkbox
-        self.legacy_checkbox = QCheckBox(QApplication.translate('CheckBox','Use legacy mode (landmarks only)'))
+        self.legacy_checkbox = QCheckBox(QApplication.translate('CheckBox','Use landmarks only'))
         self.legacy_checkbox.setToolTip(QApplication.translate('Tooltip',
             'Legacy mode extracts only key points (CHARGE, DRY, FC, SC, DROP).\n'
             'Unchecked: Fits a smooth spline to preserve curve shape.'))
         self.legacy_checkbox.stateChanged.connect(self.on_legacy_changed)
 
         # Create the spinbox for selecting number of nodes
-        self.nodes_label = QLabel(QApplication.translate('Label','Number of spline nodes:'))
+        self.nodes_label = QLabel(QApplication.translate('Label','Number of spline nodes'))
         self.nodes_spinbox = QSpinBox()
         self.nodes_spinbox.setMinimum(3)
         self.nodes_spinbox.setMaximum(100)
         self.nodes_spinbox.setValue(default_nodes)
         self.nodes_spinbox.setSingleStep(1)
         self.nodes_spinbox.setToolTip(QApplication.translate('Tooltip','Number of control points for spline fitting'))
-
-        # Spline info label
-        spline_info_label = QLabel(QApplication.translate('Label',
-            'More nodes = better fit but harder to edit.\n'
-            'Fewer nodes = simpler curve but may lose detail.'))
-        spline_info_label.setWordWrap(True)
 
         # Layout for spline nodes input
         input_layout = QHBoxLayout()
@@ -808,7 +808,7 @@ class DesignerSplineNodesDlg(ArtisanDialog):
         mainLayout.addWidget(self.legacy_checkbox)
         mainLayout.addSpacing(10)
         mainLayout.addLayout(input_layout)
-        mainLayout.addWidget(spline_info_label)
+        mainLayout.addWidget(self.spline_info_label)
         mainLayout.addWidget(self.dialogbuttons)
 
         self.setLayout(mainLayout)
@@ -824,6 +824,7 @@ class DesignerSplineNodesDlg(ArtisanDialog):
         is_legacy:bool = state == cast(int, Qt.CheckState.Checked.value)
         self.nodes_spinbox.setEnabled(not is_legacy)
         self.nodes_label.setEnabled(not is_legacy)
+        self.spline_info_label.setEnabled(not is_legacy)
 
     @pyqtSlot()
     def accept_dialog(self) -> None:

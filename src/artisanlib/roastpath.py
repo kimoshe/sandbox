@@ -137,7 +137,7 @@ def extractProfileRoastPathHTML(url:'QUrl',
                 page_content = page.content.decode('latin-1')
             d = re.findall(fr"var {elem} = JSON\.parse\('(.+?)'\);", page_content, re.S)  # @UndefinedVariable
             if d:
-                data[elem] = json.loads(d[0]) # type: ignore[literal-required] # generic strings accessors cannot be handled by mypy
+                data[elem] = json.loads(d[0]) # type: ignore[literal-required] # ty:ignore[ignore] # generic strings accessors cannot be handled by mypy
 
         if 'btData' in data and len(data['btData']) > 0 and 'Timestamp' in data['btData'][0]:
             # BT
@@ -152,7 +152,7 @@ def extractProfileRoastPathHTML(url:'QUrl',
                 et = data['etData']
                 res['temp1'] = [(d['StandardValue'] if 'StandardValue' in d and d['StandardValue'] != 0 else -1) for d in et]
                 temp2len = len(res['temp2'])
-                res['temp1'] = res['temp1'] + [-1]*(max(0,temp2len-len(res['temp1'])))  # extend if needed
+                res['temp1'] = res['temp1'] + [-1.]*(max(0,temp2len-len(res['temp1'])))  # extend if needed
                 res['temp1'] = res['temp1'][:temp2len] # truncate
                 # now temp1 should be the same length of temp2
             else:
@@ -173,7 +173,7 @@ def extractProfileRoastPathHTML(url:'QUrl',
                         try:
 #                            tx_idx = res["timex"].index(tx) # does not cope with dropouts as the next line:
                             tx_idx = next(i for i,item in enumerate(res['timex']) if item >= tx)
-                            timeindex[marks[dd['EventName']]] = max(0, tx_idx) # pyrefly: ignore[index-error]
+                            timeindex[marks[dd['EventName']]] = max(0, tx_idx)
                         except Exception: # pylint: disable=broad-except
                             pass
             res['timeindex'] = timeindex
@@ -283,7 +283,7 @@ def extractProfileRoastPathHTML(url:'QUrl',
                     res['extradrawstyles1'].append('default')
                     res['extradrawstyles2'].append('default')
                     at = data['atData']
-                    timex = [dateutil.parser.parse(d['Timestamp']).timestamp() - baseTime if 'Timestamp' in d else 0 for d in at]
+                    timex:list[float] = [dateutil.parser.parse(d['Timestamp']).timestamp() - baseTime if 'Timestamp' in d else 0. for d in at]
                     res['extratimex'].append(timex)
                     res['extratemp1'].append([d.get('StandardValue', -1) for d in at])
                     res['extratemp2'].append([-1.0]*len(timex))
@@ -316,7 +316,7 @@ def extractProfileRoastPathHTML(url:'QUrl',
                     res['extradrawstyles1'].append('default')
                     res['extradrawstyles2'].append('default')
                     ror = data['rorData']
-                    timex = [dateutil.parser.parse(d['Timestamp']).timestamp() - baseTime if 'Timestamp' in d else 0 for d in ror]
+                    timex = [dateutil.parser.parse(d['Timestamp']).timestamp() - baseTime if 'Timestamp' in d else 0. for d in ror]
                     res['extratimex'].append(timex)
                     res['extratemp1'].append([d.get('StandardValue', -1) for d in ror])
                     res['extratemp2'].append([-1.0]*len(timex))

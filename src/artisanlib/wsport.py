@@ -44,8 +44,7 @@ class wsport:
                     'channel_requests', 'channel_nodes', 'channel_modes', 'connect_timeout', 'request_timeout', 'compression',
                     'reconnect_interval', '_ping_interval', '_ping_timeout', 'id_node', 'machine_node',
                     'command_node', 'data_node', 'pushMessage_node', 'request_data_command', 'charge_message', 'drop_message', 'addEvent_message', 'event_node',
-                    'DRY_node', 'FCs_node', 'FCe_node', 'SCs_node', 'SCe_node', 'STARTonCHARGE', 'OFFonDROP', 'open_event', 'pending_events',
-                    'ws', 'wst' ]
+                    'DRY_node', 'FCs_node', 'FCe_node', 'SCs_node', 'SCe_node', 'STARTonCHARGE', 'OFFonDROP', 'open_event', 'pending_events' ]
 
     def __init__(self, aw:'ApplicationWindow') -> None:
         self.aw = aw
@@ -352,7 +351,7 @@ class wsport:
     def stop(self) -> None:
         # self._loop.stop() needs to be called as follows as the event loop class is not thread safe
         if self._loop is not None:
-            self._loop.call_soon_threadsafe(self._loop.stop) # pyrefly: ignore
+            self._loop.call_soon_threadsafe(self._loop.stop)
             self._loop = None
         # wait for the thread to finish
         if self._thread is not None:

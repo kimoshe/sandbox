@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from PyQt6.QtWidgets import QStyleOptionViewItem  # pylint: disable=unused-import
     from PyQt6.QtCore import QModelIndex # pylint: disable=unused-import
 
+from artisanlib.main import UI_MODE
 from artisanlib.util import deltaLabelUTF8, comma2dot, float2float, deserialize
 from artisanlib.dialogs import ArtisanResizeablDialog
 from artisanlib.widgets import (MyQComboBox, MyTableWidgetItemNumber, MyTableWidgetItemQCheckBox,
@@ -46,7 +47,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox
 _log: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-class AlignDelegate(QStyledItemDelegate): # pyrefly:ignore[invalid-inheritance] # pyright:ignore[reportGeneralTypeIssues]
+class AlignDelegate(QStyledItemDelegate):
     @override
     def initStyleOption(self, option:'QStyleOptionViewItem|None', index:'QModelIndex') -> None:
         super().initStyleOption(option, index)
@@ -219,7 +220,8 @@ class AlarmDlg(ArtisanResizeablDialog):
         tab1layout = QVBoxLayout()
         tab1layout.addLayout(tablelayout)
         tab1layout.addLayout(buttonlayout)
-        tab1layout.addLayout(confButtonLayout)
+        if self.aw.ui_mode is UI_MODE.EXPERT:
+            tab1layout.addLayout(confButtonLayout)
         tab1layout.setSpacing(5)
         tab1layout.setContentsMargins(2, 10, 2, 2)
 
@@ -233,7 +235,8 @@ class AlarmDlg(ArtisanResizeablDialog):
 
         C2Widget = QWidget()
         C2Widget.setLayout(tab2layout)
-        self.TabWidget.addTab(C2Widget,QApplication.translate('Tab','Alarm Sets'))
+        if self.aw.ui_mode is UI_MODE.EXPERT:
+            self.TabWidget.addTab(C2Widget,QApplication.translate('Tab','Alarm Sets'))
         C2Widget.setContentsMargins(5, 0, 5, 0)
 
         self.TabWidget.currentChanged.connect(self.tabSwitched)
@@ -691,7 +694,7 @@ class AlarmDlg(ArtisanResizeablDialog):
             alarms['alarmtemperatures'] = self.aw.qmc.alarmtemperature
             alarms['alarmactions'] = self.aw.qmc.alarmaction
             alarms['alarmbeep'] = self.aw.qmc.alarmbeep
-            alarms['alarmstrings'] = list(self.aw.qmc.alarmstrings) # pyrefly: ignore[no-matching-overload]
+            alarms['alarmstrings'] = self.aw.qmc.alarmstrings
             from json import dump as json_dump
             with open(filename, 'w', encoding='utf-8') as outfile:
                 json_dump(alarms, outfile, indent=None, separators=(',', ':'), ensure_ascii=False)
@@ -721,7 +724,7 @@ class AlarmDlg(ArtisanResizeablDialog):
         self.accept()
 
     @override
-    def closeEvent(self, a0:'QCloseEvent|None') -> None: # pyrefly: ignore
+    def closeEvent(self, a0:'QCloseEvent|None') -> None:
         del a0
         self.closealarms()
 
@@ -1013,7 +1016,7 @@ class AlarmDlg(ArtisanResizeablDialog):
             #populate table
             for i in range(nalarms):
                 self.setalarmtablerow(i)
-            fixed_columns:Final[list[int]] = [0,1,5,7,10]
+            fixed_columns:list[int] = [0,1,5,7,10]
             header = self.alarmtable.horizontalHeader()
             if header is not None:
                 header.setStretchLastSection(True)

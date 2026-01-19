@@ -2681,8 +2681,8 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                 item0 = layout.itemAt(0)
                 if item0 is not None:
                     checkBox = item0.widget()
-                    if checkBox is not None and isinstance(checkBox, QCheckBox): # pyrefly: ignore[invalid-argument]
-                        return checkBox.isChecked() # type:ignore[reportAttributeAccessIssue, unused-ignore] # pyright reports isChecked not known for QWidget
+                    if checkBox is not None and isinstance(checkBox, QCheckBox):
+                        return checkBox.isChecked() # type:ignore[reportAttributeAccessIssue, unused-ignore]  # ty:ignore[ignore # pyright reports isChecked not known for QWidget
         return False
 
     def createDeviceTable(self) -> None:
@@ -4455,6 +4455,21 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                 ##########################
                 ####  DEVICE 190 is +RoastSeeNEXT Yellow
                 ##########################
+                ##########################
+                ####  DEVICE 191 is +Phidget TMP1000
+                ##########################
+                ##########################
+                ####  DEVICE 192 is +Phidget HUM1000 Hum/Temp
+                ##########################
+                ##########################
+                ####  DEVICE 193 is +Phidget PRE1000
+                ##########################
+                ##########################
+                ####  DEVICE 194 is +Yocto Meteo Hum/Temp
+                ##########################
+                ##########################
+                ####  DEVICE 195 is +Yocto Meteo Pressure
+                ##########################
 
 
                 # ADD DEVICE:
@@ -4469,12 +4484,12 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
     # - add an elif entry above to specify the default serial settings
             #extra devices serial config
             #set of different serial settings modes options
-            ssettings: Final[list[tuple[int,int,str,int,float]]] = [(9600,8,'O',1,0.5),(19200,8,'E',1,0.5),(2400,7,'E',1,1),(9600,8,'N',1,0.5),
+            ssettings: list[tuple[int,int,str,int,float]] = [(9600,8,'O',1,0.5),(19200,8,'E',1,0.5),(2400,7,'E',1,1),(9600,8,'N',1,0.5),
                          (19200,8,'N',1,0.5),(2400,8,'N',1,1),(9600,8,'E',1,0.5),(38400,8,'E',1,0.5),(115200,8,'N',1,0.4),(57600,8,'N',1,0.4)]
             #map device index to a setting mode (choose the one that matches the device)
     # ADD DEVICE: to add a device you have to modify several places. Search for the tag "ADD DEVICE:"in the code
     # - add an entry to devsettings below (and potentially to ssettings above)
-            devssettings: Final[list[int]] = [
+            devssettings: list[int] = [
                 0, # 0
                 1, # 1
                 2, # 2
@@ -4665,7 +4680,12 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                 3, # 187
                 3, # 188
                 3, # 189
-                3  # 190
+                3, # 190
+                3, # 191
+                3, # 192
+                3, # 193
+                3, # 194
+                3  # 195
                 ]
             #init serial settings of extra devices
             for i, _ in enumerate(self.aw.qmc.extradevices):
@@ -4702,7 +4722,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                 self.aw.LCD7frame.setVisible(False)
             self.aw.qmc.ETfunction = str(self.ETfunctionedit.text())
             self.aw.qmc.BTfunction = str(self.BTfunctionedit.text())
-            if self.aw.qmc.BTcurve != self.BTcurve.isChecked() or self.aw.qmc.ETcurve != self.ETcurve.isChecked():
+            if self.aw.qmc.BTcurve != bool(self.BTcurve.isChecked()) or self.aw.qmc.ETcurve != bool(self.ETcurve.isChecked()):
                 # we reset the cached main event annotation positions as those annotations are now rendered on the other curve
                 self.aw.qmc.l_annotations_dict = {}
                 self.aw.qmc.l_event_flags_dict = {}
@@ -4713,7 +4733,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
 
             swap = self.swaplcds.isChecked()
             # swap BT/ET lcds on leaving the dialog
-            if self.aw.qmc.swaplcds != swap:
+            if self.aw.qmc.swaplcds is not swap:
                 tmp = QWidget()
                 tmp.setLayout(self.aw.LCD2frame.layout())
                 self.aw.LCD2frame.setLayout(self.aw.LCD3frame.layout())
@@ -4722,6 +4742,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                     self.aw.qmc.swaplcds = swap
                     self.aw.largeLCDs_dialog.reLayout()
             self.aw.qmc.swaplcds = swap
+            self.aw.updateLCDproperties()
 
             # close all ports to force a reopen
             self.aw.qmc.disconnectProbes()
@@ -4848,7 +4869,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
 
     @pyqtSlot(bool)
     def showExtradevHelp(self, _checked:bool = False) -> None:
-        from help import symbolic_help # type: ignore [attr-defined,unused-ignore] # pylint: disable=no-name-in-module
+        from help import symbolic_help # type: ignore [attr-defined,unused-ignore]  # ty:ignore[ignore # pylint: disable=no-name-in-module
         self.helpdialog = self.aw.showHelpDialog(
                 self,            # this dialog as parent
                 self.helpdialog, # the existing help dialog
@@ -4857,7 +4878,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
 
     @pyqtSlot(bool)
     def showSymbolicHelp(self, _checked:bool = False) -> None:
-        from help import symbolic_help # type: ignore [attr-defined,unused-ignore] # pylint: disable=no-name-in-module
+        from help import symbolic_help # type: ignore [attr-defined,unused-ignore]  # ty:ignore[ignore # pylint: disable=no-name-in-module
         self.helpdialog = self.aw.showHelpDialog(
                 self,            # this dialog as parent
                 self.helpdialog, # the existing help dialog
@@ -4866,7 +4887,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
 
     @pyqtSlot(bool)
     def showhelpprogram(self, _checked:bool = False) -> None:
-        from help import programs_help # type: ignore [attr-defined,unused-ignore] # pylint: disable=no-name-in-module
+        from help import programs_help # type: ignore [attr-defined,unused-ignore]  # ty:ignore[ignore # pylint: disable=no-name-in-module
         self.helpdialog = self.aw.showHelpDialog(
                 self,            # this dialog as parent
                 self.helpdialog, # the existing help dialog

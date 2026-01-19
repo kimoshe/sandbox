@@ -291,7 +291,7 @@ class StatisticsDlg(ArtisanResizeablDialog):
         #delButton.setMaximumWidth(100)
         delButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         delButton.clicked.connect(self.deletesummarystat)
-        self.insertButton: QPushButton|None = QPushButton(QApplication.translate('Button','Insert'))
+        self.insertButton: QPushButton = QPushButton(QApplication.translate('Button','Insert'))
         self.insertButton.setToolTip(QApplication.translate('Tooltip','Insert below the selected Statistic'))
         self.insertButton.clicked.connect(self.insertsummarystatSlot)
         self.insertButton.setMinimumWidth(80)
@@ -435,10 +435,7 @@ class StatisticsDlg(ArtisanResizeablDialog):
         if self.aw.qmc.autotimex and not self.aw.qmc.statssummary:
             self.aw.autoAdjustAxis()
         self.aw.qmc.redraw(recomputeAllDeltas=False)
-        if self.aw.qmc.statssummary and not self.aw.qmc.flagon and self.aw.saveStatisticsMenu is not None:
-            self.aw.saveStatisticsMenu.setEnabled(True)
-        elif self.aw.saveStatisticsMenu is not None:
-            self.aw.saveStatisticsMenu.setEnabled(False)
+        self.aw.saveStatisticsMenu.setEnabled(self.aw.qmc.statssummary and not self.aw.qmc.flagon)
 
     @pyqtSlot(int)
     def changeStatisticsflag(self, value:int) -> None:
@@ -521,11 +518,10 @@ class StatisticsDlg(ArtisanResizeablDialog):
     @pyqtSlot()
     def selectionChanged(self) -> None:
         selected = self.summarystatstable.selectedRanges()
-        if self.insertButton is not None:
-            if selected and len(selected) > 0:
-                self.insertButton.setEnabled(True)
-            else:
-                self.insertButton.setEnabled(False)
+        if selected and len(selected) > 0:
+            self.insertButton.setEnabled(True)
+        else:
+            self.insertButton.setEnabled(False)
         vheader = self.summarystatstable.verticalHeader()
         if self.summarystatstable.cursor_navigation and vheader is not None:
             QTimer.singleShot(0, vheader.setFocus)
@@ -720,7 +716,7 @@ class StatisticsDlg(ArtisanResizeablDialog):
     def insertsummarystat(self, insert:bool = False) -> None:
         try:
             focusWidget = QApplication.focusWidget()
-            if focusWidget is not None and isinstance(focusWidget, QLineEdit): # pyrefly: ignore[invalid-argument]
+            if focusWidget is not None and isinstance(focusWidget, QLineEdit):
                 fw:QLineEdit = focusWidget
                 fw.editingFinished.emit()
         except Exception as e: # pylint: disable=broad-except

@@ -20,13 +20,18 @@
 import logging
 import time
 import functools
-from collections.abc import Callable
-from typing import Final
-
 import numpy
+from collections.abc import Callable
+from typing import Final, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import numpy.typing as npt # pylint: disable=unused-import
+
+
 from scipy.signal import iirfilter  # type # ignore[import-untyped]
 
 from artisanlib.filters import LiveSosFilter
+from artisanlib.suppress_errors import suppress_stdout_stderr
 
 from PyQt6.QtCore import QSemaphore
 
@@ -56,6 +61,16 @@ def _calculate_integral_limits(outMin:int, outMax:int, integral_limit_factor:flo
 
     return integral_min, integral_max
 
+
+@functools.lru_cache(maxsize=3)
+def _getParameterLinearFit(x1:float, x2:float, y1:float, y2:float) -> 'npt.NDArray[numpy.floating]':
+    return numpy.polyfit([x1,x2], [y1,y2], 1)
+
+@functools.lru_cache(maxsize=3)
+def _getParameterQuadraticFit(x1:float, x2:float, x3:float, y1:float, y2:float, y3:float) -> 'npt.NDArray[numpy.floating]':
+    return numpy.polyfit([x1,x2,x3], [y1,y2,y3], 2)
+
+
 # expects a function control that takes a value from [<outMin>,<outMax>] to control the heater as called on each update()
 class PID:
 
@@ -70,6 +85,8 @@ class PID:
         'Kp',
         'Ki',
         'Kd',
+        'beta',
+        'gamma',
         'Pterm',
         'Iterm',
         'Dterm',
@@ -78,16 +95,10 @@ class PID:
         'lastInput',
         'lastOutput',
         'lastTime',
-        'lastDerr',
         'target',
         'active',
-        'derivative_on_error',
-        'output_smoothing_factor',
-        'output_decay_weights',
-        'previous_outputs',
-        'input_smoothing_factor',
-        'input_decay_weights',
-        'previous_inputs',
+        'output_filter',
+        'output_filter_level',
         'force_duty',
         'iterations_since_duty',
         'derivative_filter_level',
@@ -104,6 +115,19 @@ class PID:
         'integral_reset_on_setpoint_change',
         'back_calculation_factor',
         'integral_just_reset',
+        'sampling_rate',
+        'gain_scheduling',
+        'gain_scheduling_on_SV',
+        'gain_scheduling_quadratic',
+        'Kp1',
+        'Ki1',
+        'Kd1',
+        'Kp2',
+        'Ki2',
+        'Kd2',
+        'Schedule0',
+        'Schedule1',
+        'Schedule2'
     ]
 
     def __init__(
@@ -112,6 +136,9 @@ class PID:
         p: float = 2.0,
         i: float = 0.03,
         d: float = 0.0,
+        beta: float = 1.,
+        gamma: float = 1.,
+        sampling_rate: float = 1. # >0 in seconds
     ) -> None:
         self.pidSemaphore: QSemaphore = QSemaphore(1)
 
@@ -123,43 +150,56 @@ class PID:
         self.dutyMin: int = 0
         self.dutyMax: int = 100
         self.control: Callable[[float], None] = control
+        # first (regular) set of k-p-i parameters corresponding to self.Schedule0
         self.Kp: float = p
         self.Ki: float = i
         self.Kd: float = d
-        # Proposional on Measurement mode see: http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
+        self.beta: float = beta   # should be larger than 0, defaults to 1 (PoE)
+        self.gamma: float = gamma # should be larger than 0, defaults to 1 (DoE)
+        self.sampling_rate = sampling_rate
+        # Gain Scheduling
+        self.gain_scheduling:bool = False # if True, gain scheduling is active, otherwise self.kp, self.ki, and self.kd parameters are used
+        self.gain_scheduling_on_SV:bool = True #  by default the observed gain scheduling variable is SV otherwise PV
+        self.gain_scheduling_quadratic:bool = False # by default linear approximation between the first and second set of p-i-d parameters is used
+        # second set of k-p-i parameters corresponding to self.Schedule1
+        self.Kp1: float = p
+        self.Ki1: float = i
+        self.Kd1: float = d
+        # third set of k-p-i parameters corresponding to self.Schedule2
+        self.Kp2: float = p
+        self.Ki2: float = i
+        self.Kd2: float = d
+        # schedule values corresponding to the first, second, and if gain_scheduling_quadratic is active, the third gain schedule value (referring to PV or SV, depending on gain_scheduling_on_SV)
+        self.Schedule0: float = 0
+        self.Schedule1: float = 0
+        self.Schedule2: float = 0
+        #
         self.Pterm: float = 0.0
         self.Iterm: float = 0.0
         self.Dterm: float = 0.0
+        #
         self.errSum: float = 0.0
-        self.lastError: float|None = None  # used for derivative_on_error mode
+        self.lastError: float|None = None
         self.lastInput: float|None = None  # used for derivative_on_measurement mode
         self.lastOutput: float|None = (
             None  # used to reinitialize the Iterm and to apply simple moving average on the derivative part in derivative_on_measurement mode
         )
         self.lastTime: float|None = None
-        self.lastDerr: float = (
-            0.0  # used for simple moving average filtering on the derivative part in derivative_on_error mode
-        )
         self.target: float = 0.0
         self.active: bool = False  # if active, the control function is called with the PID results
-        self.derivative_on_error: bool = False  # if False => derivative_on_measurement (avoids the Derivative Kick on changing the target)
         # PID output smoothing
-        self.output_smoothing_factor: int = 0  # off if 0
-        self.output_decay_weights: list[float]|None = None
-        self.previous_outputs: list[float] = []
-        # PID input smoothing
-        self.input_smoothing_factor: int = 0  # off if 0
-        self.input_decay_weights: list[float]|None = None
-        self.previous_inputs: list[float] = []
+        self.output_filter_level: int = 0  # off if 0
+        self.output_filter: LiveSosFilter = self.outputFilter(self.sampling_rate)
+        # PID derivative smoothing
+        self.derivative_filter_level: int = 0  # 0: off, >0: on
+        self.derivative_filter: LiveSosFilter = self.derivativeFilter(self.sampling_rate)
+        #
         self.force_duty: int = (
             3  # at least every n update cycles a new duty value is send, even if its duplicating a previous duty (within the duty step)
         )
         self.iterations_since_duty: int = (
             0  # reset once a duty is send; incremented on every update cycle
         )
-        # PID derivative smoothing
-        self.derivative_filter_level: int = 0  # 0: off, >0: on
-        self.derivative_filter: LiveSosFilter = self.derivativeFilter()
 
         # Enhanced derivative kick prevention
         self.lastTarget: float = 0.0  # Track target changes
@@ -176,7 +216,7 @@ class PID:
         self.integral_limit_factor: float = 1.0  # Limit integral to 100% of output range
         self.setpoint_change_threshold: float = 25.0  # Threshold for significant setpoint changes (used for I)
         self.integral_reset_on_setpoint_change: bool = (
-            True  # Reset integral on large setpoint changes
+            False  # Reset integral on large setpoint changes
         )
         self.back_calculation_factor: float = 0.5  # Back-calculation adjustment factor
         self.integral_just_reset: bool = (
@@ -184,42 +224,9 @@ class PID:
         )
 
     def _smooth_output(self, output: float) -> float:
-        # create or update smoothing decay weights
-        if self.output_smoothing_factor != 0 and (
-            self.output_decay_weights is None
-            or len(self.output_decay_weights) != self.output_smoothing_factor
-        ):  # recompute only on changes
-            self.output_decay_weights = [float(w) for w in numpy.arange(1, self.output_smoothing_factor + 1)]
-        # add new value
-        self.previous_outputs.append(output)
-        # throw away superfluous values
-        self.previous_outputs = self.previous_outputs[-self.output_smoothing_factor :]
-        # compute smoothed output
-        if (
-            self.output_smoothing_factor == 0
-            or len(self.previous_outputs) < self.output_smoothing_factor
-        ):
-            return output  # no smoothing yet
-        return float(numpy.average(self.previous_outputs, weights=self.output_decay_weights))
-
-    def _smooth_input(self, inp: float) -> float:
-        # create or update smoothing decay weights
-        if self.input_smoothing_factor != 0 and (
-            self.input_decay_weights is None
-            or len(self.input_decay_weights) != self.input_smoothing_factor
-        ):  # recompute only on changes
-            self.input_decay_weights = [float(w) for w in numpy.arange(1, self.input_smoothing_factor + 1)]
-        # add new value
-        self.previous_inputs.append(inp)
-        # throw away superfluous values
-        self.previous_inputs = self.previous_inputs[-self.input_smoothing_factor :]
-        # compute smoothed output
-        if (
-            len(self.previous_inputs) < self.input_smoothing_factor
-            or self.input_smoothing_factor == 0
-        ):
-            return inp  # no smoothing yet
-        return float(numpy.average(self.previous_inputs, weights=self.input_decay_weights))
+        if self.output_filter_level > 0:
+            return self.output_filter(output)
+        return output
 
     def _detect_measurement_discontinuity(self, current_input: float) -> bool:
         """Detect if there's a sudden discontinuity in the measurement that might cause derivative kick."""
@@ -241,32 +248,33 @@ class PID:
         # Detect if current change is significantly larger than recent average
         return current_change > 2.5 * avg_recent_change and current_change > 1.0
 
-    def _calculate_derivative_on_measurement(self, current_input: float, dt: float) -> float:
+    def _calculate_derivative(self, current_input: float, dt: float) -> float:
         """Calculate derivative term using derivative-on-measurement with enhanced kick prevention."""
         if self.lastInput is None:  # First measurement
             return 0.0
 
         # Basic derivative calculation
-        dinput = current_input - self.lastInput
-        dtinput = dinput / dt
+        error = self.gamma*self.target - current_input
+        last_error = self.gamma*self.lastTarget - self.lastInput
+        derror = (error - last_error) / dt
 
         # apply derative filter before estimating limits in DoM mode
         if self.derivative_filter_level > 0:
-            dtinput = self.derivative_filter(dtinput)
+            derror = self.derivative_filter(derror)
 
         # Apply derivative limiting to prevent excessive derivative action
-        if abs(dtinput) > self.derivative_limit:
-            dtinput = self.derivative_limit if dtinput > 0 else -self.derivative_limit
+        if abs(derror) > self.derivative_limit:
+            derror = self.derivative_limit if derror > 0 else -self.derivative_limit
 
         # Reduce derivative action immediately after setpoint changes
         if self.setpoint_changed_significantly:
-            dtinput *= 0.5  # Reduce derivative action by 50%
+            derror *= 1 - max(0., min(1., self.gamma))/2  # Reduce derivative action by max. 50% if gamma>=1 and 0% if gamma=0
 
         # Reduce derivative action if measurement discontinuity is detected
         if self._detect_measurement_discontinuity(current_input):
-            dtinput *= 0.3  # Reduce derivative action by 70%
+            derror *= 0.3  # Reduce derivative action by 70%
 
-        return -self.Kd * dtinput
+        return self.getKd(current_input) * derror
 
     def _update_measurement_history(self, current_input: float) -> None:
         """Update measurement history for discontinuity detection."""
@@ -304,7 +312,7 @@ class PID:
             self.Iterm *= 0.5
 
     def _back_calculate_integral(
-        self, output_before_clamp: float, output_after_clamp: float
+        self, PV:float, output_before_clamp: float, output_after_clamp: float
     ) -> None:
         """Adjust integral term using back-calculation when output is clamped."""
         if not self.integral_windup_prevention:
@@ -315,13 +323,12 @@ class PID:
             excess = output_before_clamp - output_after_clamp
 
             # Reduce integral term to compensate for the clamping
-            if self.Ki != 0:
+            if self.getKi(PV) != 0:
                 integral_adjustment = excess * self.back_calculation_factor
                 self.Iterm -= integral_adjustment
 
                 # Ensure integral term stays within reasonable bounds
-                integral_min, integral_max = _calculate_integral_limits(self.outMin, self.outMax, self.integral_limit_factor)
-                self.Iterm = max(integral_min, min(integral_max, self.Iterm))
+                self.Iterm = self.applyIntegralLimits(PV, self.Iterm)
 
     ### External API guarded by semaphore
 
@@ -341,7 +348,7 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def isActive(self) -> bool:  # pyrefly: ignore[bad-return]
+    def isActive(self) -> bool:
         try:
             self.pidSemaphore.acquire(1)
             return self.active
@@ -350,17 +357,59 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
+    def applyIntegralLimits(self, PV:float, iterm:float) -> float:
+        integral_min, integral_max = _calculate_integral_limits(self.outMin, self.outMax, self.integral_limit_factor)
+        # adjust Iterm max for beta != 0 in which case the Iterm needs to compensate for potentially negative P (beta <0)
+        # see https://github.com/CapnBry/HeaterMeter/issues/42#issuecomment-412280142
+        integral_max += self.getKp(PV) * (1 - self.beta) * self.target
+        return max(integral_min, min(integral_max, iterm))
+
+
+    # Gain Scheduling
+
+    def getParameter(self, PV:float, y1:float, y2:float, y3:float) -> float:
+        if self.gain_scheduling:
+            coefficients:npt.NDArray[numpy.floating] | None = None
+            try:
+                with suppress_stdout_stderr():
+                    if self.gain_scheduling_quadratic:
+                        coefficients = _getParameterQuadraticFit(self.Schedule0,self.Schedule1,self.Schedule2,y1,y2,y3)
+                    else:
+                        coefficients = _getParameterLinearFit(self.Schedule0,self.Schedule1,y1,y2)
+            except Exception:  # pylint: disable=broad-except
+                pass
+            if coefficients is not None:
+                mapped_parameter:float = float(numpy.poly1d(coefficients)(self.target if self.gain_scheduling_on_SV else PV))
+                # parameter is limited to the min/max of the values [y1, y2] on the linear and [y1,y2,y3] on the quadratic scheduling scheme
+                max_param = (max(y1,y2,y3) if self.gain_scheduling_quadratic else max(y1,y2))
+                min_param = (min(y1,y2,y3) if self.gain_scheduling_quadratic else min(y1,y2))
+                return max(min_param, min(max_param, mapped_parameter))
+        return y1
+
+    def getKp(self, PV:float) -> float:
+        return self.getParameter(PV, self.Kp, self.Kp1, self.Kp2)
+    def getKi(self, PV:float) -> float:
+        return self.getParameter(PV, self.Ki, self.Ki1, self.Ki2)
+    def getKd(self, PV:float) -> float:
+        return self.getParameter(PV, self.Kd, self.Kd1, self.Kd2)
+
+
+    # PID LOOP
+
     # update control value (the pid loop is running even if PID is inactive, just the control function is only called if active)
+    # to enable a bumpless transfer between ON and OFF, the target value (SP) is set to the process value (PV), here i, if OFF (active == False)
     def update(self, i: float|None) -> None:
-        #        _log.debug('update(%s)',i)
+#        _log.debug('update(%s)',i)
         control_func:Callable[[float], None]|None = None
         output_value:float|None = None
         try:
+            if i is not None and not self.isActive():
+                # bumpless transfer
+                self.target = i
             if i == -1 or i is None:
                 # reject error values
                 return
             self.pidSemaphore.acquire(1)
-            i = self._smooth_input(i)
             now = time.time()
             err = self.target - i
             if self.lastError is None or self.lastTime is None:
@@ -379,10 +428,8 @@ class PID:
                     # Gradually clear the setpoint changed flags
                     self.setpoint_changed_significantly = False
 
-                derr = (err - self.lastError) / dt
-
                 # compute P-Term first (needed for saturation check)
-                self.Pterm = self.Kp * err
+                self.Pterm = self.getKp(i) * (self.beta * self.target - i)
 
                 # Enhanced integral calculation with windup prevention
                 # Calculate output before integration to check for saturation
@@ -390,28 +437,15 @@ class PID:
 
                 # Only integrate if it won't worsen saturation
                 if self._should_integrate(err, output_before_integration):
-                    self.Iterm += self.Ki * err * dt
+                    self.Iterm += self.getKi(i) * err * dt
 
                     # Apply dynamic integral limits
-                    integral_min, integral_max = _calculate_integral_limits(self.outMin, self.outMax, self.integral_limit_factor)
-                    self.Iterm = max(integral_min, min(integral_max, self.Iterm))
+                    self.Iterm = self.applyIntegralLimits(i, self.Iterm)
 
                 # Clear the integral reset flag after processing
                 self.integral_just_reset = False
 
-                # compute D-Term with enhanced derivative kick prevention
-                D: float
-                if self.derivative_on_error:
-                    D = self.Kd * derr
-                    # apply derivative filter for DoE mode
-                    if self.derivative_filter_level > 0:
-                        D = self.derivative_filter(D)
-                    # Apply derivative limiting for derivative-on-error mode too
-                    if abs(D) > self.derivative_limit:
-                        D = self.derivative_limit if D > 0 else -self.derivative_limit
-                else:
-                    # Use enhanced derivative-on-measurement calculation (incl. derivative filtering)
-                    D = self._calculate_derivative_on_measurement(i, dt)
+                self.Dterm = self._calculate_derivative(i, dt)
 
                 # Update measurement history for discontinuity detection (after calculating D which calls detect discontinuity)
                 self._update_measurement_history(i)
@@ -419,7 +453,6 @@ class PID:
                 self.lastTime = now
                 self.lastError = err
                 self.lastInput = i
-                self.Dterm = D
                 output: float = self.Pterm + self.Iterm + self.Dterm
 
                 output = self._smooth_output(output)
@@ -432,7 +465,7 @@ class PID:
                     output = self.outMin
 
                 # Apply back-calculation to adjust integral term if output was clamped
-                self._back_calculate_integral(output_before_clamp, output)
+                self._back_calculate_integral(i, output_before_clamp, output)
 
                 # _log.debug('P: %s, I: %s, D: %s => output: %s', self.Pterm, self.Iterm, D, output)
 
@@ -465,21 +498,19 @@ class PID:
         self.init()
 
     # re-initalize the PID on restarting it after a temporary off state
-    def init(self, lock: bool = True) -> None:
+    def init(self, lock: bool = True, sampling_rate:float = 1.) -> None:
         try:
             if lock:
                 self.pidSemaphore.acquire(1)
-            # reset the derivative filter on each filter level change (also on PID ON)
-            self.derivative_filter = self.derivativeFilter()
+            # reset the filters on each filter level change (also on PID ON)
+            self.derivative_filter = self.derivativeFilter(sampling_rate)
+            self.output_filter = self.outputFilter(self.sampling_rate)
+            #
             self.errSum = 0.0
             self.lastError = 0.0
             self.lastInput = None
             self.lastTime = None
-            self.lastDerr = 0.0
             self.Pterm = 0.0
-            self.input_decay_weights = None
-            self.previous_inputs = []
-
             self.Iterm = 0.0  # for now just reset to 0 in all cases
             #        if self.lastOutput != None:
             #            self.Iterm = self.lastOutput
@@ -487,9 +518,6 @@ class PID:
             #            self.Iterm = 0.0
 
             self.lastOutput = None
-            # initialize the output smoothing
-            self.output_decay_weights = None
-            self.previous_outputs = []
 
             # Reset enhanced derivative kick prevention attributes
             self.lastTarget = self.target
@@ -513,7 +541,7 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def getTarget(self) -> float: # pyrefly: ignore[bad-return]
+    def getTarget(self) -> float:
         try:
             self.pidSemaphore.acquire(1)
             return self.target
@@ -523,9 +551,21 @@ class PID:
     def setPID(self, p: float, i: float, d: float) -> None:
         try:
             self.pidSemaphore.acquire(1)
+            _getParameterLinearFit.cache_clear()
+            _getParameterQuadraticFit.cache_clear()
             self.Kp = max(p, 0)
             self.Ki = max(i, 0)
             self.Kd = max(d, 0)
+        finally:
+            self.pidSemaphore.release(1)
+
+    def setWeights(self, beta: float|None, gamma: float|None) -> None:
+        try:
+            self.pidSemaphore.acquire(1)
+            if beta is not None:
+                self.beta = max(beta, 0)
+            if gamma is not None:
+                self.gamma = max(gamma, 0)
         finally:
             self.pidSemaphore.release(1)
 
@@ -534,6 +574,7 @@ class PID:
             self.pidSemaphore.acquire(1)
             self.outMin = outMin
             self.outMax = outMax
+            _calculate_integral_limits.cache_clear()
         finally:
             self.pidSemaphore.release(1)
 
@@ -574,28 +615,28 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def getPterm(self) -> float: # pyrefly: ignore[bad-return]
+    def getPterm(self) -> float:
         try:
             self.pidSemaphore.acquire(1)
             return self.Pterm
         finally:
             self.pidSemaphore.release(1)
 
-    def getIterm(self) -> float: # pyrefly: ignore[bad-return]
+    def getIterm(self) -> float:
         try:
             self.pidSemaphore.acquire(1)
             return self.Iterm
         finally:
             self.pidSemaphore.release(1)
 
-    def getDterm(self) -> float: # pyrefly: ignore[bad-return]
+    def getDterm(self) -> float:
         try:
             self.pidSemaphore.acquire(1)
             return self.Dterm
         finally:
             self.pidSemaphore.release(1)
 
-    def getError(self) -> float: # pyrefly: ignore[bad-return]
+    def getError(self) -> float:
         try:
             self.pidSemaphore.acquire(1)
             return self.lastError or 0
@@ -603,28 +644,46 @@ class PID:
             self.pidSemaphore.release(1)
 
     @staticmethod
-    def derivativeFilter() -> LiveSosFilter:
+    def irrFilter(sampling_rate:float, wn:float) -> LiveSosFilter:
+        """infinite impulse response filter"""
+        # Note: IIR filter can be computed faster but can suffer from artefacts and FIR filters should be preferred. However, IIR filter specification
+        # can be easier adjusted to varying samplings rates
         return LiveSosFilter(
             iirfilter(
-                1,  # order
-                Wn=0.1,  # 0 < Wn < fs/2 (fs=1 -> fs/2=0.5) # cut-off frequency
-                fs=1,  # sampling rate, Hz
+                1,         # order (higher-order, sharper cut-off, but incr. delay)
+                Wn=max(0., min(wn, sampling_rate/2 - 0.001)),  # 0 < Wn < fs/2 (fs=1 -> fs/2=0.5) # cut-off frequency
+                fs=sampling_rate,    # sampling rate, Hz
                 btype='low',
                 ftype='butter',
-                output='sos',
-            )
-        )
+                output='sos'))
+    @staticmethod
+    def derivativeFilter(sampling_rate:float) -> LiveSosFilter:
+        return PID.irrFilter(sampling_rate, 0.1)
+    @staticmethod
+    def outputFilter(sampling_rate:float) -> LiveSosFilter:
+        return PID.irrFilter(sampling_rate, 0.35)
 
-    def setDerivativeFilterLevel(self, v: int) -> None:
+    def setOutputFilterLevel(self, v:int, reset:bool = True) -> None:
         try:
             self.pidSemaphore.acquire(1)
-            self.derivative_filter_level = v
-            # reset the derivative filter on each filter level change (also on PID ON)
-            self.derivative_filter = self.derivativeFilter()
+            self.output_filter_level = v
+            # reset the output filter on each filter level change (also on PID ON), but not if pid is active (reset=False)
+            if reset:
+                self.output_filter = self.outputFilter(self.sampling_rate)
         finally:
             self.pidSemaphore.release(1)
 
-    def setDerivativeLimit(self, limit: float) -> None:
+    def setDerivativeFilterLevel(self, v:int, reset:bool = True) -> None:
+        try:
+            self.pidSemaphore.acquire(1)
+            self.derivative_filter_level = v
+            # reset the derivative filter on each filter level change (also on PID ON), but not if pid is active (reset=False)
+            if reset:
+                self.derivative_filter = self.derivativeFilter(self.sampling_rate)
+        finally:
+            self.pidSemaphore.release(1)
+
+    def setDerivativeLimit(self, limit:float) -> None:
         """Set the maximum allowed derivative contribution to prevent excessive derivative action."""
         try:
             self.pidSemaphore.acquire(1)
@@ -632,7 +691,7 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def getDerivativeLimit(self) -> float: # pyrefly: ignore[bad-return]
+    def getDerivativeLimit(self) -> float:
         """Get the current derivative limit."""
         try:
             self.pidSemaphore.acquire(1)
@@ -648,27 +707,11 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def getIntegralWindupPrevention(self) -> bool: # pyrefly: ignore[bad-return]
+    def getIntegralWindupPrevention(self) -> bool:
         """Get the current integral windup prevention setting."""
         try:
             self.pidSemaphore.acquire(1)
             return self.integral_windup_prevention
-        finally:
-            self.pidSemaphore.release(1)
-
-    def setDerivativeOnError(self, enabled: bool) -> None:
-        """Enable or disable derivative on error (instead of derivative on measurement)"""
-        try:
-            self.pidSemaphore.acquire(1)
-            self.derivative_on_error = enabled
-        finally:
-            self.pidSemaphore.release(1)
-
-    def getDerivativeOnError(self) -> bool: # pyrefly: ignore[bad-return]
-        """Get the current derivative on error setting."""
-        try:
-            self.pidSemaphore.acquire(1)
-            return self.derivative_on_error
         finally:
             self.pidSemaphore.release(1)
 
@@ -680,7 +723,7 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def getIntegralResetOnSP(self) -> bool: # pyrefly: ignore[bad-return]
+    def getIntegralResetOnSP(self) -> bool:
         """Get the current integral reset on SP setting."""
         try:
             self.pidSemaphore.acquire(1)
@@ -696,7 +739,7 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def getIntegralLimitFactor(self) -> float: # pyrefly: ignore[bad-return]
+    def getIntegralLimitFactor(self) -> float:
         """Get the current integral limit factor."""
         try:
             self.pidSemaphore.acquire(1)
@@ -712,10 +755,64 @@ class PID:
         finally:
             self.pidSemaphore.release(1)
 
-    def getSetpointChangeThreshold(self) -> float: # pyrefly: ignore[bad-return]
+    def getSetpointChangeThreshold(self) -> float:
         """Get the current setpoint change threshold."""
         try:
             self.pidSemaphore.acquire(1)
             return self.setpoint_change_threshold
+        finally:
+            self.pidSemaphore.release(1)
+
+    def setSamplingRate(self, sampling_rate: float) -> None:
+        """Set the threshold for significant setpoint changes."""
+        try:
+            self.pidSemaphore.acquire(1)
+            if sampling_rate > 0:
+                self.sampling_rate = sampling_rate
+        finally:
+            self.pidSemaphore.release(1)
+
+    #
+
+    def setGainScheduleState(self, state: bool) -> None:
+        """Activates or deactivates Gain Scheduling."""
+        try:
+            self.pidSemaphore.acquire(1)
+            self.gain_scheduling = state
+        finally:
+            self.pidSemaphore.release(1)
+
+    def setGainScheduleOnSV(self, state: bool) -> None:
+        """Activates or deactivates Gain Scheduling."""
+        try:
+            self.pidSemaphore.acquire(1)
+            self.gain_scheduling_on_SV = state
+        finally:
+            self.pidSemaphore.release(1)
+
+    def setGainSCheduleQuadratic(self, state: bool) -> None:
+        """Activates or deactivates Gain Scheduling."""
+        try:
+            self.pidSemaphore.acquire(1)
+            self.gain_scheduling_quadratic = state
+        finally:
+            self.pidSemaphore.release(1)
+
+    def setGainSchedule(self, kp1:float, ki1:float, kd1:float, kp2:float, ki2:float, kd2:float,
+            schedule0:float, schedule1:float, schedule2:float) -> None:
+        """Activates or deactivates Gain Scheduling."""
+        try:
+            self.pidSemaphore.acquire(1)
+            _getParameterLinearFit.cache_clear()
+            _getParameterQuadraticFit.cache_clear()
+            self.Kp1 = kp1
+            self.Ki1 = ki1
+            self.Kd1 = kd1
+            self.Kp2 = kp2
+            self.Ki2 = ki2
+            self.Kd2 = kd2
+            self.Schedule0 = schedule0
+            self.Schedule1 = schedule1
+            self.Schedule2 = schedule2
         finally:
             self.pidSemaphore.release(1)

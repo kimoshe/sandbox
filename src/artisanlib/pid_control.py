@@ -452,7 +452,7 @@ class FujiPID:
                 r = self.aw.ser.sendFUJIcommand(command,8)
 
         if len(r) == 8:
-            message = QApplication.translate('StatusBar','{0} successfully sent to pid ').format(var)
+            message = QApplication.translate('StatusBar','{0} successfully sent to pid').format(var)
             self.aw.sendmessage(message)
             if var == 'p':
                 self.aw.fujipid.PXR['p'][0] = int(v)
@@ -1142,10 +1142,13 @@ class PIDcontrol:
             'svValues', 'svSync', 'svRamps', 'svSoaks', 'svActions', 'svBeeps', 'svDescriptions','svTriggeredAlarms',
             'RSLen', 'RS_svLabels', 'RS_svValues', 'RS_svRamps', 'RS_svSoaks',
             'RS_svActions', 'RS_svBeeps', 'RS_svDescriptions', 'svSlider', 'svButtons', 'svMode', 'svLookahead', 'dutySteps', 'svSliderMin', 'svSliderMax', 'svValue',
-            'dutyMin', 'dutyMax', 'pidKp', 'pidKi', 'pidKd', 'pidSource', 'pidCycle', 'pidPositiveTarget', 'pidNegativeTarget', 'invertControl',
-            'sv_smoothing_factor', 'sv_decay_weights', 'previous_svs', 'time_pidON', 'source_reading_pidON', 'current_ramp_segment',  'current_soak_segment', 'ramp_soak_engaged',
+            'dutyMin', 'dutyMax', 'pidKp', 'pidKi', 'pidKd', 'pidPsetpointWeight', 'pidDsetpointWeight', 'pidSource', 'pidCycle', 'pidPositiveTarget', 'pidNegativeTarget', 'invertControl',
+            'pidPsetpointWeightMax', 'pidDsetpointWeightMax', 'sv_filter',
+            'sv_smoothing_factor_default', 'sv_smoothing_factor', 'sv_decay_weights', 'previous_svs', 'time_pidON', 'source_reading_pidON', 'current_ramp_segment',  'current_soak_segment', 'ramp_soak_engaged',
             'RS_total_time', 'slider_force_move', 'positiveTargetRangeLimit', 'positiveTargetMin', 'positiveTargetMax', 'negativeTargetRangeLimit',
-            'negativeTargetMin', 'negativeTargetMax', 'derivative_filter', 'pidDoE', 'pidDlimit', 'pidIlimitFactor', 'pidIWP', 'pidIRoC', 'pidIRoCthreshold' ]
+            'negativeTargetMin', 'negativeTargetMax', 'derivative_filter', 'duty_filter', 'pidDlimit', 'pidIlimitFactor', 'pidIWP', 'pidIRoC', 'pidIRoCthreshold',
+            'pidKp1', 'pidKd1', 'pidKi1', 'pidKp2', 'pidKi2', 'pidKd2', 'pidGainScheduling', 'pidGainSchedulingSV', 'pidGainSchedulingQuadratic',
+            'pidSchedule0', 'pidSchedule1', 'pidSchedule2' ]
 
     def __init__(self, aw:'ApplicationWindow') -> None:
         self.aw:ApplicationWindow = aw
@@ -1196,17 +1199,48 @@ class PIDcontrol:
         self.negativeTargetRangeLimit:bool = False # if True the duty is mapped to the target slider subrange [negativeTargetMin, negativeTargetMax]
         self.negativeTargetMin:int = 0
         self.negativeTargetMax:int = 100
+        # derivative filter
         self.derivative_filter:int = 0 # 0: off, 1: on
+        # duty filter
+        self.duty_filter:int = 0 # 0: off, 1: on
+        # sv smoothing
+        self.sv_filter:int = 0 # 0: off, 1: on
+        self.sv_smoothing_factor_default: Final[int] = 5 # if sv filter is active this indicates the number of values decay smoothing is applied to
+        self.sv_smoothing_factor:int = 0 # off if 0
+        self.sv_decay_weights:list[float]|None = None
+        self.previous_svs:list[float] = []
+        # p-i-d parameterss
         self.pidKp:float = (15.0 if self.aw.qmc.mode == 'C' else 8.3334) # 15.0 in C
         self.pidKi:float = (0.01 if self.aw.qmc.mode == 'C' else 0.00556) # 0.01 in C
         self.pidKd:float = (20.0 if self.aw.qmc.mode == 'C' else 11.1111) # 20.0 in C
+        #-
+        self.pidKp1:float = (15.0 if self.aw.qmc.mode == 'C' else 8.3334) # 15.0 in C
+        self.pidKi1:float = (0.01 if self.aw.qmc.mode == 'C' else 0.00556) # 0.01 in C
+        self.pidKd1:float = (20.0 if self.aw.qmc.mode == 'C' else 11.1111) # 20.0 in C
+        #-
+        self.pidKp2:float = (15.0 if self.aw.qmc.mode == 'C' else 8.3334) # 15.0 in C
+        self.pidKi2:float = (0.01 if self.aw.qmc.mode == 'C' else 0.00556) # 0.01 in C
+        self.pidKd2:float = (20.0 if self.aw.qmc.mode == 'C' else 11.1111) # 20.0 in C
+        #-
+        self.pidSchedule0:float = 0
+        self.pidSchedule1:float = 0
+        self.pidSchedule2:float = 0
+        #-
+        self.pidGainScheduling:bool = False
+        self.pidGainSchedulingSV:bool = True # variable observed by Gain Scheduling defaults to SV; setting this to False observes PV
+        self.pidGainSchedulingQuadratic:bool = False # Gain Scheduling defaults to linear mapping between p-i-d set 0 and 1; if True p-i-d set 2 is involved too with a quadratic mapping
+        #-
+        self.pidPsetpointWeight:float = 1. # [0, pidPsetpointWeightMax] defaults to 1: PoE (0: PoM)
+        self.pidPsetpointWeightMax:Final[float] = 2.
+        self.pidDsetpointWeight:float = 1. # [0, pidDsetpointWeightMax] defaults to 1: DoE (0: DoM)
+        self.pidDsetpointWeightMax:Final[float] = 2.
         # Proposional on Measurement (PoM) mode see: http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
         # => PoM removed in v3.1.2
         ## further pid configurations (only supported by the software pid currently)
-        self.pidDoE:bool = False          # classical Derivative on Error (DoE) if True, otherwise Derivative on Measurement (DoM) to reduce derivative kick
+#        self.pidDoE:bool = False          # classical Derivative on Error (DoE) if True, otherwise Derivative on Measurement (DoM) to reduce derivative kick
         self.pidDlimit:float = 500.0      # derivative limit [0-999] (used for both, DoM and DoE)
         self.pidIlimitFactor:float = 1    # integral limit factor [0-1]
-        self.pidIWP:bool = False          # Advanced Integral Windup Prevention
+        self.pidIWP:bool = True           # Advanced Integral Windup Prevention
         self.pidIRoC:bool = False         # Reset integral on large setpoint changes
         self.pidIRoCthreshold:float = 30  # SP threshold beyond which the integral will be reset if pidRIoC is set
         # pidSource
@@ -1220,10 +1254,6 @@ class PIDcontrol:
         self.pidNegativeTarget:int = 0 # one of [0,1,..,4] with 0: None, 1,..,4: for slider event 1-4
         # if invertControl is True, a PID duty of 100% delivers 0% positive duty and a 0% PID duty delivers 100% positive duty
         self.invertControl:bool = False
-        # PID sv smoothing
-        self.sv_smoothing_factor:int = 0 # off if 0
-        self.sv_decay_weights:list[float]|None = None
-        self.previous_svs:list[float] = []
         # time @ PID ON
         self.time_pidON:float = 0 # in monitoring mode, ramp-soak times are interpreted w.r.t. the time after the PID was turned on and not the time after CHARGE as during recording
         self.source_reading_pidON:float = 0 # the reading of the selected source on PID ON (to be used as start point for the first RAMP/SOAK pattern)
@@ -1276,7 +1306,7 @@ class PIDcontrol:
                 heat = int(round(float(raw_heat)))
                 heat = self.aw.applySliderStepSize(slidernr, heat) # quantify by slider step size
                 self.aw.addRawEventSignal.emit(heat,raw_heat,slidernr,self.createEvents,True,self.slider_force_move)
-                self.aw.qmc.slider_force_move = False
+                self.slider_force_move = False
             if self.pidNegativeTarget:
                 slidernr = self.pidNegativeTarget - 1
                 # we need to map the duty [0%,-100%] to the [slidermin,slidermax] range
@@ -1307,6 +1337,19 @@ class PIDcontrol:
             self.pidKp = self.pidKp * (9/5.)
             self.pidKi = self.pidKi * (9/5.)
             self.pidKd = self.pidKd * (9/5.)
+            #
+            self.pidKp1 = self.pidKp1 * (9/5.)
+            self.pidKi1 = self.pidKi1 * (9/5.)
+            self.pidKd1 = self.pidKd1 * (9/5.)
+            #
+            self.pidKp2 = self.pidKp2 * (9/5.)
+            self.pidKi2 = self.pidKi2 * (9/5.)
+            self.pidKd2 = self.pidKd2 * (9/5.)
+            #
+            self.pidSchedule0 = max(0, min(999, int(round(fromFtoCstrict(self.pidSchedule0)))))
+            self.pidSchedule1 = max(0, min(999, int(round(fromFtoCstrict(self.pidSchedule1)))))
+            self.pidSchedule2 = max(0, min(999, int(round(fromFtoCstrict(self.pidSchedule2)))))
+            #
             for i in range(len(self.svValues)): # pylint: disable=consider-using-enumerate
                 if self.svValues[i] != 0:
                     self.svValues[i] = fromFtoCstrict(self.svValues[i])
@@ -1333,6 +1376,19 @@ class PIDcontrol:
             self.pidKp = self.pidKp / (9/5.)
             self.pidKi = self.pidKi / (9/5.)
             self.pidKd = self.pidKd / (9/5.)
+            #
+            self.pidKp1 = self.pidKp1 / (9/5.)
+            self.pidKi1 = self.pidKi1 / (9/5.)
+            self.pidKd1 = self.pidKd1 / (9/5.)
+            #
+            self.pidKp2 = self.pidKp2 / (9/5.)
+            self.pidKi2 = self.pidKi2 / (9/5.)
+            self.pidKd2 = self.pidKd2 / (9/5.)
+            #
+            self.pidSchedule0 = max(0, min(999, int(round(fromCtoFstrict(self.pidSchedule0)))))
+            self.pidSchedule1 = max(0, min(999, int(round(fromCtoFstrict(self.pidSchedule1)))))
+            self.pidSchedule2 = max(0, min(999, int(round(fromCtoFstrict(self.pidSchedule2)))))
+            #
             for i in range(len(self.svValues)): # pylint: disable=consider-using-enumerate
                 if self.svValues[i] != 0:
                     self.svValues[i] = fromCtoFstrict(self.svValues[i])
@@ -1391,21 +1447,27 @@ class PIDcontrol:
     # the internal software PID should be configured on ON, but not be activated yet to warm it up
     def confSoftwarePID(self) -> None:
         # software PID
+        self.aw.qmc.pid.setSamplingRate(self.aw.qmc.delay/1000)
         self.aw.qmc.pid.setPID(self.pidKp,self.pidKi,self.pidKd)
+        self.aw.qmc.pid.setWeights(self.pidPsetpointWeight,self.pidDsetpointWeight)
         self.aw.qmc.pid.setLimits((-100 if self.pidNegativeTarget else 0),(100 if self.pidPositiveTarget else 0))
         self.aw.qmc.pid.setDutySteps(self.dutySteps)
         self.aw.qmc.pid.setDutyMin(self.dutyMin)
         self.aw.qmc.pid.setDutyMax(self.dutyMax)
         self.aw.qmc.pid.setControl(self.setEnergy)
-        self.aw.qmc.pid.setDerivativeFilterLevel(self.derivative_filter)
-        if self.svMode == 0:
-            self.setSV(self.aw.sliderSV.value())
-        self.aw.qmc.pid.setDerivativeOnError(self.pidDoE)
+        self.sv_smoothing_factor = (self.sv_smoothing_factor_default if self.sv_filter else 0)
+        self.aw.qmc.pid.setOutputFilterLevel(self.duty_filter, reset=not self.pidActive)
+        self.aw.qmc.pid.setDerivativeFilterLevel(self.derivative_filter, reset=not self.pidActive)
         self.aw.qmc.pid.setDerivativeLimit(self.pidDlimit)
         self.aw.qmc.pid.setIntegralWindupPrevention(self.pidIWP)
         self.aw.qmc.pid.setIntegralResetOnSP(self.pidIRoC)
         self.aw.qmc.pid.setSetpointChangeThreshold(self.pidIRoCthreshold)
         self.aw.qmc.pid.setIntegralLimitFactor(self.pidIlimitFactor)
+        self.aw.qmc.pid.setGainScheduleState(self.pidGainScheduling)
+        self.aw.qmc.pid.setGainScheduleOnSV(self.pidGainSchedulingSV)
+        self.aw.qmc.pid.setGainSCheduleQuadratic(self.pidGainSchedulingQuadratic)
+        self.aw.qmc.pid.setGainSchedule(self.pidKp1,self.pidKi1,self.pidKd1,self.pidKp2,self.pidKi2,self.pidKd2,
+            self.pidSchedule0,self.pidSchedule1,self.pidSchedule2)
 
 
     # if send_command is False, the pidOn command is not forwarded to the external PID (TC4, Kaleido, ..)
@@ -1792,7 +1854,17 @@ class PIDcontrol:
         if cycle is not None:
             self.pidCycle = cycle
 
-    # send conf to connected PID
+
+    # set PID beta/gamma weights of software PID
+    def confPIDweights(self, beta:float|None, gamma:float|None) -> None:
+        if self.externalPIDControl() == 0:
+            if beta is not None:
+                self.pidPsetpointWeight = beta
+            if gamma is not None:
+                self.pidDsetpointWeight = gamma
+            self.aw.qmc.pid.setWeights(beta, gamma)
+
+    # send p-i-d conf to connected PID
     def confPID(self, kp:float, ki:float, kd:float, source:int|None = None, cycle:int|None = None) -> None:
         if self.externalPIDControl() == 1: # MODBUS (external) Control active
             self.aw.modbus.setPID(kp,ki,kd)

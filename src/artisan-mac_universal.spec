@@ -118,6 +118,9 @@ BINARIES = [(os.path.join(get_package_paths('snap7')[1], 'lib/libsnap7.dylib'), 
 # add yocto libs
 yocto_lib_path = os.path.join(get_package_paths('yoctopuce')[1], 'cdll')
 BINARIES.extend([(os.path.join(yocto_lib_path, fn),'yoctopuce/cdll') for fn in os.listdir(yocto_lib_path) if fn.endswith('.dylib')])
+# add phidgets libs
+BINARIES.extend([(os.path.join(get_package_paths('Phidget22')[1], '.libs/libphidget22.dylib'), 'Phidget22/.libs' )])
+
 # brew installed libusb is added automatically by pyinstaller
 
 a = Analysis(['artisan.py'],
@@ -132,7 +135,7 @@ a = Analysis(['artisan.py'],
              hookspath=[],
              runtime_hooks=['./pyinstaller_hooks/rthooks/pyi_rth_mplconfig.py'], # overwrites default MPL runtime hook which keeps loading font cache from (new) temp directory
              additional_hooks_dir=[],
-             excludes= ['tkinter'],
+             excludes= ['tkinter', 'mypy'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher,

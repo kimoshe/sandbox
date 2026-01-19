@@ -425,7 +425,7 @@ class GreenWeighingState(StateMachine):
 # TESTING
 #    # from statemachine import Event
 #    @staticmethod
-#    def on_transition(event_data, event: 'Event') -> None: # type:ignore
+#    def on_transition(event_data, event: 'Event') -> None:
 #        # The `event` parameter can be declared as `str` or `Event`, since `Event` is a subclass of `str`
 #        # Note also that in this example, we're using `on_transition` instead of `on_cycle`, as this
 #        # binds the action to run for every transition instead of a specific event ID.
@@ -699,7 +699,7 @@ class RoastedWeighingState(StateMachine):
 
 # TESTING
 #    @staticmethod
-#    def on_transition(event_data, event: 'Event') -> None: # type:ignore
+#    def on_transition(event_data, event: 'Event') -> None:
 #        # The `event` parameter can be declared as `str` or `Event`, since `Event` is a subclass of `str`
 #        # Note also that in this example, we're using `on_transition` instead of `on_cycle`, as this
 #        # binds the action to run for every transition instead of a specific event ID.
@@ -731,10 +731,10 @@ class RoastedWeighingState(StateMachine):
 
 
 
-class WeightManager(QObject): # pyright:ignore[reportGeneralTypeIssues] # pyrefly: ignore [invalid-inheritance] # error: Argument to class must be a base class
+class WeightManager(QObject): # pyright:ignore[reportGeneralTypeIssues]
 
-    __slots__ = [ 'displays', 'scale_manager', 'next_green_item',  'next_roasted_item',
-                    'greenItemSemaphore', 'roastedItemSemaphore', 'green_sm' ]
+    __slots__ = [ 'scale_manager', 'next_green_item',  'next_roasted_item',
+                    'greenItemSemaphore', 'roastedItemSemaphore', 'sm_green' ]
 
     MIN_STABLE_WIGHT_CHANGE:Final[int] = 2                  # minimum stable weight changes being recognized in g
     MIN_CUSTOM_EMPTY_BUCKET_WEIGHT:Final[int] = 15          # minimum custom empty bucket weight recognized in g
@@ -946,14 +946,8 @@ class WeightManager(QObject): # pyright:ignore[reportGeneralTypeIssues] # pyrefl
 
     @pyqtSlot()
     def scales_available(self) -> None:
-        if self.aw.taskWebDisplayGreenActive:
-            self.sm_green.send('available')
-        else:
-            self.sm_green.send('unavailable')
-        if self.aw.taskWebDisplayRoastedActive:
-            self.sm_roasted.send('available')
-        else:
-            self.sm_roasted.send('unavailable')
+        self.sm_green.send('available')
+        self.sm_roasted.send('available')
 
     @pyqtSlot()
     def scales_unavailable(self) -> None:
@@ -1208,11 +1202,12 @@ class WeightManager(QObject): # pyright:ignore[reportGeneralTypeIssues] # pyrefl
                         # only if Task Display Roasted is active; strictly not necessary,
                         #   but this way it allows to deactivate the mechanism
                     self.roasted_task_scale == 0 and                                       # no scale yet assigned to the roasted task
-                    # either there is no current roasted weight item or there is a single one
-                    (self.sm_roasted.current_weight_item is None or
-                        # the current weight item is the only non-completed one (first and last uncompleted):
-                        (self.aw.schedule_window is not None and
-                         self.aw.schedule_window.is_only_not_completed_item(self.sm_roasted.current_weight_item.uuid))) and
+#                    # either there is no current roasted weight item or there is a single one
+#                    (self.sm_roasted.current_weight_item is None or
+#                        # the current weight item is the only non-completed one (first and last uncompleted):
+#                        # this restriction may avoids confusion by measure/assign weight to wrong (roasted) batch (check disabled for now)
+#                        (self.aw.schedule_window is not None and
+#                         self.aw.schedule_window.is_only_not_completed_item(self.sm_roasted.current_weight_item.uuid))) and
                     self.empty_bucket_placed(step, (None if self.sm_roasted.current_weight_item is None else self.sm_roasted.current_weight_item.weight), False)): # empty roasted bucket recognized
 
                 self.sm_roasted.set_accuracy(0)

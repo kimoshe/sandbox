@@ -109,7 +109,7 @@ def addSync(uuid:str, modified_at:float) -> None:
     try:
         sync_cache_semaphore.acquire(1)
         _log.debug('addSync(%s,%s)', uuid, modified_at)
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh: # pyrefly: ignore
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh:
             addSyncShelve(uuid, modified_at, fh)
     except portalocker.exceptions.LockException as e:
         _log.exception(e)
@@ -122,7 +122,7 @@ def addSync(uuid:str, modified_at:float) -> None:
         _log.debug(
             'retry sync:addSync(%s,%s)', str(uuid), str(modified_at)
         )
-        with portalocker.Lock(lock_path, timeout=0.3) as fh: # pyrefly: ignore
+        with portalocker.Lock(lock_path, timeout=0.3) as fh:
             addSyncShelve(uuid, modified_at, fh)
     except Exception as e:  # pylint: disable=broad-except
         _log.exception(e)
@@ -141,11 +141,11 @@ def getSync(uuid:str) -> float|None:
     try:
         sync_cache_semaphore.acquire(1)
         _log.debug('getSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh: # pyrefly: ignore
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh:
             try:
                 with shelve.open(getSyncPath()) as db:
                     try:
-                        ts = db[uuid]
+                        ts:float = float(db[uuid])
                         _log.debug(' -> sync:getSync = %s', ts)
                         return ts
                     except Exception:  # pylint: disable=broad-except
@@ -166,7 +166,7 @@ def getSync(uuid:str) -> float|None:
         _log.info('clean lock %s', str(lock_path))
         lock_path.unlink()
         _log.debug('retry sync:getSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh: # pyrefly: ignore
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh:
             try:
                 with shelve.open(getSyncPath()) as db:
                     try:
@@ -197,7 +197,7 @@ def delSync(uuid:str) -> None:
     try:
         sync_cache_semaphore.acquire(1)
         _log.debug('delSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh: # pyrefly: ignore
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.5) as fh:
             try:
                 with shelve.open(getSyncPath()) as db:
                     del db[uuid]
@@ -215,7 +215,7 @@ def delSync(uuid:str) -> None:
         _log.info('clean lock %s', str(lock_path))
         lock_path.unlink()
         _log.debug('retry sync:delSync(%s)', str(uuid))
-        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh: # pyrefly: ignore
+        with portalocker.Lock(getSyncPath(lock=True), timeout=0.3) as fh:
             try:
                 with shelve.open(getSyncPath()) as db:
                     del db[uuid]
@@ -305,7 +305,7 @@ def syncRecordUpdated(roast_record:dict[str, Any]|None = None) -> bool:
 
 
 # replaces zero values like 0 and '' by None for attributes enabled for suppression to save data space on server
-def surpress_zero_values(roast_record:dict[str, Any]) -> dict[str, Any]:
+def suppress_zero_values(roast_record:dict[str, Any]) -> dict[str, Any]:
     for key in roast.sync_record_zero_supressed_attributes:
         if key in roast_record and roast_record[key] == 0:
             roast_record[key] = None
@@ -746,7 +746,9 @@ def applyServerUpdates(data:dict[str, Any]) -> None:
 def fetchServerUpdate(uuid: str, file:str|None = None, return_data:bool = False) -> dict[str, Any]|None:
     aw = config.app_window
     import requests
+    import requests.models
     import requests.exceptions
+    res:requests.models.Response|None = None
     try:
         _log.debug(
             ('fetchServerUpdate() -> requesting update'
@@ -768,114 +770,112 @@ def fetchServerUpdate(uuid: str, file:str|None = None, return_data:bool = False)
         if file_last_modified is not None:
             last_modified = f'?modified_at={(round(file_last_modified * 1000)):.0f}'
         res = connection.getData(f'{config.roast_url}/{uuid}{last_modified}')
-        status = res.status_code
-        _log.debug('fetchServerUpdate() -> status: %s', status)
-        _log.debug('fetchServerUpdate() -> data: %s', res)
+        if res is not None:
+            status:int = res.status_code
+            _log.debug('fetchServerUpdate() -> status: %s', status)
+            _log.debug('fetchServerUpdate() -> data: %s', res)
 
-        if status == 204:  # NO CONTENT: data on server is older then ours
-            _log.debug(
-                'fetchServerUpdate() -> 204 data on server is older'
-            )
-            # no newer data found on server, do nothing; controller.is_synced()
-            # might report an unsynced status
-            # if file modification date is newer than what is known on the
-            # version from the server via the sync cache
-
-            if file is not None and getSync(uuid) is None:
+            if status == 204:  # NO CONTENT: data on server is older then ours
                 _log.debug(
-                    '-> file not in sync cache yet, we need to fetch'
-                     ' the servers modification date and add the profile'
-                     ' to the sync cache'
+                    'fetchServerUpdate() -> 204 data on server is older'
                 )
-                # we recurse to get a 200 with the last_modification date from
-                # the server for this record to add it to the
-                # sync cache automatically
-                fetchServerUpdate(uuid)
-        elif status == 404:
-            try:
+                # no newer data found on server, do nothing; controller.is_synced()
+                # might report an unsynced status
+                # if file modification date is newer than what is known on the
+                # version from the server via the sync cache
+
+                if file is not None and getSync(uuid) is None:
+                    _log.debug(
+                        '-> file not in sync cache yet, we need to fetch'
+                         ' the servers modification date and add the profile'
+                         ' to the sync cache'
+                    )
+                    # we recurse to get a 200 with the last_modification date from
+                    # the server for this record to add it to the
+                    # sync cache automatically
+                    fetchServerUpdate(uuid)
+            elif status == 404:
+                try:
+                    if res.headers['content-type'].strip().startswith('application/json'):
+                        data = res.json()
+                        util.updateLimitsFromResponse(data) # update account limits
+                        if 'success' in data and not data['success']:
+                            _log.debug(
+                                'fetchServerUpdate() ->'
+                                 ' 404 roast record deleted on server'
+                            )
+                            # data not found on server, remove UUID from sync cache
+                            delSync(uuid)
+                        # else there must be another cause of the 404
+                        else:
+                            _log.debug(
+                                'fetchServerUpdate() -> 404 server error'
+                            )
+                    _log.error('empty 404 response on fetchServerUpdate')
+                except json.decoder.JSONDecodeError as e:
+                    if not e.doc:
+                        _log.error('Empty response.')
+                    else:
+                        _log.error("Decoding error at char %s (line %s, col %s): '%s'", e.pos, e.lineno, e.colno, e.doc)
+                except Exception as e:  # pylint: disable=broad-except
+                    _log.error(e)
+            elif (
+                status == 200
+            ):  # data on server is newer than ours => update with data from server
+                _log.debug(
+                    'fetchServerUpdate() -> 200 data on server is newer'
+                )
                 if res.headers['content-type'].strip().startswith('application/json'):
                     data = res.json()
+        #            _log.info("PRINT data received: %s",data)
                     util.updateLimitsFromResponse(data) # update account limits
-                    if 'success' in data and not data['success']:
-                        _log.debug(
-                            'fetchServerUpdate() ->'
-                             ' 404 roast record deleted on server'
-                        )
-                        # data not found on server, remove UUID from sync cache
-                        delSync(uuid)
-                    # else there must be another cause of the 404
-                    else:
-                        _log.debug(
-                            'fetchServerUpdate() -> 404 server error'
-                        )
-                _log.error('empty 404 response on fetchServerUpdate')
-            except json.decoder.JSONDecodeError as e:
-                if not e.doc:
-                    _log.error('Empty response.')
-                else:
-                    _log.error("Decoding error at char %s (line %s, col %s): '%s'", e.pos, e.lineno, e.colno, e.doc)
-            except Exception as e:  # pylint: disable=broad-except
-                _log.error(e)
-        elif (
-            status == 200
-        ):  # data on server is newer than ours => update with data from server
-            _log.debug(
-                'fetchServerUpdate() -> 200 data on server is newer'
-            )
-            if res.headers['content-type'].strip().startswith('application/json'):
-                data = res.json()
-    #            _log.info("PRINT data received: %s",data)
-                util.updateLimitsFromResponse(data) # update account limits
-                if 'result' in data:
-                    r:dict[str, Any] = data['result']
-                    _log.debug('-> fetch: %s', r)
+                    if 'result' in data:
+                        r:dict[str, Any] = data['result']
+                        _log.debug('-> fetch: %s', r)
 
-                    if getSync(uuid) is None and 'modified_at' in r:
-                        addSync(uuid, util.ISO86012epoch(r['modified_at']))
-                        _log.debug(
-                            '-> added profile automatically to sync cache'
-                        )
-                    if return_data:
-                        return r
-                    if file_last_modified is not None:
-                        _log.debug(
-                            '-> file last_modified date: %s',
-                            util.epoch2ISO8601(file_last_modified),
-                        )
-                    if (
-                        'modified_at' in r
-                        and file_last_modified is not None
-                        and util.ISO86012epoch(r['modified_at'])
-                        > file_last_modified
-                    ):
-                        applyServerUpdates(r)
-                        if aw is not None and aw.qmc.plus_file_last_modified is not None:
-                            # we update the loaded profile timestamp to avoid receiving the same update again
-                            aw.qmc.plus_file_last_modified = time.time()
-                    else:
-                        _log.debug(
-                            '-> data received from server was older!?'
-                        )
-                        _log.debug(
-                            '-> file last_modified epoch: %s',
-                            file_last_modified,
-                        )
-                        _log.debug(
-                            '-> server last_modified epoch: %s',
-                            util.ISO86012epoch(r['modified_at']),
-                        )
-                        _log.debug(
-                            '-> server last_modified date: %s',
-                            r['modified_at'],
-                        )
-            else:
-                _log.error('received empty response on fetchServerUpdate')
+                        if getSync(uuid) is None and 'modified_at' in r:
+                            addSync(uuid, util.ISO86012epoch(r['modified_at']))
+                            _log.debug(
+                                '-> added profile automatically to sync cache'
+                            )
+                        if return_data:
+                            return r
+                        if file_last_modified is not None:
+                            _log.debug(
+                                '-> file last_modified date: %s',
+                                util.epoch2ISO8601(file_last_modified),
+                            )
+                        if (
+                            'modified_at' in r
+                            and file_last_modified is not None
+                            and util.ISO86012epoch(r['modified_at'])
+                            > file_last_modified
+                        ):
+                            applyServerUpdates(r)
+                            if aw is not None and aw.qmc.plus_file_last_modified is not None:
+                                # we update the loaded profile timestamp to avoid receiving the same update again
+                                aw.qmc.plus_file_last_modified = time.time()
+                        else:
+                            _log.debug(
+                                '-> data received from server was older!?'
+                            )
+                            _log.debug(
+                                '-> file last_modified epoch: %s',
+                                file_last_modified,
+                            )
+                            _log.debug(
+                                '-> server last_modified epoch: %s',
+                                util.ISO86012epoch(r['modified_at']),
+                            )
+                            _log.debug(
+                                '-> server last_modified date: %s',
+                                r['modified_at'],
+                            )
+                else:
+                    _log.error('received empty response on fetchServerUpdate')
     except requests.exceptions.ConnectionError as e:
         # more general: requests.exceptions.RequestException
         _log.exception(e)
-        # we disconnect, but keep the queue running to let it automatically
-        # reconnect if possible
-        controller.disconnect(remove_credentials=False, stop_queue=False)
     except Exception as e:  # pylint: disable=broad-except
         _log.exception(e)
     finally:
@@ -884,6 +884,10 @@ def fetchServerUpdate(uuid: str, file:str|None = None, return_data:bool = False)
         if aw is not None:
             aw.editgraphdialog = None
             aw.updatePlusStatusSignal.emit()  # @UndefinedVariable
+        if res is None: # eg. on requests.exceptions.Timeout
+            # we disconnect, but keep the queue running to let it automatically
+            # reconnect if possible
+            controller.disconnect(remove_credentials=False, stop_queue=False)
     return None
 
 

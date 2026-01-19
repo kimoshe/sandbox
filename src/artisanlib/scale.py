@@ -73,7 +73,7 @@ class STATE_ACTION(IntEnum):
 
 
 # NOTE: this class and all subclasses are not allowed to hold __slots__
-class Scale(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ignore[reportGeneralTypeIssues] # error: Argument to class must be a base class
+class Scale(QObject):
 
     scanned_signal = pyqtSignal(list)               # delivers discovered device details
     weight_changed_signal = pyqtSignal(float, bool) # delivers new weight in g with decimals for accurate
@@ -148,7 +148,7 @@ class Scale(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ignore[rep
         pass
 
 
-class ScaleManager(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ignore[reportGeneralTypeIssues] # error: Argument to class must be a base class
+class ScaleManager(QObject):
 
     # triggered from clients:
 
@@ -272,6 +272,7 @@ class ScaleManager(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ign
         if self.scale1 is not None:
             if self.scale1.is_assigned():
                 return
+            self.disconnect_scale(self.scale1)
             try:
                 self.scale1.scanned_signal.disconnect(self.scale1_scanned_slot)
                 self.scale1.connected_signal.disconnect(self.scale1_connected_slot)
@@ -283,7 +284,6 @@ class ScaleManager(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ign
                 self.scale1.disconnected_signal.disconnect(self.update_availability)
             except Exception as e: # pylint: disable=broad-except
                 _log.error(e)
-            self.disconnect_scale(self.scale1)
             self.scale1 = None
 
     @pyqtSlot(int,str,str)
@@ -403,6 +403,7 @@ class ScaleManager(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ign
         if self.scale2 is not None:
             if self.scale2.is_assigned():
                 return
+            self.disconnect_scale(self.scale2)
             try:
                 self.scale2.scanned_signal.disconnect(self.scale2_scanned_slot)
                 self.scale2.connected_signal.disconnect(self.scale2_connected_slot)
@@ -414,7 +415,6 @@ class ScaleManager(QObject): # pyrefly:ignore[invalid-inheritance] # pyright:ign
                 self.scale2.disconnected_signal.disconnect(self.update_availability)
             except Exception as e: # pylint: disable=broad-except
                 _log.error(e)
-            self.disconnect_scale(self.scale2)
             self.scale2 = None
 
     @pyqtSlot(int,str,str)

@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget # pylint: disable=unused-import
     from PyQt6.QtGui import QCloseEvent # pylint: disable=unused-import
 
-from artisanlib.util import stringfromseconds, stringtoseconds, comma2dot, toInt, toFloat
+from artisanlib.util import stringfromseconds, stringtoseconds, comma2dot, toInt, toFloat, float2float
 from artisanlib.dialogs import ArtisanDialog
 from artisanlib.widgets import MyQComboBox, MyQDoubleSpinBox
 
@@ -34,7 +34,7 @@ from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QTableWidget, QPushButton,
     QComboBox, QHBoxLayout, QVBoxLayout, QCheckBox, QGridLayout, QGroupBox, QLineEdit,
     QMessageBox, QRadioButton, QSpinBox, QStatusBar, QTabWidget, QDoubleSpinBox,
-    QTimeEdit, QLayout, QSizePolicy, QHeaderView, QButtonGroup)
+    QTimeEdit, QLayout, QSizePolicy, QHeaderView, QButtonGroup, QFrame)
 
 
 _log: Final[logging.Logger] = logging.getLogger(__name__)
@@ -64,39 +64,164 @@ class PID_DlgControl(ArtisanDialog):
         # PID tab
         tab1Layout = QVBoxLayout()
         pidGrp = QGroupBox(QApplication.translate('GroupBox','p-i-d'))
+
+        self.pidScheduleModeLabel = QLabel()
+        self.pidSchedule0 = QSpinBox()
+        self.pidSchedule0.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidSchedule0.setRange(0,999)
+        self.pidSchedule0.setSingleStep(10)
+        self.pidSchedule0.setValue(int(round(self.aw.pidcontrol.pidSchedule0)))
+        self.pidSchedule1 = QSpinBox()
+        self.pidSchedule1.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidSchedule1.setRange(0,999)
+        self.pidSchedule1.setSingleStep(10)
+        self.pidSchedule1.setValue(int(round(self.aw.pidcontrol.pidSchedule1)))
+        self.pidSchedule2 = QSpinBox()
+        self.pidSchedule2.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidSchedule2.setRange(0,999)
+        self.pidSchedule2.setSingleStep(10)
+        self.pidSchedule2.setValue(int(round(self.aw.pidcontrol.pidSchedule2)))
+
+        pidKpLabel = QLabel('kp')
+
         self.pidKp = QDoubleSpinBox()
         self.pidKp.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.pidKp.setRange(.0,9999.)
         self.pidKp.setSingleStep(.1)
         self.pidKp.setDecimals(3)
         self.pidKp.setValue(self.aw.pidcontrol.pidKp)
-        pidKpLabel = QLabel('kp')
+
+        self.pidKp1 = QDoubleSpinBox()
+        self.pidKp1.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidKp1.setRange(.0,9999.)
+        self.pidKp1.setSingleStep(.1)
+        self.pidKp1.setDecimals(3)
+        self.pidKp1.setValue(self.aw.pidcontrol.pidKp1)
+
+        self.pidKp2 = QDoubleSpinBox()
+        self.pidKp2.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidKp2.setRange(.0,9999.)
+        self.pidKp2.setSingleStep(.1)
+        self.pidKp2.setDecimals(3)
+        self.pidKp2.setValue(self.aw.pidcontrol.pidKp2)
+
+
+        pidKiLabel = QLabel('ki')
+
         self.pidKi = QDoubleSpinBox()
         self.pidKi.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.pidKi.setRange(.0,9999.)
         self.pidKi.setSingleStep(.1)
         self.pidKi.setDecimals(3)
         self.pidKi.setValue(self.aw.pidcontrol.pidKi)
-        pidKiLabel = QLabel('ki')
+
+        self.pidKi1 = QDoubleSpinBox()
+        self.pidKi1.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidKi1.setRange(.0,9999.)
+        self.pidKi1.setSingleStep(.1)
+        self.pidKi1.setDecimals(3)
+        self.pidKi1.setValue(self.aw.pidcontrol.pidKi1)
+
+        self.pidKi2 = QDoubleSpinBox()
+        self.pidKi2.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidKi2.setRange(.0,9999.)
+        self.pidKi2.setSingleStep(.1)
+        self.pidKi2.setDecimals(3)
+        self.pidKi2.setValue(self.aw.pidcontrol.pidKi2)
+
+
+        pidKdLabel = QLabel('kd')
+
         self.pidKd = QDoubleSpinBox()
         self.pidKd.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.pidKd.setRange(.0,9999.)
         self.pidKd.setSingleStep(.1)
         self.pidKd.setDecimals(3)
         self.pidKd.setValue(self.aw.pidcontrol.pidKd)
-        pidKdLabel = QLabel('kd')
-        pidSetPID = QPushButton(QApplication.translate('Button','Set'))
-        pidSetPID.clicked.connect(self.pidConf)
-        pidSetPID.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        self.pidKd1 = QDoubleSpinBox()
+        self.pidKd1.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidKd1.setRange(.0,9999.)
+        self.pidKd1.setSingleStep(.1)
+        self.pidKd1.setDecimals(3)
+        self.pidKd1.setValue(self.aw.pidcontrol.pidKd1)
+
+        self.pidKd2 = QDoubleSpinBox()
+        self.pidKd2.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.pidKd2.setRange(.0,9999.)
+        self.pidKd2.setSingleStep(.1)
+        self.pidKd2.setDecimals(3)
+        self.pidKd2.setValue(self.aw.pidcontrol.pidKd2)
+
+        schedule_hline = QFrame()
+        schedule_hline.setLineWidth(2)
+        schedule_hline.setMidLineWidth(1)
+        schedule_hline.setFrameShape(QFrame.Shape.HLine)
+        schedule_hline.setFrameShadow(QFrame.Shadow.Raised)
+
+        self.pidSchedulingFlag = QCheckBox(QApplication.translate('Label','Scheduling'))
+        self.pidSchedulingFlag.setToolTip(QApplication.translate('Tooltip', 'Activates p-i-d gain scheduling'))
+        self.pidSchedulingFlag.setChecked(self.aw.pidcontrol.pidGainScheduling)
+        self.pidSchedulingPV = QRadioButton(QApplication.translate('Label','PV'))
+        self.pidSchedulingPV.setToolTip(QApplication.translate('Tooltip', 'Scheduling by process value input temperature'))
+        self.pidSchedulingPV.setChecked(not self.aw.pidcontrol.pidGainSchedulingSV)
+        self.pidSchedulingSV = QRadioButton(QApplication.translate('Label','SV'))
+        self.pidSchedulingSV.setToolTip(QApplication.translate('Tooltip', 'Scheduling by set value target temperature'))
+        self.pidSchedulingLinear = QRadioButton('x')
+        self.pidSchedulingLinear.setToolTip(QApplication.translate('Tooltip', 'Scheduling based on linear regression of two points'))
+        self.pidSchedulingLinear.toggled.connect(self.scheduling_method_changed)
+        self.pidSchedulingQuadratic = QRadioButton('x\xb2')
+        self.pidSchedulingQuadratic.setToolTip(QApplication.translate('Tooltip', 'Scheduling based on quadratic regression of three points'))
+
+        self.pidSchedulingFlag.stateChanged.connect(self.scheduling_state_changed)
+        self.pidSchedulingPV.toggled.connect(self.scheduling_input_changed)
+        self.pidSchedulingSV.setChecked(self.aw.pidcontrol.pidGainSchedulingSV)
+        self.pidSchedulingLinear.setChecked(not self.aw.pidcontrol.pidGainSchedulingQuadratic)
+        self.pidSchedulingQuadratic.setChecked(self.aw.pidcontrol.pidGainSchedulingQuadratic)
+
+        pidScheudlingSource = QButtonGroup(self)
+        pidScheudlingSource.addButton(self.pidSchedulingPV)
+        pidScheudlingSource.addButton(self.pidSchedulingSV)
+
+        pidScheudlingMapping = QButtonGroup(self)
+        pidScheudlingMapping.addButton(self.pidSchedulingLinear)
+        pidScheudlingMapping.addButton(self.pidSchedulingQuadratic)
+
+        pidSchedulingLayout = QHBoxLayout()
+        pidSchedulingLayout.addStretch()
+        pidSchedulingLayout.addWidget(self.pidSchedulingFlag)
+        pidSchedulingLayout.addSpacing(10)
+        pidSchedulingLayout.addWidget(self.pidSchedulingPV)
+        pidSchedulingLayout.addWidget(self.pidSchedulingSV)
+        pidSchedulingLayout.addSpacing(10)
+        pidSchedulingLayout.addWidget(self.pidSchedulingLinear)
+        pidSchedulingLayout.addWidget(self.pidSchedulingQuadratic)
+        pidSchedulingLayout.addStretch()
+
 
         pidGrid = QGridLayout()
-        pidGrid.addWidget(pidKpLabel,0,0)
-        pidGrid.addWidget(self.pidKp,0,1)
-        pidGrid.addWidget(pidKiLabel,1,0)
-        pidGrid.addWidget(self.pidKi,1,1)
-        pidGrid.addWidget(pidKdLabel,2,0)
-        pidGrid.addWidget(self.pidKd,2,1)
         pidGrid.setSpacing(5)
+        if pid_controller == 0:
+            pidGrid.addWidget(self.pidScheduleModeLabel,0,0, alignment=Qt.AlignmentFlag.AlignRight)
+            pidGrid.addWidget(self.pidSchedule0,0,1)
+            pidGrid.addWidget(self.pidSchedule1,0,2)
+            pidGrid.addWidget(self.pidSchedule2,0,3)
+            pidGrid.addWidget(schedule_hline,1,1,1,3)
+            pidGrid.addWidget(self.pidKp1,2,2)
+            pidGrid.addWidget(self.pidKp2,2,3)
+            pidGrid.addWidget(self.pidKi1,3,2)
+            pidGrid.addWidget(self.pidKi2,3,3)
+            pidGrid.addWidget(self.pidKd1,4,2)
+            pidGrid.addWidget(self.pidKd2,4,3)
+        pidGrid.addWidget(pidKpLabel,2,0, alignment=Qt.AlignmentFlag.AlignRight)
+        pidGrid.addWidget(self.pidKp,2,1)
+        pidGrid.addWidget(pidKiLabel,3,0, alignment=Qt.AlignmentFlag.AlignRight)
+        pidGrid.addWidget(self.pidKi,3,1)
+        pidGrid.addWidget(pidKdLabel,4,0, alignment=Qt.AlignmentFlag.AlignRight)
+        pidGrid.addWidget(self.pidKd,4,1)
+
+        self.updateSchedulingInput()
+        self.updateSchedulingWidgetsEnableStatus()
 
 
         self.pidCycle = QSpinBox()
@@ -114,9 +239,6 @@ class PID_DlgControl(ArtisanDialog):
             pidCycleBox.addWidget(self.pidCycle)
         pidCycleBox.addStretch()
 
-        pidSetBox = QHBoxLayout()
-        pidSetBox.addStretch()
-        pidSetBox.addWidget(pidSetPID)
 
         self.SVsyncSource = QComboBox()
         self.SVsyncSource.setToolTip(QApplication.translate('Tooltip', 'Source for SV slider synchronization in manual mode'))
@@ -169,16 +291,26 @@ class PID_DlgControl(ArtisanDialog):
             pidSourceBox.addWidget(self.pidSource)
             #pidSourceBox.addSpacing(80)
             pidSourceBox.addStretch()
-#            pidVBox.addLayout(pidSourceBox)
             pidGridVBox.addLayout(pidSourceBox)
             if pid_controller in {3, 4}: # TC4/Kaleido
                 pidVBox.addLayout(pidCycleBox)
-        pidVBox.addStretch()
-        pidVBox.addLayout(pidSetBox)
-        pidVBox.setAlignment(pidSetBox,Qt.AlignmentFlag.AlignRight)
+        if pid_controller != 0:
+            # no setPID button for SoftwarePID (conf is set autommatically on leaving the dialog)
+            pidSetPID = QPushButton(QApplication.translate('Button','Set'))
+            pidSetPID.clicked.connect(self.pidConf)
+            pidSetPID.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            pidSetBox = QHBoxLayout()
+            pidSetBox.addStretch()
+            pidSetBox.addWidget(pidSetPID)
+            pidVBox.addStretch()
+            pidVBox.addLayout(pidSetBox)
+            pidVBox.setAlignment(pidSetBox,Qt.AlignmentFlag.AlignRight)
 
         if pid_controller != 4:
+            if pid_controller == 0:
+                pidGridVBox.addLayout(pidSchedulingLayout)
             pidGridVBox.addLayout(pidGrid)
+        pidGridVBox.addStretch()
         pidGridBox = QHBoxLayout()
         pidGridBox.addLayout(pidGridVBox)
         pidGridBox.addLayout(pidVBox)
@@ -286,13 +418,14 @@ class PID_DlgControl(ArtisanDialog):
             pidTargetGrp = QGroupBox(QApplication.translate('GroupBox','Output'))
             pidTargetGrp.setLayout(controlHBox)
             pidTargetGrp.setContentsMargins(0,10,0,0)
+            pidGridBox.addStretch()
             pidGridBox.addWidget(pidTargetGrp)
         pidGridBox.addStretch()
 
-        pidGridVBox = QVBoxLayout()
-        pidGridVBox.addLayout(pidGridBox)
-        pidGridVBox.setContentsMargins(5,5,5,5) # left, top, right, bottom
-        pidGrp.setLayout(pidGridVBox)
+        pidGridVBox2 = QVBoxLayout()
+        pidGridVBox2.addLayout(pidGridBox)
+        pidGridVBox2.setContentsMargins(5,5,5,5) # left, top, right, bottom
+        pidGrp.setLayout(pidGridVBox2)
         pidGrp.setContentsMargins(0,10,0,0)
 
         self.pidSV = QSpinBox()
@@ -360,10 +493,16 @@ class PID_DlgControl(ArtisanDialog):
             self.pidSVSliderMin.setSuffix(' F')
             self.pidSVSliderMax.setSuffix(' F')
             self.pidSV.setSuffix(' F')
+            self.pidSchedule0.setSuffix(' F')
+            self.pidSchedule1.setSuffix(' F')
+            self.pidSchedule2.setSuffix(' F')
         elif self.aw.qmc.mode == 'C':
             self.pidSVSliderMin.setSuffix(' C')
             self.pidSVSliderMax.setSuffix(' C')
             self.pidSV.setSuffix(' C')
+            self.pidSchedule0.setSuffix(' C')
+            self.pidSchedule1.setSuffix(' C')
+            self.pidSchedule2.setSuffix(' C')
 
         modeBox = QHBoxLayout()
         modeBox.addWidget(pidSVModeLabel)
@@ -414,6 +553,15 @@ class PID_DlgControl(ArtisanDialog):
         svGrpBox.addLayout(modeBox)
         svGrpBox.addLayout(sliderBox)
         svGrpBox.addLayout(svInputBox)
+        if pid_controller == 0:
+            # only for the internal PID we support a SV filter setting
+            self.svFilterFlag = QCheckBox(QApplication.translate('Label','SV Filter'))
+            self.svFilterFlag.setChecked(bool(self.aw.pidcontrol.sv_filter))
+            self.svFilterFlag.setToolTip(QApplication.translate('Tooltip', 'Filter on SV in background follow mode'))
+            svFilterBox = QHBoxLayout()
+            svFilterBox.addStretch()
+            svFilterBox.addWidget(self.svFilterFlag)
+            svGrpBox.addLayout(svFilterBox)
         svGrpBox.addLayout(svSyncBox)
         svGrpBox.addStretch()
         svGrpBox.setSpacing(5)
@@ -429,6 +577,17 @@ class PID_DlgControl(ArtisanDialog):
         svBox = QHBoxLayout()
         svBox.addWidget(svGrp)
         if pid_controller == 0: # only the internal PID allows for duty control
+
+            # only for the internal PID we support a duty filter setting
+            self.dutyFilterFlag = QCheckBox(QApplication.translate('Label','Duty Filter'))
+            self.dutyFilterFlag.setToolTip(QApplication.translate('Tooltip', 'Smooth the final output signal and suppress abrupt changes in the P/I term'))
+            self.dutyFilterFlag.setChecked(bool(self.aw.pidcontrol.duty_filter))
+
+            dutyFilterBox = QHBoxLayout()
+            dutyFilterBox.addWidget(self.dutyFilterFlag)
+            dutyFilterBox.addStretch()
+            dutyFilterBox.setContentsMargins(0,0,0,0)
+
             self.pidDutySteps = QSpinBox()
             self.pidDutySteps.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.pidDutySteps.setRange(1,10)
@@ -453,39 +612,91 @@ class PID_DlgControl(ArtisanDialog):
             dutyGrid.addWidget(self.pidDutySteps,0,1)
 
             dutyGrpBox = QVBoxLayout()
-            dutyGrpBox.addStretch()
+            dutyGrpBox.addLayout(dutyFilterBox)
             dutyGrpBox.addLayout(dutyGrid)
-            dutyGrpBox.addSpacing(10)
+            dutyGrpBox.addSpacing(15)
             dutyGrpBox.addWidget(dutyClampGrp)
             dutyGrpBox.addStretch()
+            dutyGrpBox.setContentsMargins(5,5,5,5)
             dutyGrp = QGroupBox(QApplication.translate('GroupBox','Duty'))
             dutyGrp.setLayout(dutyGrpBox)
             dutyGrp.setContentsMargins(0,15,0,0)
+
+            pTermSPweightLabel = QLabel(QApplication.translate('Label','\u03B2'))
+            self.pTermSPweightSpinBox = MyQDoubleSpinBox()
+            self.pTermSPweightSpinBox.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.pTermSPweightSpinBox.setRange(0.0, self.aw.pidcontrol.pidPsetpointWeightMax)
+            self.pTermSPweightSpinBox.setSingleStep(.1)
+            self.pTermSPweightSpinBox.setDecimals(2)
+            self.pTermSPweightSpinBox.setValue(self.aw.pidcontrol.pidPsetpointWeight)
+            self.pTermSPweightSpinBox.setToolTip(QApplication.translate('Tooltip', 'Proportional setvalue weight'))
+            self.pTermSPweightSpinBox.valueChanged.connect(self.pTermSPweightChanged)
+
+            dTermSPweightLabel = QLabel(QApplication.translate('Label','\u03B3'))
+            self.dTermSPweightSpinBox = MyQDoubleSpinBox()
+            self.dTermSPweightSpinBox.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.dTermSPweightSpinBox.setRange(0.0, self.aw.pidcontrol.pidDsetpointWeightMax)
+            self.dTermSPweightSpinBox.setSingleStep(.1)
+            self.dTermSPweightSpinBox.setDecimals(2)
+            self.dTermSPweightSpinBox.setValue(self.aw.pidcontrol.pidDsetpointWeight)
+            self.dTermSPweightSpinBox.setToolTip(QApplication.translate('Tooltip', 'Derivative setvalue weight'))
+            self.dTermSPweightSpinBox.valueChanged.connect(self.dTermSPweightChanged)
+
             # only for the internal PID we support a derative filter setting
             self.derivativeFilterFlag = QCheckBox(QApplication.translate('Label','Derivative Filter'))
             self.derivativeFilterFlag.setChecked(bool(self.aw.pidcontrol.derivative_filter))
+
+            DFilterBox = QHBoxLayout()
+            DFilterBox.addWidget(self.derivativeFilterFlag)
+            DFilterBox.addStretch()
+            DFilterBox.setContentsMargins(0,0,0,0)
+
+            self.PoERadioButton = QRadioButton(QApplication.translate('Label','PoE'))
+            self.PoERadioButton.setToolTip(QApplication.translate('Tooltip', 'Proportional on Error'))
+            self.PoMRadioButton = QRadioButton(QApplication.translate('Label','PoM'))
+            self.PoMRadioButton.setToolTip(QApplication.translate('Tooltip', 'Proportional on Measurement'))
+
             self.DoERadioButton = QRadioButton(QApplication.translate('Label','DoE'))
             self.DoERadioButton.setToolTip(QApplication.translate('Tooltip', 'Derivative on Error'))
             self.DoMRadioButton = QRadioButton(QApplication.translate('Label','DoM'))
             self.DoMRadioButton.setToolTip(QApplication.translate('Tooltip', 'Derivative on Measurement (preventing the derivative kick)'))
-            if self.aw.pidcontrol.pidDoE:
-                self.DoERadioButton.setChecked(True)
-            else:
-                self.DoMRadioButton.setChecked(True)
-            DoX = QButtonGroup(self)
-            DoX.addButton(self.DoERadioButton)
-            DoX.addButton(self.DoMRadioButton)
+
+            self.PoX = QButtonGroup(self)
+            self.PoX.addButton(self.PoERadioButton)
+            self.PoX.addButton(self.PoMRadioButton)
+            pTypeBox = QHBoxLayout()
+            pTypeBox.addWidget(self.PoERadioButton)
+            pTypeBox.addWidget(self.PoMRadioButton)
+            pTypeBox.addStretch()
+            pTypeBox.addSpacing(5)
+            pTypeBox.addWidget(pTermSPweightLabel)
+            pTypeBox.addWidget(self.pTermSPweightSpinBox)
+
+            self.updatePtypeRadioButtons()
+            self.PoERadioButton.toggled.connect(self.PoERadioButtonToggled)
+            self.PoMRadioButton.toggled.connect(self.PoMRadioButtonToggled)
+
+            self.DoX = QButtonGroup(self)
+            self.DoX.addButton(self.DoERadioButton)
+            self.DoX.addButton(self.DoMRadioButton)
             dTypeBox = QHBoxLayout()
             dTypeBox.addWidget(self.DoERadioButton)
             dTypeBox.addWidget(self.DoMRadioButton)
             dTypeBox.addStretch()
+            dTypeBox.addSpacing(5)
+            dTypeBox.addWidget(dTermSPweightLabel)
+            dTypeBox.addWidget(self.dTermSPweightSpinBox)
+
+            self.updateDtypeRadioButtons()
+            self.DoERadioButton.toggled.connect(self.DoERadioButtonToggled)
+            self.DoMRadioButton.toggled.connect(self.DoMRadioButtonToggled)
 
             iLimitLabel = QLabel(QApplication.translate('Label','ILF'))
             self.iLimitSpinBox = MyQDoubleSpinBox()
             self.iLimitSpinBox.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.iLimitSpinBox.setRange(0.0,1.0)
             self.iLimitSpinBox.setSingleStep(.1)
-            self.iLimitSpinBox.setDecimals(1)
+            self.iLimitSpinBox.setDecimals(2)
             self.iLimitSpinBox.setValue(self.aw.pidcontrol.pidIlimitFactor)
             self.iLimitSpinBox.setToolTip(QApplication.translate('Tooltip', 'Integral limit factor'))
 
@@ -521,17 +732,20 @@ class PID_DlgControl(ArtisanDialog):
             self.IRoCFlag.stateChanged.connect(self.IRoCFlag_changedSlot)
             self.IRoCFlag.setChecked(self.aw.pidcontrol.pidIRoC)
 
-            RIoCBox = QHBoxLayout()
-            RIoCBox.addWidget(self.IRoCFlag)
-            RIoCBox.addWidget(self.SPthresholdSpinBox)
-            RIoCBox.addStretch()
+            IBox = QHBoxLayout()
+            IBox.addWidget(self.IWPFlag)
+            IBox.addSpacing(10)
+            IBox.addStretch()
+            IBox.addWidget(self.IRoCFlag)
+            IBox.addWidget(self.SPthresholdSpinBox)
+            IBox.setContentsMargins(0,0,0,0)
 
             filterGrpBox = QVBoxLayout()
-            filterGrpBox.addWidget(self.derivativeFilterFlag)
-            filterGrpBox.addLayout(LimitBox)
+            filterGrpBox.addLayout(pTypeBox)
             filterGrpBox.addLayout(dTypeBox)
-            filterGrpBox.addLayout(RIoCBox)
-            filterGrpBox.addWidget(self.IWPFlag)
+            filterGrpBox.addLayout(DFilterBox)
+            filterGrpBox.addLayout(LimitBox)
+            filterGrpBox.addLayout(IBox)
             filterGrpBox.addStretch()
             filterGrpBox.setSpacing(10)
             filterGrp = QGroupBox(QApplication.translate('Menu','Config'))
@@ -559,6 +773,8 @@ class PID_DlgControl(ArtisanDialog):
         self.loadPIDfromBackground = QCheckBox(QApplication.translate('CheckBox', 'Load p-i-d from background'))
         self.loadPIDfromBackground.setToolTip(QApplication.translate('Tooltip', 'Load kp, ki, kd, PID Input, P on Error/Input and Lookahead settings from background profile'))
         self.loadPIDfromBackground.setChecked(self.aw.pidcontrol.loadpidfrombackground)
+        if pid_controller == 4:
+            self.loadPIDfromBackground.setEnabled(False)
 
         flagsLayout = QHBoxLayout()
         flagsLayout.addWidget(self.startPIDonCHARGE)
@@ -568,6 +784,7 @@ class PID_DlgControl(ArtisanDialog):
         flagsLayout.addWidget(self.createEvents)
         flagsLayout.addSpacing(10)
         flagsLayout.addWidget(self.loadPIDfromBackground)
+        flagsLayout.addSpacing(10) # to avoid cutting the last flag label (layout bug!)
         flagsLayout.addStretch()
 
         tab1Layout.addLayout(pidBox)
@@ -886,6 +1103,8 @@ class PID_DlgControl(ArtisanDialog):
         tab2Layout.addLayout(flagsLayout)
 
 
+        okButton.setFocus()
+
         ############################
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.tabWidget)
@@ -893,20 +1112,131 @@ class PID_DlgControl(ArtisanDialog):
         mainLayout.setContentsMargins(5,10,5,5)
         mainLayout.setSpacing(5)
         self.setLayout(mainLayout)
-        okButton.setFocus()
 
         self.setrampsoaks()
         self.setRSs()
-
-        mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
         settings = QSettings()
         if settings.contains('PIDPosition'):
             self.move(settings.value('PIDPosition'))
 
+        mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
+
         # we set the active tab with a QTimer after the tabbar has been rendered once, as otherwise
         # some tabs are not rendered at all on Windows using Qt v6.5.1 (https://bugreports.qt.io/projects/QTBUG/issues/QTBUG-114204?filter=allissues)
         QTimer.singleShot(10, self.setActiveTab)
+
+    @pyqtSlot(int)
+    def scheduling_state_changed(self, _:int) -> None:
+        self.updateSchedulingWidgetsEnableStatus()
+
+    @pyqtSlot(bool)
+    def scheduling_input_changed(self, _:bool = False) -> None:
+        self.updateSchedulingInput()
+
+    @pyqtSlot(bool)
+    def scheduling_method_changed(self, _:bool = False) -> None:
+        self.updateSchedulingWidgetsEnableStatus()
+
+    def updateSchedulingInput(self) -> None:
+        if self.pidSchedulingPV.isChecked():
+            self.pidScheduleModeLabel.setText('PV')
+        else:
+            self.pidScheduleModeLabel.setText('SV')
+
+
+    def updateSchedulingWidgetsEnableStatus(self) -> None:
+        scheduling_enabled:bool = self.pidSchedulingFlag.isChecked()
+        scheduling_quadratic:bool = self.pidSchedulingQuadratic.isChecked()
+        self.pidScheduleModeLabel.setEnabled(scheduling_enabled)
+        self.pidSchedulingPV.setEnabled(scheduling_enabled)
+        self.pidSchedulingSV.setEnabled(scheduling_enabled)
+        self.pidSchedulingLinear.setEnabled(scheduling_enabled)
+        self.pidSchedulingQuadratic.setEnabled(scheduling_enabled)
+        self.pidSchedule0.setEnabled(scheduling_enabled)
+        self.pidSchedule1.setEnabled(scheduling_enabled)
+        self.pidSchedule2.setEnabled(scheduling_enabled and scheduling_quadratic)
+        self.pidKp1.setEnabled(scheduling_enabled)
+        self.pidKp2.setEnabled(scheduling_enabled and scheduling_quadratic)
+        self.pidKi1.setEnabled(scheduling_enabled)
+        self.pidKi2.setEnabled(scheduling_enabled and scheduling_quadratic)
+        self.pidKd1.setEnabled(scheduling_enabled)
+        self.pidKd2.setEnabled(scheduling_enabled and scheduling_quadratic)
+
+
+    def updatePTermSPweightSpinBox(self) -> None:
+        self.pTermSPweightSpinBox.blockSignals(True)
+        self.pTermSPweightSpinBox.setValue(self.aw.pidcontrol.pidPsetpointWeight)
+        self.pTermSPweightSpinBox.blockSignals(False)
+
+    def updateDTermSPweightSpinBox(self) -> None:
+        self.dTermSPweightSpinBox.blockSignals(True)
+        self.dTermSPweightSpinBox.setValue(self.aw.pidcontrol.pidDsetpointWeight)
+        self.dTermSPweightSpinBox.blockSignals(False)
+
+
+    @pyqtSlot(bool)
+    def PoERadioButtonToggled(self, checked:bool) -> None:
+        if checked:
+            self.aw.pidcontrol.pidPsetpointWeight = 1
+            self.updatePTermSPweightSpinBox()
+            self.PoX.setExclusive(True)
+
+    @pyqtSlot(bool)
+    def PoMRadioButtonToggled(self, checked:bool) -> None:
+        if checked:
+            self.aw.pidcontrol.pidPsetpointWeight = 0
+            self.updatePTermSPweightSpinBox()
+            self.PoX.setExclusive(True)
+
+    @pyqtSlot(float)
+    def pTermSPweightChanged(self, value:float) -> None:
+        self.aw.pidcontrol.pidPsetpointWeight = min(self.aw.pidcontrol.pidPsetpointWeightMax, max(0., float2float(value,2)))
+        self.updatePtypeRadioButtons()
+
+
+    @pyqtSlot(bool)
+    def DoERadioButtonToggled(self, checked:bool) -> None:
+        if checked:
+            self.aw.pidcontrol.pidDsetpointWeight = 1
+            self.updateDTermSPweightSpinBox()
+            self.DoX.setExclusive(True)
+
+    @pyqtSlot(bool)
+    def DoMRadioButtonToggled(self, checked:bool) -> None:
+        if checked:
+            self.aw.pidcontrol.pidDsetpointWeight = 0
+            self.updateDTermSPweightSpinBox()
+            self.DoX.setExclusive(True)
+
+    @pyqtSlot(float)
+    def dTermSPweightChanged(self, value:float) -> None:
+        self.aw.pidcontrol.pidDsetpointWeight = min(self.aw.pidcontrol.pidDsetpointWeightMax, max(0., float2float(value,2)))
+        self.updateDtypeRadioButtons()
+
+    def updatePtypeRadioButtons(self) -> None:
+        if self.aw.pidcontrol.pidPsetpointWeight == 1:
+            self.PoERadioButton.setChecked(True)
+            self.PoX.setExclusive(True)
+        elif self.aw.pidcontrol.pidPsetpointWeight == 0:
+            self.PoMRadioButton.setChecked(True)
+            self.PoX.setExclusive(True)
+        else:
+            self.PoX.setExclusive(False)
+            self.PoERadioButton.setChecked(False)
+            self.PoMRadioButton.setChecked(False)
+
+    def updateDtypeRadioButtons(self) -> None:
+        if self.aw.pidcontrol.pidDsetpointWeight == 1:
+            self.DoERadioButton.setChecked(True)
+            self.DoX.setExclusive(True)
+        elif self.aw.pidcontrol.pidDsetpointWeight == 0:
+            self.DoMRadioButton.setChecked(True)
+            self.DoX.setExclusive(True)
+        else:
+            self.DoX.setExclusive(False)
+            self.DoERadioButton.setChecked(False)
+            self.DoMRadioButton.setChecked(False)
 
     # NOTE: ET/BT inverted as pidSource=1 => BT and pidSource=2 => ET !!
     def getCurveNames(self) -> list[str]:
@@ -1028,7 +1358,7 @@ class PID_DlgControl(ArtisanDialog):
     def setRS(self, _:bool = False) -> None:
         try:
             sender = self.sender()
-            assert isinstance(sender, QPushButton) # pyrefly: ignore[invalid-argument]
+            assert isinstance(sender, QPushButton)
             n = self.RSnButtons.index(sender)
             self.aw.pidcontrol.svLabel = self.getRSnSVLabel(n)
             self.aw.pidcontrol.svValues = self.getRSnSVvalues(n)
@@ -1236,21 +1566,28 @@ class PID_DlgControl(ArtisanDialog):
         kd = self.pidKd.value() # 0.00
         source:int|None = None
         cycle:int|None = None
-        if self.aw.pidcontrol.externalPIDControl() in {0, 3, 4}: # only Internal PID and TC4/Kaleido
+        pid_controller = self.aw.pidcontrol.externalPIDControl()
+        if pid_controller in {0, 3, 4}: # only Internal PID and TC4/Kaleido
             pidSourceIdx = self.pidSource.currentIndex()
-            if pidSourceIdx == 0:
+            if self.aw.qmc.device == 19 and self.aw.qmc.PIDbuttonflag:
+                source = self.pidSource.currentIndex()+1 # one of the 4 TC channels, 1,..4
+            elif pidSourceIdx == 0:
                 source = 2 # ET
             elif pidSourceIdx == 1:
                 source = 1 # BT
             else:
                 source = self.pidSource.currentIndex() + 1 # 3, 4, ... (extra device curves)
-            if self.aw.pidcontrol.externalPIDControl() in {3, 4}: # only TC4/Kaleido
+            if pid_controller in {3, 4}: # only TC4/Kaleido
                 cycle = self.pidCycle.value() # def 1000 in ms
-        self.aw.pidcontrol.confPID(kp,ki,kd,source,cycle)
-        if self.aw.pidcontrol.externalPIDControl() == 0: # Targets only for internal PID
-            self.aw.pidcontrol.pidPositiveTarget = self.positiveControlCombo.currentIndex()
-            self.aw.pidcontrol.pidNegativeTarget = self.negativeControlCombo.currentIndex()
-            self.aw.pidcontrol.invertControl = self.invertControlFlag.isChecked()
+            if pid_controller == 0:
+                if not (self.aw.qmc.device == 19 and self.aw.qmc.PIDbuttonflag): # don't show Targets if TC4 firmware PID is in use
+                    self.aw.pidcontrol.pidPositiveTarget = self.positiveControlCombo.currentIndex()
+                    self.aw.pidcontrol.pidNegativeTarget = self.negativeControlCombo.currentIndex()
+                    self.aw.pidcontrol.invertControl = self.invertControlFlag.isChecked()
+                # we configure all parameters of the software pid from current pidcontrol settings
+                self.aw.pidcontrol.confSoftwarePID()
+            else:
+                self.aw.pidcontrol.confPID(kp,ki,kd,source,cycle)
 
     @pyqtSlot(bool)
     def setSV(self, _:bool = False) -> None: # and DutySteps
@@ -1260,43 +1597,6 @@ class PID_DlgControl(ArtisanDialog):
 
     @override
     def close(self) -> bool:
-        kp = self.pidKp.value() # 5.00
-        ki = self.pidKi.value() # 0.15
-        kd = self.pidKd.value() # 0.00
-        source:int|None = None
-        cycle:int|None = None
-        pid_controller = self.aw.pidcontrol.externalPIDControl()
-        if pid_controller in {0, 3, 4}:
-            pidSourceIdx = self.pidSource.currentIndex()
-            if self.aw.qmc.device == 19 and self.aw.qmc.PIDbuttonflag:
-                source = self.pidSource.currentIndex()+1 # one of the 4 TC channels, 1,..4
-            elif pidSourceIdx == 0:
-                source = 2 # ET
-            elif pidSourceIdx == 1:
-                source = 1 # BT
-            else:
-                source = pidSourceIdx + 1 # 3, 4, ... (extra device curves)
-            if pid_controller == 0 and not (self.aw.qmc.device == 19 and self.aw.qmc.PIDbuttonflag): # don't show Targets if TC4 firmware PID is in use
-                self.aw.pidcontrol.pidPositiveTarget = self.positiveControlCombo.currentIndex()
-                self.aw.pidcontrol.pidNegativeTarget = self.negativeControlCombo.currentIndex()
-                self.aw.pidcontrol.invertControl = self.invertControlFlag.isChecked()
-            cycle = self.pidCycle.value() # def 1000 in ms
-        if pid_controller in {1, 2}: # external MODBUS/S7 PID control
-            svSource = self.pidSource.currentIndex()
-            if svSource == 0: # ET
-                self.aw.pidcontrol.pidSource = 2
-            elif svSource == 1: # BT
-                self.aw.pidcontrol.pidSource = 1
-            else:
-                self.aw.pidcontrol.pidSource = svSource+1
-            svSyncIdx = self.SVsyncSource.currentIndex()
-            if svSyncIdx == 1:
-                self.aw.pidcontrol.svSync = 2 # ET
-            elif svSyncIdx == 2:
-                self.aw.pidcontrol.svSync = 1 # BT
-            else:
-                self.aw.pidcontrol.svSync = svSyncIdx # 0: off, 3, 4, ... (extra device curves)
-        self.aw.pidcontrol.setPID(kp,ki,kd,source,cycle)
         #
         self.aw.pidcontrol.pidOnCHARGE = self.startPIDonCHARGE.isChecked()
         self.aw.pidcontrol.pidOffDROP = self.stopPIDonDROP.isChecked()
@@ -1313,6 +1613,7 @@ class PID_DlgControl(ArtisanDialog):
         self.aw.pidcontrol.svButtons = self.pidSVbuttonsFlag.isChecked()
         self.aw.pidcontrol.activateONOFFeasySV(self.aw.pidcontrol.svButtons)
         self.aw.pidcontrol.svMode = self.pidMode.currentIndex()
+        #-
         if self.aw.pidcontrol.externalPIDControl() == 0:
             self.aw.pidcontrol.positiveTargetMin = min(self.positiveTargetMin.value(),self.positiveTargetMax.value())
             self.aw.pidcontrol.positiveTargetMax = max(self.positiveTargetMin.value(),self.positiveTargetMax.value())
@@ -1323,13 +1624,69 @@ class PID_DlgControl(ArtisanDialog):
             self.aw.pidcontrol.dutyMax = max(self.dutyMin.value(),self.dutyMax.value())
             self.aw.pidcontrol.dutySteps = self.pidDutySteps.value()
             self.aw.pidcontrol.derivative_filter = int(self.derivativeFilterFlag.isChecked())
-            self.aw.pidcontrol.pidDoE = self.DoERadioButton.isChecked()
+            self.aw.pidcontrol.duty_filter = int(self.dutyFilterFlag.isChecked())
+            self.aw.pidcontrol.sv_filter = int(self.svFilterFlag.isChecked())
             self.aw.pidcontrol.pidDlimit = int(self.dLimitSpinBox.value())
             self.aw.pidcontrol.pidIlimitFactor = self.iLimitSpinBox.value()
             self.aw.pidcontrol.pidIRoCthreshold = int(self.SPthresholdSpinBox.value())
             self.aw.pidcontrol.pidIWP = self.IWPFlag.isChecked()
             self.aw.pidcontrol.pidIRoC = self.IRoCFlag.isChecked()
+            #- Gain Scheduling
+            self.aw.pidcontrol.pidGainScheduling = self.pidSchedulingFlag.isChecked()
+            self.aw.pidcontrol.pidGainSchedulingSV = self.pidSchedulingSV.isChecked()
+            self.aw.pidcontrol.pidGainSchedulingQuadratic = self.pidSchedulingQuadratic.isChecked()
+            self.aw.pidcontrol.pidKp1 = self.pidKp1.value()
+            self.aw.pidcontrol.pidKp2 = self.pidKp2.value()
+            self.aw.pidcontrol.pidKi1 = self.pidKi1.value()
+            self.aw.pidcontrol.pidKi2 = self.pidKi2.value()
+            self.aw.pidcontrol.pidKd1 = self.pidKd1.value()
+            self.aw.pidcontrol.pidKd2 = self.pidKd2.value()
+            self.aw.pidcontrol.pidSchedule0 = self.pidSchedule0.value()
+            self.aw.pidcontrol.pidSchedule1 = self.pidSchedule1.value()
+            self.aw.pidcontrol.pidSchedule2 = self.pidSchedule2.value()
+
         self.aw.pidcontrol.svLookahead = self.pidSVLookahead.value()
+        kp = self.pidKp.value() # 5.00
+        ki = self.pidKi.value() # 0.15
+        kd = self.pidKd.value() # 0.00
+        source:int|None = None
+        cycle:int|None = None
+        pid_controller = self.aw.pidcontrol.externalPIDControl()
+        if pid_controller in {0, 3, 4}: # only Internal PID and TC4/Kaleido
+            pidSourceIdx = self.pidSource.currentIndex()
+            if self.aw.qmc.device == 19 and self.aw.qmc.PIDbuttonflag:
+                source = self.pidSource.currentIndex()+1 # one of the 4 TC channels, 1,..4
+            elif pidSourceIdx == 0:
+                source = 2 # ET
+            elif pidSourceIdx == 1:
+                source = 1 # BT
+            else:
+                source = pidSourceIdx + 1 # 3, 4, ... (extra device curves)
+            if pid_controller in {3, 4}: # only TC4/Kaleido
+                cycle = self.pidCycle.value() # def 1000 in ms
+            if pid_controller == 0: # internal software PID
+                if not (self.aw.qmc.device == 19 and self.aw.qmc.PIDbuttonflag): # don't show Targets if TC4 firmware PID is in use
+                    self.aw.pidcontrol.pidPositiveTarget = self.positiveControlCombo.currentIndex()
+                    self.aw.pidcontrol.pidNegativeTarget = self.negativeControlCombo.currentIndex()
+                    self.aw.pidcontrol.invertControl = self.invertControlFlag.isChecked()
+                # we configure all parameters of the software pid from current pidcontrol settings
+                self.aw.pidcontrol.confSoftwarePID()
+        if pid_controller in {1, 2}: # external MODBUS/S7 PID control
+            svSource = self.pidSource.currentIndex()
+            if svSource == 0: # ET
+                self.aw.pidcontrol.pidSource = 2
+            elif svSource == 1: # BT
+                self.aw.pidcontrol.pidSource = 1
+            else:
+                self.aw.pidcontrol.pidSource = svSource+1
+            svSyncIdx = self.SVsyncSource.currentIndex()
+            if svSyncIdx == 1:
+                self.aw.pidcontrol.svSync = 2 # ET
+            elif svSyncIdx == 2:
+                self.aw.pidcontrol.svSync = 1 # BT
+            else:
+                self.aw.pidcontrol.svSync = svSyncIdx # 0: off, 3, 4, ... (extra device curves)
+        self.aw.pidcontrol.setPID(kp,ki,kd,source,cycle)
         #
         self.aw.PID_DlgControl_activeTab = self.tabWidget.currentIndex()
         #
@@ -2127,7 +2484,7 @@ class PXRpidDlgControl(PXpidDlgControl):
         string += QApplication.translate('Message','Output status while ramp/soak operation set to OFF: {0}').format(mode[3]) + '\n'
         string += QApplication.translate('Message','\nRepeat Operation at the end: {0}').format(mode[4]) + '\n'
         string += '-----------------------------------------------------------------------\n'
-        string += QApplication.translate('Message','Recomended Mode = 0') + '\n\n'
+        string += QApplication.translate('Message','Recommended Mode = 0') + '\n\n'
         string += QApplication.translate('Message','If you need to change it, change it now and come back later') + '\n'
         string += QApplication.translate('Message','Use the Parameter Loader Software by Fuji if you need to\n\n') + '\n\n\n'
         string += QApplication.translate('Message','Continue?')
