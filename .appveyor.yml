@@ -18,7 +18,7 @@
 # Include "skip ci" in the commit message to prevent this build process from running
 environment:
   # Set the default Appveyor Python version here. Does not affect windows_legacy. Can be overridden in platform environment.
-  PYTHON_V: 3.14
+  PYTHON_V: 3.13
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
   #PYUPGRADE_WIN_VER: 3.14.0
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
@@ -26,10 +26,10 @@ environment:
   matrix:
   - job_name: windows
     appveyor_build_worker_image: Visual Studio 2022
-#  - job_name: macos
-#    appveyor_build_worker_image: macos-ventura
-#  - job_name: linux
-#    appveyor_build_worker_image: Ubuntu2204
+  - job_name: macos
+    appveyor_build_worker_image: macos-ventura
+  - job_name: linux
+    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -115,8 +115,8 @@ for:
     - cmd: if "%PYTHON_V%"=="3.14" (echo *** PATCH pylupdate6 for Python 3.14)
     - cmd: if "%PYTHON_V%"=="3.14" (copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py)
 
-#dave
-    - cmd: exit /b 0
+    # Pause Build Here For Remote Desktop Access
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
   build_script:
     - cmd: echo Windows Build
@@ -178,6 +178,10 @@ for:
     - .ci/install-macos.sh
     - export PATH=/Users/appveyor/venv${PYTHON_V}/bin:${PATH} # required after updating Python in venv
 
+    # Pause Build Here For SSH Access
+    - sh: export APPVEYOR_SSH_BLOCK=true
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+    
   build_script:
     - echo "MacOS Build"
     - chmod +x src/*.sh
@@ -241,6 +245,10 @@ for:
 
     # run the install script
     - .ci/install-linux.sh
+
+    # Pause Build Here For SSH Access
+    - sh: export APPVEYOR_SSH_BLOCK=true
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
   build_script:
     - echo "Linux Build"
