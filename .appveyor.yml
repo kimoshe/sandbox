@@ -1,6 +1,6 @@
 # ABOUT
 # Appveyor CI configuration to build Artisan install packages
-#     for Windows, Windows legacy, macOS, and Linux
+#     for Windows, macOS (Intel), and Linux
 #
 # LICENSE
 # This program or module is free software: you can redistribute it and/or
@@ -17,7 +17,7 @@
 
 # Include "skip ci" in the commit message to prevent this build process from running
 environment:
-  # Set the default Appveyor Python version here. Does not affect windows_legacy. Can be overridden in platform environment.
+  # Set the default Appveyor Python version here. Can be overridden in platform environment.
   PYTHON_V: 3.13
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
   PYUPGRADE_WIN_VER: 3.14.0
@@ -26,8 +26,8 @@ environment:
   matrix:
   - job_name: windows
     appveyor_build_worker_image: Visual Studio 2022
-#  - job_name: macos
-#    appveyor_build_worker_image: macos-ventura
+  - job_name: macos
+    appveyor_build_worker_image: macos-ventura
   - job_name: linux
     appveyor_build_worker_image: Ubuntu2204
 
@@ -68,7 +68,6 @@ for:
     PYQT: "6"
     PYUIC: "pyuic6.exe"
     BUILD_PYINSTALLER: "False"
-    ARTISAN_LEGACY: "False"
     VC_REDIST: "https://aka.ms/vs/17/release/vc_redist.x64.exe"  #redistributable for VS 2015-2022
     VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
 
@@ -142,9 +141,9 @@ for:
   deploy_script:
     - cmd: bash ../.ci/upload.sh artisan-win*setup.exe
 
-  # uncomment this section for remote desktop connection to build image
-  on_finish:
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#  # uncomment this section for remote desktop connection to build image
+#  on_finish:
+#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 
 -
@@ -166,9 +165,6 @@ for:
   install:
     - echo "MacOS Install"
     - chmod +x .ci/*.sh
-
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
     # update the __revision__ field with the left seven of the GIT commit hash
     - export GIT_VERSION=`git rev-parse --verify --short HEAD 2>/dev/null|| echo "???"`
@@ -203,10 +199,10 @@ for:
     #- brew upgrade libidn2 # 2.3.4 -> 2.3.4_1
     - ../.ci/upload.sh artisan-*.dmg
 
-  # uncomment this section for ssh connection to the build image
-  on_finish:
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+#  # uncomment this section for ssh connection to the build image
+#  on_finish:
+#    - sh: export APPVEYOR_SSH_BLOCK=true
+#    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
 
 -
@@ -265,7 +261,7 @@ for:
     - ../.ci/upload.sh artisan-*.rpm
     - ../.ci/upload.sh artisan-*.AppImage
 
-  # uncomment this section for ssh connection to build image
-  on_finish:
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+#  # uncomment this section for ssh connection to build image
+#  on_finish:
+#    - sh: export APPVEYOR_SSH_BLOCK=true
+#    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
