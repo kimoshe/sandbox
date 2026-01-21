@@ -158,7 +158,7 @@ for:
     ARTISAN_OS: macos
     MACOSX_DEPLOYMENT_TARGET: 13.0
     #PYTHONSITEPKGS: /Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
-    PYTHONSITEPKGS: /Users/appveyor/venv$3.14/lib/python$3.14/site-packages
+    PYTHONSITEPKGS: /Users/appveyor/venv3.14/lib/python3.14/site-packages
     QT_PATH: ${PYTHONSITEPKGS}/PyQt6/Qt6
     QT_SRC_PATH: /Users/appveyor/Qt/6.6/macos
     PYUIC: pyuic6
@@ -172,18 +172,10 @@ for:
     - export GIT_VERSION=`git rev-parse --verify --short HEAD 2>/dev/null|| echo "???"`
     - sed -i'' -e "s/__revision__ = '.*'/__revision__ = '$GIT_VERSION'/" src/artisanlib/__init__.py
         
-    # Pause, open SSH
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
-
     # upgrade python 
     - echo "Deactivating any active virtual environment"
     - if [ -n "$VIRTUAL_ENV" ]; then echo "Current virtual environment path: $VIRTUAL_ENV"; else echo "No virtual environment active"; fi 
     - deactivate || echo "No active virtual environment found"
-
-    # Pause, open SSH
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
     - echo "Downloading Python 3.14 installer"
     - curl -O https://www.python.org/ftp/python/3.14.0/python-3.14.0-macos11.pkg
@@ -194,13 +186,13 @@ for:
  
     # Create and activate a new virtual environment
     - echo "Creating virtual environment"
-    - python3 -m venv venv
+    - python3 -m venv /Users/appveyor/venv3.14
     - echo "Activating virtual environment"
     - source venv/bin/activate
     
     # Pause, open SSH
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+#    - sh: export APPVEYOR_SSH_BLOCK=true
+#       - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
     
     # run the install script
     - .ci/install-macos.sh
