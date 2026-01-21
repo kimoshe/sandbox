@@ -157,7 +157,8 @@ for:
     PYTHON_V: 3.12  # Override the stack key
     ARTISAN_OS: macos
     MACOSX_DEPLOYMENT_TARGET: 13.0
-    PYTHONSITEPKGS: /Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
+    #PYTHONSITEPKGS: /Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
+    PYTHONSITEPKGS: /Users/appveyor/venv$3.14/lib/python$3.14/site-packages
     QT_PATH: ${PYTHONSITEPKGS}/PyQt6/Qt6
     QT_SRC_PATH: /Users/appveyor/Qt/6.6/macos
     PYUIC: pyuic6
