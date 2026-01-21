@@ -184,6 +184,11 @@ for:
     - echo "Setting PATH for Python 3.14"
     - export PATH="/usr/local/bin:$PATH"
  
+    # Update the environment
+    - export PYTHON_V="${PYTHON_V_FULL%.*}"
+    - export PYTHONSITEPKGS="/Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages"
+    - export QT_PATH="${PYTHONSITEPKGS}/PyQt6/Qt6"
+
     # Create and activate a new virtual environment
     - echo "Creating virtual environment"
     - python3 -m venv /Users/appveyor/venv${PYTHON_V}
@@ -194,11 +199,6 @@ for:
     # This is just a test now, the link is not used.    
     - ln -s /Users/appveyor/venv${PYUPGRADE_MACOS_V} /Users/appveyor/venv${PYTHON_V}
         
-    # Update the environment
-    - export PYTHON_V="${PYTHON_V_FULL%.*}"
-    - export PYTHONSITEPKGS="/Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages"
-    - export QT_PATH="${PYTHONSITEPKGS}/PyQt6/Qt6"
-
    
     # Pause, open SSH
     - sh: export APPVEYOR_SSH_BLOCK=true
