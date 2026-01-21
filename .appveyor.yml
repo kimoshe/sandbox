@@ -173,7 +173,13 @@ for:
     - sed -i'' -e "s/__revision__ = '.*'/__revision__ = '$GIT_VERSION'/" src/artisanlib/__init__.py
         
     # upgrade python 
+    - echo "Deactivating any active virtual environment"
+    - echo "Current virtual environment path: $VIRTUAL_ENV"
     - deactivate || echo "No active virtual environment found"
+
+    # Pause, open SSH
+    - sh: export APPVEYOR_SSH_BLOCK=true
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
     - echo "Downloading Python 3.14 installer"
     - curl -O https://www.python.org/ftp/python/3.14.0/python-3.14.0-macos11.pkg
