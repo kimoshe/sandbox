@@ -155,8 +155,7 @@ for:
 
   environment:
     PYUPGRADE_MACOS_V: 3.14.0
-    PYTHON_V: ${PYTHON_V_FULL%.*}
-    #PYTHON_V: 3.12  # Override the stack key
+    PYTHON_V: 3.12  # Override the stack key
     ARTISAN_OS: macos
     MACOSX_DEPLOYMENT_TARGET: 13.0
     PYTHONSITEPKGS: /Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
@@ -194,6 +193,12 @@ for:
     # Create symbolic link
     # This is just a test now, the link is not used.    
     - ln -s /Users/appveyor/venv${PYUPGRADE_MACOS_V} /Users/appveyor/venv${PYTHON_V}
+        
+    # Update the environment
+    - export PYTHON_V="${PYTHON_V_FULL%.*}"
+    - export PYTHONSITEPKGS="/Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages"
+    - export QT_PATH="${PYTHONSITEPKGS}/PyQt6/Qt6"
+
    
     # Pause, open SSH
     - sh: export APPVEYOR_SSH_BLOCK=true
