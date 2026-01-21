@@ -172,16 +172,22 @@ for:
     - sed -i'' -e "s/__revision__ = '.*'/__revision__ = '$GIT_VERSION'/" src/artisanlib/__init__.py
         
     # upgrade python 
-    - deactivate
-    - brew update
-    - brew install python@3.14
-    - echo "Setting PATH for Python 3.14"
-    - export PATH="/usr/local/opt/python@3.14/bin:$PATH"
+    - deactivate || echo "No active virtual environment found"
 
+    - echo "Downloading Python 3.14 installer"
+    - curl -O https://www.python.org/ftp/python/3.14.0/python-3.14.0-macos11.pkg
+    - echo "Installing Python 3.14"
+    - sudo installer -pkg python-3.14.0-macos11.pkg -target /
+    - echo "Setting PATH for Python 3.14"
+    - export PATH="/usr/local/bin:$PATH"
+ 
+    # Create and activate a new virtual environment
     - echo "Creating virtual environment"
     - python3 -m venv venv
     - echo "Activating virtual environment"
-    - source venv/bin/activate  # Activates the virtual environment
+    - source venv/bin/activate
+    
+    # Pause, open SSH
     - sh: export APPVEYOR_SSH_BLOCK=true
     - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
     
