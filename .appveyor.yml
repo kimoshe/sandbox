@@ -24,12 +24,12 @@ environment:
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   matrix:
-  - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2022
+#  - job_name: windows
+#    appveyor_build_worker_image: Visual Studio 2022
   - job_name: macos
     appveyor_build_worker_image: macos-ventura
-  - job_name: linux
-    appveyor_build_worker_image: Ubuntu2204
+#  - job_name: linux
+#    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -170,7 +170,21 @@ for:
     # update the __revision__ field with the left seven of the GIT commit hash
     - export GIT_VERSION=`git rev-parse --verify --short HEAD 2>/dev/null|| echo "???"`
     - sed -i'' -e "s/__revision__ = '.*'/__revision__ = '$GIT_VERSION'/" src/artisanlib/__init__.py
+        
+    # upgrade python 
+    - deactivate
+    - brew update
+    - brew install python@3.14
+    - echo "Setting PATH for Python 3.14"
+    - export PATH="/usr/local/opt/python@3.14/bin:$PATH"
 
+    - echo "Creating virtual environment"
+    - python3 -m venv venv
+    - echo "Activating virtual environment"
+    - source venv/bin/activate  # Activates the virtual environment
+    - sh: export APPVEYOR_SSH_BLOCK=true
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+    
     # run the install script
     - .ci/install-macos.sh
     - export PATH=/Users/appveyor/venv${PYTHON_V}/bin:${PATH} # required after updating Python in venv
