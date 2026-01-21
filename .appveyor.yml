@@ -174,7 +174,6 @@ for:
         
     # upgrade python 
     - echo "Deactivating any active virtual environment"
-    - if [ -n "$VIRTUAL_ENV" ]; then echo "Current virtual environment path: $VIRTUAL_ENV"; else echo "No virtual environment active"; fi 
     - deactivate || echo "No active virtual environment found"
 
     - echo "Downloading Python 3.14 installer"
