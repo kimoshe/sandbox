@@ -196,13 +196,13 @@ for:
     - source /Users/appveyor/venv${PYTHON_V}/bin/activate
  
     # Create symbolic link
-    # This is just a test now, the link is not used.    
+    # This is just a test now, the link is not used.  It does not work as expected.  REMOVE
     - ln -s /Users/appveyor/venv${PYUPGRADE_MACOS_V} /Users/appveyor/venv${PYTHON_V}
         
    
     # Pause, open SSH
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+#    - sh: export APPVEYOR_SSH_BLOCK=true
+#    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
     
     # run the install script
     - .ci/install-macos.sh
