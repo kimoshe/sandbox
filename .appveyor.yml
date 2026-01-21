@@ -185,7 +185,7 @@ for:
     - export PATH="/usr/local/bin:$PATH"
  
     # Update the environment
-    - export PYTHON_V="${PYTHON_V_FULL%.*}"
+    - export PYTHON_V="${PYUPGRADE_MACOS_V%.*}"
     - export PYTHONSITEPKGS="/Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages"
     - export QT_PATH="${PYTHONSITEPKGS}/PyQt6/Qt6"
 
