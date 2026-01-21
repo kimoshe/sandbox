@@ -180,7 +180,7 @@ for:
     - echo "Downloading Python 3.14 installer"
     - curl -O https://www.python.org/ftp/python/${PYUPGRADE_MACOS_V}/python-${PYUPGRADE_MACOS_V}-macos11.pkg
     - echo "Installing Python 3.14"
-    - sudo installer -pkg python${PYUPGRADE_MACOS_V}-macos11.pkg -target /
+    - sudo installer -pkg python-${PYUPGRADE_MACOS_V}-macos11.pkg -target /
     - echo "Setting PATH for Python 3.14"
     - export PATH="/usr/local/bin:$PATH"
  
