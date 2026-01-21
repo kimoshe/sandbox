@@ -174,7 +174,7 @@ for:
         
     # upgrade python 
     - echo "Deactivating any active virtual environment"
-    - echo "Current virtual environment path: $VIRTUAL_ENV"
+    - printf "Current virtual environment path: %s\n" "$VIRTUAL_ENV"
     - deactivate || echo "No active virtual environment found"
 
     # Pause, open SSH
