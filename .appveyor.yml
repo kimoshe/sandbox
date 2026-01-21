@@ -197,7 +197,7 @@ for:
    
     # Pause, open SSH
     - sh: export APPVEYOR_SSH_BLOCK=true
-       - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
     
     # run the install script
     - .ci/install-macos.sh
