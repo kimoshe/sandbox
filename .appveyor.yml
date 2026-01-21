@@ -187,7 +187,7 @@ for:
     - echo "Creating virtual environment"
     - python3 -m venv /Users/appveyor/venv3.14
     - echo "Activating virtual environment"
-    - source venv/bin/activate
+    - source /Users/appveyor/venv3.14/bin/activate
     
     # Pause, open SSH
 #    - sh: export APPVEYOR_SSH_BLOCK=true
