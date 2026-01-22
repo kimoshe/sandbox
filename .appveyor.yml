@@ -177,10 +177,8 @@ for:
     - deactivate || echo "No active virtual environment found"
     - echo "Downloading Python ${PYUPGRADE_MACOS_V} installer"
     - curl -O https://www.python.org/ftp/python/${PYUPGRADE_MACOS_V}/python-${PYUPGRADE_MACOS_V}-macos11.pkg
-    - echo "Installing Python  ${PYUPGRADE_MACOS_V}"
+    - echo "Installing Python ${PYUPGRADE_MACOS_V}"
     - sudo installer -pkg python-${PYUPGRADE_MACOS_V}-macos11.pkg -target /
-    - echo "Setting PATH for Python  ${PYUPGRADE_MACOS_V}"
-    #- export PATH="/usr/local/bin:$PATH"
  
     # Update the environment
     - export PYTHON_V="${PYUPGRADE_MACOS_V%.*}"
@@ -194,17 +192,14 @@ for:
     - source /Users/appveyor/venv${PYTHON_V}/bin/activate
  
     # Create symbolic link
-    # This is just a test now, the link is not used.  It does not work as expected.  REMOVE
     - ln -s /Users/appveyor/venv${PYTHON_V} /Users/appveyor/venv${PYUPGRADE_MACOS_V}
-        
    
-    # Pause, open SSH
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
-    
     # run the install script
     - .ci/install-macos.sh
-    - export PATH=/Users/appveyor/venv${PYTHON_V}/bin:${PATH} # required after updating Python in venv
+    #- export PATH=/Users/appveyor/venv${PYTHON_V}/bin:${PATH} # required after updating Python in venv
+
+    - sh: export APPVEYOR_SSH_BLOCK=true
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
   build_script:
     - echo "MacOS Build"
