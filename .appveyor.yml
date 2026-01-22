@@ -158,10 +158,9 @@ for:
     PYTHON_V: 3.12  # Override the stack key
     ARTISAN_OS: macos
     MACOSX_DEPLOYMENT_TARGET: 13.0
-    PYTHONSITEPKGS: /Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
-#    PYTHONSITEPKGS: /Users/appveyor/venv3.14/lib/python3.14/site-packages
-    QT_PATH: ${PYTHONSITEPKGS}/PyQt6/Qt6
-    QT_SRC_PATH: /Users/appveyor/Qt/6.6/macos
+    #PYTHONSITEPKGS: /Users/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
+    #QT_PATH: ${PYTHONSITEPKGS}/PyQt6/Qt6
+    #QT_SRC_PATH: /Users/appveyor/Qt/6.6/macos
     PYUIC: pyuic6
     PYLUPDATE: ./pylupdate6pro.py  #the dot slash is necessary
 
@@ -174,14 +173,13 @@ for:
     - sed -i'' -e "s/__revision__ = '.*'/__revision__ = '$GIT_VERSION'/" src/artisanlib/__init__.py
         
     # upgrade python 
-    - echo "Deactivating any active virtual environment"
+    - echo "Deactivating the active virtual environment"
     - deactivate || echo "No active virtual environment found"
-
-    - echo "Downloading Python 3.14 installer"
+    - echo "Downloading Python ${PYUPGRADE_MACOS_V} installer"
     - curl -O https://www.python.org/ftp/python/${PYUPGRADE_MACOS_V}/python-${PYUPGRADE_MACOS_V}-macos11.pkg
-    - echo "Installing Python 3.14"
+    - echo "Installing Python  ${PYUPGRADE_MACOS_V}"
     - sudo installer -pkg python-${PYUPGRADE_MACOS_V}-macos11.pkg -target /
-    - echo "Setting PATH for Python 3.14"
+    - echo "Setting PATH for Python  ${PYUPGRADE_MACOS_V}"
     - export PATH="/usr/local/bin:$PATH"
  
     # Update the environment
@@ -197,12 +195,12 @@ for:
  
     # Create symbolic link
     # This is just a test now, the link is not used.  It does not work as expected.  REMOVE
-    - ln -s /Users/appveyor/venv${PYUPGRADE_MACOS_V} /Users/appveyor/venv${PYTHON_V}
+    - ln -s /Users/appveyor/venv${PYUPGRADE_V} /Users/appveyor/venv${PYUPGRADE_MACOS_V}
         
    
     # Pause, open SSH
-#    - sh: export APPVEYOR_SSH_BLOCK=true
-#    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+    - sh: export APPVEYOR_SSH_BLOCK=true
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
     
     # run the install script
     - .ci/install-macos.sh
