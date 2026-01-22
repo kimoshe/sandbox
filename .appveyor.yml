@@ -180,7 +180,7 @@ for:
     - echo "Installing Python  ${PYUPGRADE_MACOS_V}"
     - sudo installer -pkg python-${PYUPGRADE_MACOS_V}-macos11.pkg -target /
     - echo "Setting PATH for Python  ${PYUPGRADE_MACOS_V}"
-    - export PATH="/usr/local/bin:$PATH"
+    #- export PATH="/usr/local/bin:$PATH"
  
     # Update the environment
     - export PYTHON_V="${PYUPGRADE_MACOS_V%.*}"
@@ -195,7 +195,7 @@ for:
  
     # Create symbolic link
     # This is just a test now, the link is not used.  It does not work as expected.  REMOVE
-    - ln -s /Users/appveyor/venv${PYUPGRADE_V} /Users/appveyor/venv${PYUPGRADE_MACOS_V}
+    - ln -s /Users/appveyor/venv${PYTHON_V} /Users/appveyor/venv${PYUPGRADE_MACOS_V}
         
    
     # Pause, open SSH
