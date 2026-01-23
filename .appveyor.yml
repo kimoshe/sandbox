@@ -154,7 +154,7 @@ for:
     fast_finish: false
 
   environment:
-    PYTHON_UPGRADE_V: 3.14.0  # Upgrade to this version
+    PYTHON_UPGRADE_V: 3.14.2  # Upgrade to this version
     PYTHON_V: 3.12  # Override the stack key with latest Appveyor version
     ARTISAN_OS: macos
     MACOSX_DEPLOYMENT_TARGET: 13.0
@@ -232,6 +232,7 @@ for:
     fast_finish: false
 
   environment:
+    PYTHON_UPGRADE_V: 3.14  # Upgrade to this version (installs the latest dot release)
     PYTHON_V: 3.13  # Override the stack key
     ARTISAN_OS: linux
     PYTHONSITEPKGS: /home/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
@@ -250,10 +251,10 @@ for:
     - sudo apt install -y software-properties-common
     - sudo add-apt-repository -y ppa:deadsnakes/ppa
     - sudo apt update
-    - sudo apt install -y python3.14 python3.14-venv libpython3.14
+    - sudo apt install -y python${PYTHON_UPGRADE_V} python${PYTHON_UPGRADE_V}-venv libpython${PYTHON_UPGRADE_V}
 
-    - python3.14 -m venv venv3.14
-    - source venv3.14/bin/activate
+    - python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
+    - source venv${PYTHON_UPGRADE_V}/bin/activate
 
     - python -m pip --version
     - which python
