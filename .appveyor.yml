@@ -244,6 +244,23 @@ for:
     #- ls -la /home/appveyor/Qt/
     - echo "Linux Install"
     - chmod +x .ci/*.sh
+        
+    # Upgrade Python version
+    - sudo apt update
+    - sudo apt install -y software-properties-common
+    - sudo add-apt-repository -y ppa:deadsnakes/ppa
+    - sudo apt update
+    - sudo apt install -y python3.14 python3.14-venv
+
+    - python3.14 -m venv venv3.14
+    - source venv3.14/bin/activate
+
+    - python -m pip --version
+    - which python
+    - python3 -V
+    - sh: export APPVEYOR_SSH_BLOCK=true
+    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+
 
     # pull library versions from requirments file
     - ps: $env:LIBUSB_VER = Select-String -Path ./src/requirements.txt "libusb==([\d\.]*).*platform_system='Linux'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
@@ -254,9 +271,6 @@ for:
     # update the __revision__ field with the left seven of the GIT commit hash
     - export GIT_VERSION=`git rev-parse --verify --short HEAD 2>/dev/null|| echo "???"`
     - sed -i'' -e "s/__revision__ = '.*'/__revision__ = '$GIT_VERSION'/" src/artisanlib/__init__.py
-
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
     # run the install script
     - .ci/install-linux.sh
