@@ -58,6 +58,8 @@ fi
 
 pyinstaller -y --log-level=INFO artisan-linux.spec
 
+echo "*** DONE PYINSTALLER"
+
 mv dist/artisan dist/artisan.d
 mv dist/artisan.d/* dist
 rm -rf dist/artisan.d
@@ -174,6 +176,8 @@ SUPPORTED_LANGUAGES="ar cs da de el en es fa fi fr gd he hu id it ja ko lv nl no
 # the following produces a (harmless) warning log entry on generating PDF reports as locales cannot be found
 rm -rf dist/_internal/PyQt6/Qt6/translations/qtwebengine_locales
 
+echo "*** START TRANSLATIONS"
+
 for qttrans in $(find dist/_internal/PyQt6/Qt6/translations -type f -name "*.qm"); do
     qttrans_filename="${qttrans##*/}"
     match=0
@@ -188,6 +192,7 @@ for qttrans in $(find dist/_internal/PyQt6/Qt6/translations -type f -name "*.qm"
     fi
 done
 
+echo "*** DONE TRANSLATIONS"
 
 # remove unused QML files
 
