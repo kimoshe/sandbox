@@ -58,8 +58,6 @@ fi
 
 pyinstaller -y --log-level=INFO artisan-linux.spec
 
-echo "*** DONE PYINSTALLER"
-
 mv dist/artisan dist/artisan.d
 mv dist/artisan.d/* dist
 rm -rf dist/artisan.d
@@ -138,9 +136,9 @@ cp -R includes/Icons/* dist/Icons
 # remove unused Qt modules
 
 keep_qt_modules="libQt6Bluetooth libQt6Concurrent libQt6Core libQt6DBus libQt6Gui libQt6Network
- libQt6OpenGL libQt6Positioning libQt6PrintSupport libQt6Qml libQt6QmlModels libQt6Quick libQt6QuickWidgets
+ libQt6OpenGL libQt6Positioning libQt6PrintSupport libQt6Qml libQt6QmlModels libQt6QmlMeta libQt6Quick libQt6QuickWidgets
  libQt6Svg libQt6WaylandClient libQt6WaylandEglClientHwIntegration libQt6WebChannel libQt6WebEngineCore
- libQt6WebEngineWidgets libQt6Widgets libQt6WlShellIntegration libQt6XcbQpa"
+ libQt6WebEngineWidgets libQt6Widgets libQt6WlShellIntegration libQt6XcbQpa libQt6QmlWorkerScript"
 
 for qtlib in $(find dist/_internal/PyQt6/Qt6/lib -type f -name "libQt6*.so.*"); do
     qtlib_filename="${qtlib##*/}"
@@ -176,8 +174,6 @@ SUPPORTED_LANGUAGES="ar cs da de el en es fa fi fr gd he hu id it ja ko lv nl no
 # the following produces a (harmless) warning log entry on generating PDF reports as locales cannot be found
 rm -rf dist/_internal/PyQt6/Qt6/translations/qtwebengine_locales
 
-echo "*** START TRANSLATIONS"
-
 for qttrans in $(find dist/_internal/PyQt6/Qt6/translations -type f -name "*.qm"); do
     qttrans_filename="${qttrans##*/}"
     match=0
@@ -192,7 +188,6 @@ for qttrans in $(find dist/_internal/PyQt6/Qt6/translations -type f -name "*.qm"
     fi
 done
 
-echo "*** DONE TRANSLATIONS"
 
 # remove unused QML files
 

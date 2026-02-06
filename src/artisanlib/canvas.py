@@ -61,7 +61,7 @@ if TYPE_CHECKING:
     from PyQt6.QtGui import QResizeEvent # pylint: disable=unused-import
 
 from artisanlib.util import (uchr, fill_gaps, deltaLabelPrefix, deltaLabelUTF8, deltaLabelMathPrefix, stringfromseconds,
-        fromFtoC, fromFtoCstrict, fromCtoF, fromCtoFstrict, RoRfromFtoC, RoRfromFtoCstrict, RoRfromCtoF, toInt, toString,
+        fromFtoC, fromFtoCstrict, fromCtoF, fromCtoFstrict, RoRfromFtoC, RoRfromFtoCstrict, RoRfromCtoF, RoRfromCtoFstrict, toInt, toString,
         toFloat, application_name, getResourcePath, getDirectory, convertWeight, right_to_left, float2str,
         abbrevString, scaleFloat2String, is_proper_temp, weight_units, render_weight, volume_units, float2float, timearray2index,
         events_internal_to_external_value, events_external_to_internal_value)
@@ -252,7 +252,7 @@ class tgraphcanvas(QObject):
     __slots__ = [ 'aw', 'canvas', 'alignnames', 'locale_str', 'alpha', 'palette', 'palette1', 'EvalueColor_default', 'EvalueTextColor_default', 'artisanflavordefaultlabels', 'customflavorlabels',
         'SCAAflavordefaultlabels', 'SCAflavordefaultlabels', 'CQIflavordefaultlabels', 'SweetMariasflavordefaultlabels', 'Cflavordefaultlabels', 'Eflavordefaultlabels', 'coffeegeekflavordefaultlabels',
         'Intelligentsiaflavordefaultlabels', 'IstitutoInternazionaleAssaggiatoriCaffe', 'WorldCoffeeRoastingChampionship', 'ax1', 'ax2', 'ambiWorker', 'ambiThread', 'afterTP',
-        'decay_weights', 'temp_decay_weights', 'flavorlabels', 'flavors', 'flavors_total_correction', 'flavorstartangle', 'flavoraspect', 'flavorchart_plotf', 'flavorchart_angles', 'flavorchart_plot',
+        'decay_weights', 'temp_decay_weights', 'flavorlabels', 'flavors', 'flavors_total_correction', 'flavorstartangle', 'flavoraspect', 'flavorchart_plotf', 'flavorchart_angles', 'flavorchart_plot', 'flavorchart_background_plot',
         'flavorchart_fill', 'flavorchart_labels', 'flavorchart_total', 'mode', 'mode_tempsliders', 'errorlog', 'default_delay', 'delay', 'min_delay', 'extra_event_sampling_delay',
         'phases_fahrenheit_defaults', 'phases_celsius_defaults', 'phases', 'phasesbuttonflag', 'phasesfromBackgroundflag', 'watermarksflag', 'step100temp', 'phasesLCDflag',
         'phasesLCDmode', 'phasesLCDmode_l', 'phasesLCDmode_all', 'statisticsflags', 'statisticsmode', 'AUCbegin', 'AUCbase', 'AUCbaseFlag', 'AUCtarget', 'AUCbackground',
@@ -574,6 +574,7 @@ class tgraphcanvas(QObject):
         self.flavorchart_plotf:list[float]|None = None
         self.flavorchart_angles:list[float]|None = None
         self.flavorchart_plot:Line2D|None = None
+        self.flavorchart_background_plot:Line2D|None = None
         self.flavorchart_fill:PolyCollection|None = None
         self.flavorchart_labels:list[Annotation]|None = None
         self.flavorchart_total:Text|None = None
@@ -1819,7 +1820,7 @@ class tgraphcanvas(QObject):
         self.specialeventannotations:list[str] = ['','','','']
         self.specialeventannovisibilities:list[int] = [0,0,0,0]
         self.specialeventplaybackaid:list[bool] = [True, True, True, True]          # per event type decides if playback aid is active (note that eventtype 4 "--" is not replayed)
-        self.specialeventplayback:list[bool] = [True, True, True, True]             # per event type decides if background events are play-backed or not
+        self.specialeventplayback:list[bool] = [False, False, False, False]         # per event type decides if background events are play-backed or not
         self.specialeventplaybackramp:list[bool] = [False, False, False, False]     # per event type decides if playback ramping is applied or not
         self.ramp_lookahead:int = 0 # lookahead of ramping event replay in seconds
         self.overlappct:int = 100
@@ -1975,8 +1976,8 @@ class tgraphcanvas(QObject):
         # RoR display limits
         # user configurable RoR limits (only applied if flag is True; applied before TP during recording as well as full redraw)
         self.RoRlimitFlag:bool = True
-        self.RoRlimit:int = 113 # 113F/min = 45C/min # was 95F/min
-        self.RoRlimitm:int = 14 # 14F/min = -10C/min # was: -95F/min
+        self.RoRlimit:int = int(round(RoRfromCtoFstrict(45))) # 81F/min = 45C/min # was 95F/min
+        self.RoRlimitm:int = int(round(RoRfromCtoFstrict(-10))) # -18F/min = -10C/min # was: -95F/min
         # system fixed RoR limits (only applied if flag is True; usually higher than the user configurable once and always applied)
         self.maxRoRlimit: Final[int] = 170
         # axis limits
@@ -3201,9 +3202,9 @@ class tgraphcanvas(QObject):
                         if isinstance(event.ind, int): # pyright:ignore[reportAttributeAccessIssue] # "PickEvent" has no attribute "ind"
                             ind = event.ind # pyright:ignore[reportAttributeAccessIssue] # "PickEvent" has no attribute "ind"
                         else:
-                            if event.ind is None or (isinstance(event.ind, (numpy.ndarray, list)) and len(event.ind) < 1) or not isinstance(event.ind[0], (int, numpy.integer)): # pyright:ignore[reportAttributeAccessIssue,reportUnknownArgumentType] # "PickEvent" has no attribute "ind"
+                            if event.ind is None or (isinstance(event.ind, (numpy.ndarray, list)) and len(event.ind) < 1) or not isinstance(event.ind[0], (int, numpy.integer)): # pyright:ignore[reportAttributeAccessIssue,reportUnknownArgumentType] # ty:ignore[not-subscriptable] # "PickEvent" has no attribute "ind"
                                 return
-                            ind = event.ind[-1] # pyright:ignore[reportAttributeAccessIssue] # "PickEvent" has no attribute "ind"
+                            ind = event.ind[-1] # pyright:ignore[reportAttributeAccessIssue] # ty:ignore[not-subscriptable] # "PickEvent" has no attribute "ind"
                         digits = (1 if self.LCDdecimalplaces else 0)
                         if event_artist in [self.l_backgroundeventtype1dots,self.l_backgroundeventtype2dots,self.l_backgroundeventtype3dots,self.l_backgroundeventtype4dots]:
                             xdata_seq = event_artist.get_xdata()
@@ -3406,12 +3407,12 @@ class tgraphcanvas(QObject):
                         event_pos_offset = self.eventpositionbars[0]
                         event_pos_factor = self.eventpositionbars[1] - self.eventpositionbars[0]
                         event_ydata = int(round(new_value * event_pos_factor + event_pos_offset))
-                    ydata[pos] = event_ydata
+                    ydata[pos] = event_ydata # pyrefly:ignore[unsupported-operation]
                     if (not self.flagon and len(cast(list[float], ydata)) == pos + 2 and (
                         self.timeindex[6]!=0 and self.timex[self.timeindex[6]] >= cast(float, xdata[-1]) if foreground
                             else self.timeindexB[6]!=0 and self.timeB[self.timeindexB[6]] >= cast(float, xdata[-1]))):
                         # we also move the last dot up and down with the butlast
-                        ydata[-1] = ydata[-2]
+                        ydata[-1] = ydata[-2] # pyrefly:ignore[unsupported-operation]
                     ldots.set_ydata(cast(list[float], ydata))
                     # update the xdata
                     time_idx = (max(0,min(len(self.timex)-1,self.time2index(cast(float, xdata[pos])))) if foreground else
@@ -3430,7 +3431,7 @@ class tgraphcanvas(QObject):
                         time_idx = (max(0,min(len(self.timex)-1,time_idx)) if foreground else max(0,min(len(self.timeB)-1,time_idx)))
                         specialevents[ind] = time_idx
                         # update also the Artist to the final time
-                        xdata[pos] = (self.timex[time_idx] if foreground else self.timeB[time_idx])
+                        xdata[pos] = (self.timex[time_idx] if foreground else self.timeB[time_idx]) # pyrefly:ignore[unsupported-operation]
                         ldots.set_xdata(cast(list[float], xdata))
                     if foreground and xstep != 0:
                         # we redraw the selection mark only for foreground selections
@@ -3523,7 +3524,7 @@ class tgraphcanvas(QObject):
                         time_idx = max(0,min(len(self.timex)-1,self.time2index(cast(float, xdata[self.foreground_event_pos]))))
                         self.specialevents[self.foreground_event_ind] = time_idx
                         # update also the Artist to the final time
-                        xdata[self.foreground_event_pos] = self.timex[time_idx]
+                        xdata[self.foreground_event_pos] = self.timex[time_idx] # pyrefly:ignore[unsupported-operation]
                         ldots.set_xdata(cast(list[float], xdata))
                         # update the ydata
                         ydata = ldots.get_ydata()
@@ -3538,7 +3539,7 @@ class tgraphcanvas(QObject):
                             evalue_internal = self.eventsExternal2InternalValue(evalue)
                             self.specialeventsvalue[self.foreground_event_ind] = evalue_internal
                             # put back after rounding and converting back to position
-                            ydata[self.foreground_event_pos] = (evalue if self.clampEvents else (evalue*event_pos_factor)+event_pos_offset)
+                            ydata[self.foreground_event_pos] = (evalue if self.clampEvents else (evalue*event_pos_factor)+event_pos_offset)  # pyrefly:ignore[unsupported-operation]
                             if event_annos is not None:
                                 if self.foregroundShowFullflag:
                                     corrected_foreground_event_pos = self.foreground_event_pos
@@ -3618,7 +3619,7 @@ class tgraphcanvas(QObject):
                         time_idx = max(0,min(len(self.timeB)-1,self.backgroundtime2index(cast(float, xdata[self.background_event_pos]))))
                         self.backgroundEvents[self.background_event_ind] = time_idx
                         # update also the Artist to the final time
-                        xdata[self.background_event_pos] = self.timeB[time_idx]
+                        xdata[self.background_event_pos] = self.timeB[time_idx] # pyrefly:ignore[unsupported-operation]
                         ldots.set_xdata(cast(list[float], xdata))
                         # update the ydata
                         ydata = ldots.get_ydata()
@@ -3633,7 +3634,7 @@ class tgraphcanvas(QObject):
                             evalue_internal = self.eventsExternal2InternalValue(evalue)
                             self.backgroundEvalues[self.background_event_ind] = evalue_internal
                             # put back after rounding and converting back to position
-                            ydata[self.background_event_pos] = (evalue if self.clampEvents else (evalue*event_pos_factor)+event_pos_offset)
+                            ydata[self.background_event_pos] = (evalue if self.clampEvents else (evalue*event_pos_factor)+event_pos_offset)  # pyrefly:ignore[unsupported-operation]
                             if event_annos is not None:
                                 if self.backgroundShowFullflag: # extra one is added to line at the end, but without anno
                                     corrected_background_event_pos = self.background_event_pos #- max(0, len(xdata) - len(event_annos)) # before first anno there can be others line elements
@@ -3903,13 +3904,13 @@ class tgraphcanvas(QObject):
                     ydata = ldots.get_ydata()
                     if isinstance(xdata, (numpy.ndarray, list)) and isinstance(ydata, (numpy.ndarray, list)):
                         if set_x:
-                            xdata[self.foreground_event_pos] = int(round(event_xdata))
+                            xdata[self.foreground_event_pos] = int(round(event_xdata)) # pyrefly:ignore[unsupported-operation]
                             ldots.set_xdata(cast(list[float], xdata))
                         if set_y and isinstance(ydata, (numpy.ndarray, list)):
-                            ydata[self.foreground_event_pos] = max(0,event_ydata)
+                            ydata[self.foreground_event_pos] = max(0,event_ydata) # pyrefly:ignore[unsupported-operation]
                             if not self.flagon and len(cast(list[float], ydata)) == self.foreground_event_pos + 2 and (self.timeindex[6]!=0 and self.timex[self.timeindex[6]] >= cast(float, xdata[-1])):
                                 # we also move the last dot up and down with the butlast if automatically added, but only if that last one is not after DROP
-                                ydata[-1] = ydata[-2]
+                                ydata[-1] = ydata[-2] # pyrefly:ignore[unsupported-operation]
                             ldots.set_ydata(cast(list[float], ydata))
                         if event_annos is not None:
                             if self.foregroundShowFullflag:
@@ -3989,13 +3990,13 @@ class tgraphcanvas(QObject):
                             if self.background_event_pos != len(cast(list[float], xdata))-1:
                                 # there is a point right to ours
                                 new_x = min(cast(float, xdata[self.background_event_pos+1])-1,new_x)
-                            xdata[self.background_event_pos] = int(round(new_x))
+                            xdata[self.background_event_pos] = int(round(new_x))  # pyrefly:ignore[unsupported-operation]
                             ldots.set_xdata(cast(list[float], xdata))
                         if set_y:
-                            ydata[self.background_event_pos] = max(0,event_ydata)
+                            ydata[self.background_event_pos] = max(0,event_ydata)  # pyrefly:ignore[unsupported-operation]
                             if not self.flagon and len(cast(list[float], ydata)) == self.background_event_pos + 2 and (self.timeindex[6]!=0 and self.timex[self.timeindex[6]] >= cast(float, xdata[-1])):
                                 # we also move the last dot up and down with the butlast if automatically added, but only if that last one is not after DROP
-                                ydata[-1] = ydata[-2]
+                                ydata[-1] = ydata[-2] # pyrefly:ignore[unsupported-operation]
                             ldots.set_ydata(cast(list[float], ydata))
                         if event_annos is not None:
                             if self.backgroundShowFullflag:
@@ -4558,7 +4559,7 @@ class tgraphcanvas(QObject):
     def decay_average(self, tx_in:list[float], temp_in:Sequence[float|None], decay_weights:list[int]|None) -> float:
         if decay_weights is None or len(decay_weights)<2 or len(tx_in) != len(temp_in):
             if len(temp_in)>0 and temp_in[-1] is not None:
-                return temp_in[-1] # ty: ignore[invalid-return-type] # pyrefly: ignore[bad-return]
+                return temp_in[-1] # pyrefly: ignore[bad-return]
             return -1
         l = min(len(decay_weights),len(temp_in))
         # take trail of length l and remove items where temp[i]=None to fulfil precond. of numpy.interp
@@ -6643,7 +6644,7 @@ class tgraphcanvas(QObject):
                             ypoints = [self.ctemp2[-1]]
                             delta_sec = self.unfiltereddelta2_pure[-1]/60
                             for _ in range(len(xpoints)-1):
-                                ypoints.append(ypoints[-1] + delta_sec*delay) # ty:ignore[unsupported-operator] # pyrefly: ignore[unsupported-operation]
+                                ypoints.append(ypoints[-1] + delta_sec*delay) # pyrefly: ignore[unsupported-operation]
                                 delta_sec = delta_sec + deltadelta_secsec*delay
                             #plot BT curve
                             self.BTprojection_tx = xpoints.tolist()
@@ -6669,7 +6670,7 @@ class tgraphcanvas(QObject):
                             ypoints = [self.ctemp1[-1]]
                             delta_sec = self.unfiltereddelta1_pure[-1]/60
                             for _ in range(len(xpoints)-1):
-                                ypoints.append(ypoints[-1] + delta_sec*delay) # ty:ignore[unsupported-operator] # pyrefly: ignore[unsupported-operation]
+                                ypoints.append(ypoints[-1] + delta_sec*delay) # pyrefly: ignore[unsupported-operation]
                                 delta_sec = delta_sec + deltadelta_secsec*delay
                             #plot ET curve
                             self.ETprojection_tx = xpoints.tolist()
@@ -6910,7 +6911,7 @@ class tgraphcanvas(QObject):
             # this evaluates to None before TP and 0 after the event
             try:
                 for v in ['pDRY','pFCs']:
-                    if len(sample_delta2) > 0 and len(sample_delta2)>0 and sample_delta2[-1] and sample_delta2[-1] > 0:  # ty:ignore[unsupported-operator] # pyrefly: ignore[unsupported-operation]
+                    if len(sample_delta2) > 0 and len(sample_delta2)>0 and sample_delta2[-1] and sample_delta2[-1] > 0: # pyrefly: ignore[unsupported-operation]
                         mathdictionary[v] = 0
                         if v == 'pDRY':
                             if self.backgroundprofile is not None and self.timeindexB[1] and not self.autoDRYflag: # with AutoDRY, we always use the set DRY phase temperature as target
@@ -6918,7 +6919,7 @@ class tgraphcanvas(QObject):
                             else:
                                 drytarget = self.phases[1] # Drying max phases definition
                             if drytarget > sample_temp2[-1]:
-                                mathdictionary[v] = (drytarget - sample_temp2[-1])/(sample_delta2[-1]/60.) # ty:ignore[unsupported-operator] # pyrefly: ignore[unsupported-operation]
+                                mathdictionary[v] = (drytarget - sample_temp2[-1])/(sample_delta2[-1]/60.) # pyrefly: ignore[unsupported-operation]
                         elif v == 'pFCs':
                             # display expected time to reach FCs as defined in the background profile or the phases dialog
                             if self.backgroundprofile is not None and self.timeindexB[2]:
@@ -6926,7 +6927,7 @@ class tgraphcanvas(QObject):
                             else:
                                 fcstarget = self.phases[2] # FCs min phases definition
                             if fcstarget > sample_temp2[-1]:
-                                mathdictionary[v] = (fcstarget - sample_temp2[-1])/(sample_delta2[-1]/60.) # ty:ignore[unsupported-operator] # pyrefly: ignore[unsupported-operation]
+                                mathdictionary[v] = (fcstarget - sample_temp2[-1])/(sample_delta2[-1]/60.) # pyrefly: ignore[unsupported-operation]
                     else:
                         # if a prediction is not possible (before TP), we return the error value -1
                         mathdictionary[v] = -1
@@ -9771,7 +9772,7 @@ class tgraphcanvas(QObject):
                                     # re-smooth the extra background curve
                                     tx_lin = numpy.linspace(tx[0],tx[-1],len(tx))
                                 if self.xtcurveidx % 2:
-                                    if len(self.aw.extraDelta1)>n3 and self.aw.extraDelta1[n3] and self.delta_ax is not None:
+                                    if len(self.aw.extraDelta1b)>n3 and self.aw.extraDelta1b[n3] and self.delta_ax is not None:
                                         trans = self.delta_ax.transData
                                     else:
                                         trans = self.ax.transData
@@ -9783,7 +9784,7 @@ class tgraphcanvas(QObject):
                                     else:
                                         stemp3B = self.stemp1BX[n3]
                                 else:
-                                    if len(self.aw.extraDelta2)>n3 and self.aw.extraDelta2[n3] and self.delta_ax is not None:
+                                    if len(self.aw.extraDelta2b)>n3 and self.aw.extraDelta2b[n3] and self.delta_ax is not None:
                                         trans = self.delta_ax.transData
                                     else:
                                         trans = self.ax.transData
@@ -9828,7 +9829,7 @@ class tgraphcanvas(QObject):
                                     else:
                                         tx_lin = None
                                 if self.ytcurveidx % 2:
-                                    if len(self.aw.extraDelta1)>n4 and self.aw.extraDelta1[n4] and self.delta_ax is not None:
+                                    if len(self.aw.extraDelta1b)>n4 and self.aw.extraDelta1b[n4] and self.delta_ax is not None:
                                         trans = self.delta_ax.transData
                                     else:
                                         trans = self.ax.transData
@@ -9840,7 +9841,7 @@ class tgraphcanvas(QObject):
                                     else:
                                         stemp4B = self.stemp1BX[n4]
                                 else:
-                                    if len(self.aw.extraDelta2)>n4 and self.aw.extraDelta2[n4] and self.delta_ax is not None:
+                                    if len(self.aw.extraDelta2b)>n4 and self.aw.extraDelta2b[n4] and self.delta_ax is not None:
                                         trans = self.delta_ax.transData
                                     else:
                                         trans = self.ax.transData
@@ -12430,8 +12431,8 @@ class tgraphcanvas(QObject):
                 self.step100temp = int(round(fromCtoFstrict(self.step100temp)))
             self.AUCbase = int(round(fromCtoFstrict(self.AUCbase)))
             self.dropDuplicatesLimit = float2float(fromCtoFstrict(100 + self.dropDuplicatesLimit) - fromCtoFstrict(100),2)
-            self.RoRlimitm = int(round(fromCtoFstrict(self.RoRlimitm)))
-            self.RoRlimit = int(round(fromCtoFstrict(self.RoRlimit)))
+            self.RoRlimitm = int(round(RoRfromCtoFstrict(self.RoRlimitm)))
+            self.RoRlimit = int(round(RoRfromCtoFstrict(self.RoRlimit)))
             self.alarmtemperature = [(fromCtoFstrict(t) if t != 500 else t) for t in self.alarmtemperature]
         if self.ax is not None:
             self.ax.set_ylabel('F',size=16,color = self.palette['ylabel']) #Write "F" on Y axis
@@ -12464,8 +12465,8 @@ class tgraphcanvas(QObject):
                 self.step100temp = int(round(fromFtoCstrict(self.step100temp)))
             self.AUCbase = int(round(fromFtoCstrict(self.AUCbase)))
             self.dropDuplicatesLimit = float2float(fromFtoCstrict(212 + self.dropDuplicatesLimit) - fromFtoCstrict(212),2)
-            self.RoRlimitm = int(round(fromFtoCstrict(self.RoRlimitm)))
-            self.RoRlimit = int(round(fromFtoCstrict(self.RoRlimit)))
+            self.RoRlimitm = int(round(RoRfromFtoCstrict(self.RoRlimitm)))
+            self.RoRlimit = int(round(RoRfromFtoCstrict(self.RoRlimit)))
             self.alarmtemperature = [(fromFtoCstrict(t) if t != 500 else t) for t in self.alarmtemperature]
         if self.ax is not None:
             self.ax.set_ylabel('C',size=16,color = self.palette['ylabel']) #Write "C" on Y axis
@@ -12751,6 +12752,7 @@ class tgraphcanvas(QObject):
         self.flavorchart_plotf = None
         self.flavorchart_angles = None
         self.flavorchart_plot = None
+        self.flavorchart_background_plot = None
         self.flavorchart_fill = None
         self.flavorchart_labels = None
         self.flavorchart_total = None
@@ -12783,6 +12785,9 @@ class tgraphcanvas(QObject):
             # fixing yticks with matplotlib.ticker "FixedLocator"
             self.updateFlavorChartData()
             if self.flavorchart_angles is not None:
+                legend_handles:list[Line2D] = []
+                legend_labels:list[str] = []
+
                 try:
                     ticks_loc = [float(tick) for tick in self.ax1.get_yticks()] # pyrefly:ignore[not-callable]
                     self.ax1.yaxis.set_major_locator(ticker.FixedLocator(ticks_loc))
@@ -12856,6 +12861,7 @@ class tgraphcanvas(QObject):
                 self.flavorchart_total = self.ax1.text(0.,0.,txt,fontsize='x-large',
                         fontproperties=self.aw.mpl_fontproperties,color='#FFFFFF',
                         horizontalalignment='center',
+                        verticalalignment='center',
                         bbox={'facecolor':'#212121', 'alpha':0.5, 'pad':10})
 
                 #add background to plot if found
@@ -12871,14 +12877,28 @@ class tgraphcanvas(QObject):
                         for i,_ in enumerate(backgroundplotf):
                             backgroundplotf[i] /= 10.
 
-                        self.ax1.plot(self.flavorchart_angles,backgroundplotf,color='#cc0f50',marker='o',alpha=.5)
+                        self.flavorchart_background_plot, = self.ax1.plot(self.flavorchart_angles,backgroundplotf,color='#cc0f50',marker='o',alpha=.5)
                         #needs matplotlib 1.0.0+
                         self.ax1.fill_between(self.flavorchart_angles,0,backgroundplotf, facecolor='#ff5871', alpha=0.1, interpolate=True)
 
                 #add to plot
                 self.flavorchart_plot, = self.ax1.plot(self.flavorchart_angles,numpy.array(self.flavorchart_plotf),color='#0c6aa6',marker='o')
 
+                if self.title_text is not None:
+                    legend_handles.append(self.flavorchart_plot)
+                    legend_labels.append(self.title_text)
+                if self.flavorchart_background_plot is not None:
+                    legend_handles.append(self.flavorchart_background_plot)
+                    legend_labels.append(self.titleB if self.roastbatchnrB == 0 else f'{self.roastbatchprefixB}{self.roastbatchnrB} {self.titleB}')
+
                 self.flavorchart_fill = self.ax1.fill_between(self.flavorchart_angles,0,numpy.array(self.flavorchart_plotf), facecolor='#1985ba', alpha=0.1, interpolate=True)
+
+                #add legend
+                prop = self.aw.mpl_fontproperties.copy()
+                prop.set_size('x-small')
+                self.ax1.legend(legend_handles,legend_labels,
+                            fancybox=True,prop=prop,shadow=False,frameon=True)
+
 
                 #self.fig.canvas.draw()
                 self.fig.canvas.draw_idle()
@@ -19658,7 +19678,6 @@ class SampleThread(QThread):
                 else:
                     self.aw.qmc.flagsampling = False # type: ignore[unreachable] # ty:ignore[ignore] # mypy: Statement is unreachable  # we signal that we are done with sampling
                     # port is disconnected in OFFmonitor by calling disconnectProbes() => disconnectProbesFromSerialDevice()
-                    self.quit()
                     break  #thread ends
                 # increment the next_time stamp by one interval, but skip tasks if we are behind schedule:
                 # NOTE: libtime.perf_counter() - next_time can get negative if we are too early thus we need a max(0, ) here
@@ -19690,6 +19709,7 @@ class Athreadserver(QWidget):
 
             #connect graphics to GUI thread
             sthread.sample_processingSignal.connect(self.aw.qmc.sample_processing)
+            sthread.finished.connect(sthread.deleteLater)
             sthread.terminatingSignal.connect(self.terminating)
             sthread.start(QThread.Priority.TimeCriticalPriority) # TimeCriticalPriority > HighestPriority > HighPriority > NormalPriority > LowPriority
             sthread.wait(300)    #needed in some Win OS

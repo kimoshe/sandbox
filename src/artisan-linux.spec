@@ -50,10 +50,15 @@ EXCLUDES = [
 #    'PyQt6.QtWebEngineQuick'
 ]
 
+
+DATA_FILES = [
+    (os.path.join(get_package_paths('PyQt6')[1], 'Qt6/translations/qtwebengine_locales/en-US.pak'), 'PyQt6/Qt6/translations/qtwebengine_locales')
+]
+
 a = Analysis(['artisan.py'],
     pathex=[path],
     binaries=BINARIES,
-    datas=[],
+    datas=DATA_FILES,
     hookspath=[],
     runtime_hooks=['./pyinstaller_hooks/rthooks/pyi_rth_mplconfig.py'], # overwrites default MPL runtime hook which keeps loading font cache from (new) temp directory
     excludes=EXCLUDES,

@@ -168,7 +168,7 @@ exe = EXE(pyz,
 try:
     minimumSystemVersion = os.environ['MACOSX_DEPLOYMENT_TARGET']
 except Exception: # pylint: disable=broad-except
-    minimumSystemVersion = '14.0' # assuming the new-style numpy/scipy libs which define the minimum; Qt 6.10 requires >= 13.0
+    minimumSystemVersion = '13.0' # assuming the new-style numpy/scipy libs which define the minimum; Qt 6.10 requires >= 13.0
 
 plist = {}
 with open('Info.plist', 'rb') as infile:
@@ -287,7 +287,7 @@ qt_plugin_files = [
     'libqjpeg.dylib',
 #    'libqmacjp2.dylib',
 #    'libqpdf.dylib',
-	'libqsvg.dylib',
+    'libqsvg.dylib',
 #    'libqtga.dylib',
 #   'libqtiff.dylib',
 #    'libqwbmp.dylib',
@@ -296,7 +296,6 @@ qt_plugin_files = [
     'libcocoaprintersupport.dylib',
     'libqmacstyle.dylib'
 ]
-
 
 ## remove unused Qt frameworks libs (not in Qt_modules_frameworks)
 for subdir, dirs, _files in os.walk('./Artisan.app/Contents/Frameworks/PyQt6/Qt6/lib'):

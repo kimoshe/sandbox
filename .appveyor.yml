@@ -13,23 +13,23 @@
 # the GNU General Public License for more details.
 #
 # AUTHOR
-# Dave Baxter, Marko Luther 2025
+# Dave Baxter, Marko Luther 2026
 
 # Include "skip ci" in the commit message to prevent this build process from running
 environment:
   # Set the default Appveyor Python version here. Can be overridden in platform environment.
   PYTHON_V: 3.13
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  PYUPGRADE_WIN_VER: 3.14.2
+  PYUPGRADE_WIN_VER: 3.14.3
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   matrix:
 #  - job_name: windows
 #    appveyor_build_worker_image: Visual Studio 2022
-#  - job_name: macos
-#    appveyor_build_worker_image: macos-ventura
-  - job_name: linux
-    appveyor_build_worker_image: Ubuntu2204
+  - job_name: macos
+    appveyor_build_worker_image: macos-ventura
+#  - job_name: linux
+#    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -68,7 +68,7 @@ for:
     QT_PATH: "C:/qt/6.9.3/msvc2022_64"
     PYQT: "6"
     PYUIC: "pyuic6.exe"
-    BUILD_PYINSTALLER: "False"
+    BUILD_PYINSTALLER: "True"
     VC_REDIST: "https://aka.ms/vs/17/release/vc_redist.x64.exe"  #redistributable for VS 2015-2022
     VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
 
@@ -154,7 +154,7 @@ for:
     fast_finish: false
 
   environment:
-    PYTHON_UPGRADE_V: 3.14.2  # Upgrade to this version
+    PYTHON_UPGRADE_V: 3.14.3  # Upgrade to this version
     PYTHON_V: 3.12  # Override the stack key with latest Appveyor version
     ARTISAN_OS: macos
     MACOSX_DEPLOYMENT_TARGET: 13.0
@@ -251,10 +251,6 @@ for:
     - sudo apt install -y software-properties-common
     - sudo add-apt-repository -y ppa:deadsnakes/ppa
     - sudo apt update
-
-    - sh: export APPVEYOR_SSH_BLOCK=true
-    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
-
     - sudo apt install -y python${PYTHON_UPGRADE_V} python${PYTHON_UPGRADE_V}-venv libpython${PYTHON_UPGRADE_V}
     # Create and activate virtual environment
     - echo "Creating and activating virtual environment"
@@ -266,7 +262,6 @@ for:
     - which python
     - python3 -V
     - echo "Finshed Upgrading Python"
-
 
     # pull library versions from requirments file
     - ps: $env:LIBUSB_VER = Select-String -Path ./src/requirements.txt "libusb==([\d\.]*).*platform_system='Linux'" -List | ForEach-Object {$_.Matches.Groups[1].Value}

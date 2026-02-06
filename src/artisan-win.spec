@@ -148,6 +148,7 @@ a = Analysis(['artisan.py'],
              datas=datas, # + copy_metadata('tzdata')
              hookspath=[],
              runtime_hooks=[r'pyinstaller_hooks\rthooks\pyi_rth_mplconfig.py'], # overwrites default MPL runtime hook which keeps loading font cache from (new) temp directory
+             additional_hooks_dir=[],
              excludes=[],
              hiddenimports=hiddenimports_list,
              win_no_prefer_redirects=False,
@@ -352,7 +353,7 @@ for fn in [
     r'_internal\PyQt6\Qt6\bin\Qt6MultimediaQuick.dll',
     r'_internal\PyQt6\Qt6\bin\Qt6PdfQuick.dll',
     r'_internal\PyQt6\Qt6\bin\Qt6PositioningQuick.dll',
-    #r'_internal\PyQt6\Qt6\bin\Qt6QmlWorkerScript.dll',  # required for pyqt6 v6.8
+    #r'_internal\PyQt6\Qt6\bin\Qt6QmlWorkerScript.dll',  # required for pyqt6 v6.8+
     r'_internal\PyQt6\Qt6\bin\Qt6Quick3D.dll',
     r'_internal\PyQt6\Qt6\bin\Qt6Quick3DAssetImport.dll',
     r'_internal\PyQt6\Qt6\bin\Qt6Quick3DAssetUtils.dll',
