@@ -177,6 +177,7 @@ if TYPE_CHECKING:
     from artisanlib.bluedot import BlueDOT # pylint: disable=unused-import
     from artisanlib.mugma import Mugma # pylint: disable=unused-import
     from artisanlib.kaleido import KaleidoPort # pylint: disable=unused-import
+    from artisanlib.orbiter import Orbiter # pylint: disable=unused-import
     from artisanlib.phases_canvas import tphasescanvas # pylint: disable=unused-import
     try:
         from artisanlib.ikawa import IKAWA_BLE # pylint: disable=unused-import
@@ -500,7 +501,7 @@ class Artisan(QtSingleApplication):
                 aw:ApplicationWindow|None = self.activationWindow()
                 if aw is not None:
                     url:QUrl = cast(QUrl, a0.url()) # type: ignore[attr-defined] # "QEvent" has no attribute "url"
-                    # files cannot be opend while
+                    # files cannot be opened while
                     # - sampling
                     # - in Designer mode
                     # - in Wheel graph mode
@@ -736,7 +737,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
     def __init__(self, plotCanvas:tgraphcanvas, parent:QWidget, white_icons:bool = False) -> None:
 
         # toolitem entries of the form (text, tooltip_text, image_file, callback)
-        self.toolitems: list[tuple[str, ...] | tuple[None, ...]] = [ # pyrefly:ignore[bad-override]
+        self.toolitems: list[tuple[str, ...] | tuple[None, ...]] = [ # zuban:ignore[assignment] # pyrefly:ignore[bad-override]
                 ('Plus', QApplication.translate('Tooltip', 'Connect to plus service'), 'plus', 'plus'),
                 ('', QApplication.translate('Tooltip', 'Subscription'), 'plus-pro', 'subscription'),
                 (QApplication.translate('Toolbar', 'Home'), QApplication.translate('Tooltip', 'Reset original view'), 'home', 'home'),
@@ -806,9 +807,9 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
         self._update_view = self.update_view_new # pyright: ignore # Cannot assign to a method  [method-assign]
 
         self.release_pan_org = self.release_pan
-        self.release_pan = self.release_pan_new # type: ignore[method-assign] # ty:ignore[ignore] # Cannot assign to a method  [method-assign]
+        self.release_pan = self.release_pan_new # type:ignore[method-assign,misc,unused-ignore] # ty:ignore[unused-ignore]  # Cannot assign to a method  [method-assign]
         self.release_zoom_org = self.release_zoom
-        self.release_zoom = self.release_zoom_new # type: ignore[method-assign] # ty:ignore[ignore] # Cannot assign to a method  [method-assign]
+        self.release_zoom = self.release_zoom_new # type:ignore[method-assign,misc,unused-ignore] # ty:ignore[unused-ignore] # Cannot assign to a method  [method-assign]
 
 #        # monkey patch matplotlib figureoptions that links to svg icon by default (crashes Windows Qt4 builds!)
 #        if not svgsupport:
@@ -1273,7 +1274,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
                 elif self.aw.plus_subscription == 'HOME':
                     plus_link += '/home-roasters'
                 if res == QMessageBox.StandardButton.Yes:
-                    QDesktopServices.openUrl(QUrl(plus_link, QUrl.ParsingMode.TolerantMode))
+                    QDesktopServices.openUrl(QUrl(plus_link, QUrl.ParsingMode.TolerantMode)) # zuban:ignore[unreachable]
 #                box = QMessageBox(self)
 #                box.about(self.aw, QApplication.translate('Message', 'Subscription'),message)
             except Exception as e: # pylint: disable=broad-except
@@ -1428,6 +1429,7 @@ class ApplicationWindow(QMainWindow):
     santokerSendMessageSignal = pyqtSignal(bytes,int)
     kaleidoSendMessageSignal = pyqtSignal(str,str)
     kaleidoSendMessageAwaitSignal = pyqtSignal(str,str,int,int)
+    orbiterSendMessageSignal = pyqtSignal(bytes,bytes,bytes,int)
     addEventSignal = pyqtSignal(int,int,bool,bool,bool)
     addRawEventSignal = pyqtSignal(int,float,int,bool,bool,bool)
     updateMessageLogSignal = pyqtSignal()
@@ -1839,6 +1841,9 @@ class ApplicationWindow(QMainWindow):
         self.kaleidoPID:bool = True # if True the external Kaleido PID is operated, otherwise the internal Artisan PID is active
         self.kaleido:KaleidoPort|None = None # holds the Kaleido instance created on connect; reset to None on disconnect
         self.kaleidoEventFlags:list[bool] = [False, False, False, False, False, False, False ] # CHARGE, DRY, FCs, FCe, SCs, SCe, DROP
+
+        # Orbiter
+        self.orbiter:Orbiter|None = None # holds the Orbiter instance created on connect; reset to None on disconnect
 
         # Ikawa BLE
         self.ikawa:'IKAWA_BLE|None' = None # noqa: UP037
@@ -3995,7 +4000,7 @@ class ApplicationWindow(QMainWindow):
 
         midleftlayout.addWidget(self.EventsGroupLayout)
 
-        self.slider1:QSlider = self.slider()
+        self.slider1:SliderUnclickable = self.slider()
         self.sliderLCD1:MyQLCDNumber = self.sliderLCD()
         self.sliderLCD1.setStyleSheet(self.sliderLCDstyle(0))
         self.sliderLCD1.display(self.slider1.value())
@@ -4025,7 +4030,7 @@ class ApplicationWindow(QMainWindow):
         self.sliderLCD1.clicked.connect(self.slider1lcdClicked)
         self.sliderLCD1.double_clicked.connect(self.slider1lcdDoubleClicked)
 
-        self.slider2:QSlider = self.slider()
+        self.slider2:SliderUnclickable = self.slider()
         self.sliderLCD2:MyQLCDNumber = self.sliderLCD()
         self.sliderLCD2.setStyleSheet(self.sliderLCDstyle(1))
         self.sliderLCD2.display(self.slider2.value())
@@ -4055,7 +4060,7 @@ class ApplicationWindow(QMainWindow):
         self.sliderLCD2.clicked.connect(self.slider2lcdClicked)
         self.sliderLCD2.double_clicked.connect(self.slider2lcdDoubleClicked)
 
-        self.slider3:QSlider = self.slider()
+        self.slider3:SliderUnclickable = self.slider()
         self.sliderLCD3:MyQLCDNumber = self.sliderLCD()
         self.sliderLCD3.setStyleSheet(self.sliderLCDstyle(2))
         self.sliderLCD3.display(self.slider3.value())
@@ -4085,7 +4090,7 @@ class ApplicationWindow(QMainWindow):
         self.sliderLCD3.clicked.connect(self.slider3lcdClicked)
         self.sliderLCD3.double_clicked.connect(self.slider3lcdDoubleClicked)
 
-        self.slider4:QSlider = self.slider()
+        self.slider4:SliderUnclickable = self.slider()
         self.sliderLCD4:MyQLCDNumber = self.sliderLCD()
         self.sliderLCD4.setStyleSheet(self.sliderLCDstyle(3))
         self.sliderLCD4.display(self.slider4.value())
@@ -4115,7 +4120,7 @@ class ApplicationWindow(QMainWindow):
         self.sliderLCD4.clicked.connect(self.slider4lcdClicked)
         self.sliderLCD4.double_clicked.connect(self.slider4lcdDoubleClicked)
 
-        self.sliderSV:QSlider = self.slider()
+        self.sliderSV:SliderUnclickable = self.slider()
         self.sliderLCDSV:MyQLCDNumber = self.sliderLCD()
         self.sliderLCDSV.setStyleSheet(self.sliderLCDstyle(4))
         self.sliderLCDSV.setNumDigits(3)
@@ -4277,6 +4282,7 @@ class ApplicationWindow(QMainWindow):
         self.santokerSendMessageSignal.connect(self.santokerSendMessage)
         self.kaleidoSendMessageSignal.connect(self.kaleidoSendMessage)
         self.kaleidoSendMessageAwaitSignal.connect(self.kaleidoSendMessageAwait)
+        self.orbiterSendMessageSignal.connect(self.orbiterSendMessage)
         self.addEventSignal.connect(self.addEventSlot, type=Qt.ConnectionType.QueuedConnection) # type: ignore[call-arg]
         self.addRawEventSignal.connect(self.addRawEventSlot, type=Qt.ConnectionType.QueuedConnection) # type: ignore[call-arg]
            # by default the connection type is AutoConnection (If the emitter & receiver are in the same thread, a DirectConnection is used. Otherwise, a QueuedConnection is used.)
@@ -5079,7 +5085,7 @@ class ApplicationWindow(QMainWindow):
                 donate_message_box.setDefaultButton(QMessageBox.StandardButton.Ok)
                 res = donate_message_box.exec()
                 if res == QMessageBox.StandardButton.Ok:
-                    QDesktopServices.openUrl(QUrl('https://artisan-scope.org/donate/', QUrl.ParsingMode.TolerantMode))
+                    QDesktopServices.openUrl(QUrl('https://artisan-scope.org/donate/', QUrl.ParsingMode.TolerantMode)) # zuban:ignore[unreachable]
                 self.resetDonateCounter()
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
@@ -5945,7 +5951,7 @@ class ApplicationWindow(QMainWindow):
                             self.mugmaHost = host
                         else:
                             res = False
-                    elif (self.qmc.device in {0, 9, 19, 53, 101, 115, 126} or ((self.qmc.device == 29 or 29 in self.qmc.extradevices) and self.modbus.type in {0, 1, 2}) or
+                    elif (self.qmc.device in {0, 9, 19, 53, 101, 115, 126, 196} or ((self.qmc.device == 29 or 29 in self.qmc.extradevices) and self.modbus.type in {0, 1, 2}) or
                             (self.qmc.device == 134 and self.santokerSerial and not self.santokerBLE) or
                             (self.qmc.device == 138 and self.kaleidoSerial)): # Fuji, Center301, TC4, Hottop, Behmor or MODBUS serial, HB/ARC
                         select_device_name = None
@@ -6467,9 +6473,8 @@ class ApplicationWindow(QMainWindow):
             whitep = self.colorDifference('#ffffff',canvas_color) > self.colorDifference('#000000',canvas_color)
 
         self.qmc.fig.patch.set_facecolor(str(canvas_color))
-        self.setStyleSheet('QMainWindow{background-color:' + str(canvas_color) + ';'
-                                   + 'border: 0px solid black;'
-                                   + '}' )
+        self.setStyleSheet(f'QMainWindow{{background-color:{rgba_colorname2argb_colorname(canvas_color)};border: 0px solid black;}}')
+
 
         if current_background_color is None or current_background_color != str(canvas_color) or (whitep and self.qmc.palette['messages'] != '#ffffff'): # canvas color did not change, we do not need to redo the navigation bar
             # update navigationbar
@@ -7242,8 +7247,8 @@ class ApplicationWindow(QMainWindow):
                 nv = numpy.atleast_1d(numpy.asarray(np_dbt is None)).nonzero()[0] # pyright:ignore[reportUnnecessaryComparison] # fixes "Calling nonzero on 0d arrays is not allowed" numpy error of previous two lines
                 nvb = numpy.atleast_1d(numpy.asarray(np_dbtb is None)).nonzero()[0] # pyright:ignore[reportUnnecessaryComparison] # fixes "Calling nonzero on 0d arrays is not allowed" numpy error of previous two lines
 
-                np_dbt = replNone(np_dbt,nv)
-                np_dbtb = replNone(np_dbtb,nvb)
+                np_dbt = replNone(np_dbt,nv) # zuban:ignore[arg-type]
+                np_dbtb = replNone(np_dbtb,nvb) # zuban:ignore[arg-type]
 
                 if len(np_dbt) == 0:
                     raise ValueError('Length of np_dbt is zero')
@@ -7363,15 +7368,15 @@ class ApplicationWindow(QMainWindow):
                         lasti = i
                 mask = numpy.r_[0, numpy.flatnonzero(rs_starts)]
                 starts_seg = rs_starts[mask]
-                lengths_seg = rs_lengths[mask]
-                deltatimes_seg = rs_deltatimes[mask]
+                lengths_seg = rs_lengths[mask] # zuban:ignore[index]
+                deltatimes_seg = rs_deltatimes[mask]  # zuban:ignore[index]
                 timeindexs_seg = timeindexs[mask]
 
                 for i, mm in enumerate(mask):
                     if i < len(mask) -1:
-                        x = maxdeltas[mm:mask[i+1]]
+                        x = maxdeltas[int(mm):mask[i+1]]
                     else:
-                        x = maxdeltas[mm:]
+                        x = maxdeltas[int(mm):]
                     maxdeltas_seg = numpy.append(maxdeltas_seg,x[abs(x).argmax()])
 
                 # Per segment metrics
@@ -8559,7 +8564,7 @@ class ApplicationWindow(QMainWindow):
     pyqtSlot()
     def sliderfocusIn(self) -> None:
         sender = self.sender()
-        if not self.qmc.designerflag and self.comparator is None and sender is not None and isinstance(sender, QSlider):
+        if not self.qmc.designerflag and self.comparator is None and sender is not None and isinstance(sender, SliderUnclickable):
             try:
                 n:int = [self.slider1,self.slider2,self.slider3,self.slider4,self.sliderSV].index(sender)
                 self.quickEventShortCut = (n,'')
@@ -9552,6 +9557,30 @@ class ApplicationWindow(QMainWindow):
                                                 # send message, await new value and create an event with the new value
                                                 self.kaleidoSendMessageAwaitSignal.emit(target, vs, eventtype, lastbuttonpressed)
 
+
+                                ##  orbiter(<cmd>[,<value>[,<param>]]) : <cmd>: command (1 byte in hex syntax), optional: <value> a 16bit positive number, <param> a number 0-255
+                                #     ex: orbiter(0D,7) => set heater power to 7
+                                elif c.startswith('orbiter'):
+                                    if self.orbiter is not None:
+                                        args = c[len('orbiter'):]
+                                        if args.startswith('(') and args.endswith(')'):
+                                            parts = args[1:-1].split(',')
+                                            try:
+                                                if len(parts) > 0:
+                                                    orbiter_cmd:bytes = bytes.fromhex(parts[0])
+                                                    orbiter_data:bytes
+                                                    if len(parts) > 2:
+                                                        orbiter_param = min(255, max(0, int(round(float(parts[2]))))).to_bytes(1, 'little')
+                                                    else:
+                                                        orbiter_param = b'\x00'
+                                                    if len(parts) > 1:
+                                                        orbiter_data = min(65535, max(0, int(round(float(parts[1]))))).to_bytes(2, 'little')
+                                                    else:
+                                                        orbiter_data = b'\x00\x00'
+                                                    self.orbiterSendMessageSignal.emit(orbiter_cmd, orbiter_data, orbiter_param, self.qmc.current_time())
+                                            except Exception as e: # pylint: disable=broad-except
+                                                _log.error(e)
+
                                 ##  shellyrelay(n,b) : switches Shelly plug number <n> ON if b is true or 1, and OFF otherwise
                                 elif c.startswith('shellyrelay'):
                                     cs_a = re.findall(r'[0-9a-zA-Z-.:]+', c)
@@ -10470,6 +10499,22 @@ class ApplicationWindow(QMainWindow):
                                                     self.eventquantifieractive[event_type - 1] = True
                                                 else:
                                                     self.eventquantifieractive[event_type - 1] = False
+                                except Exception as e: # pylint: disable=broad-except
+                                    _log.exception(e)
+
+                           # pidSVbuttons(<bool>) toggles the visibility of the PID SV buttons
+                            elif cs.startswith('pidSVbuttons(') and cs.endswith(')'):
+                                try:
+                                    if self.notificationManager:
+                                        value_str = cs[len('pidSVbuttons('):-1].strip()
+                                        if value_str.lower() in {'yes', 'true', 't', '1'}:
+                                            self.pidcontrol.svButtons = True
+                                            QTimer.singleShot(100, self.showSVButtons) # needs to run in the GUI thread!
+                                            self.sendmessage(QApplication.translate('Message','PID SV buttons on'))
+                                        else:
+                                            self.pidcontrol.svButtons = False
+                                            QTimer.singleShot(100, self.hideSVButtons) # needs to run in the GUI thread!
+                                            self.sendmessage(QApplication.translate('Message','PID SV buttons off'))
                                 except Exception as e: # pylint: disable=broad-except
                                     _log.exception(e)
                             # slider(<int>, <bool>) with <int> from {1,2,3,4,5} selecting one of the four event types or with 5 the PID SV slider
@@ -11553,7 +11598,7 @@ class ApplicationWindow(QMainWindow):
 
         if reply == QMessageBox.StandardButton.Reset :
             #raise flag. Next time app will open, the settings (bad settings) will not be loaded.
-            self.resetqsettings = 1
+            self.resetqsettings = 1  # zuban:ignore[unreachable]
             self.clearExtraDeviceSettingsBackup()
             _log.info('Factory reset')
             self.close()
@@ -11846,6 +11891,12 @@ class ApplicationWindow(QMainWindow):
 
     def updateSVsliderVisibility(self) -> None:
         self.sliderGrpBoxSV.setVisible(self.pidcontrol.svSlider)
+
+    def showSVButtons(self) -> None:
+        self.pidcontrol.showSVButtons()
+
+    def hideSVButtons(self) -> None:
+        self.pidcontrol.hideSVButtons()
 
     def updateSlidersProperties(self) -> None:
         # update slider properties and event type names
@@ -12493,7 +12544,7 @@ class ApplicationWindow(QMainWindow):
                             self.moveslider(eventNr,value)
                             self.recordsliderevent(eventNr)
                             focus_widget = QApplication.focusWidget()
-                            if focus_widget is not None and isinstance(focus_widget, QSlider):
+                            if focus_widget is not None and isinstance(focus_widget, SliderUnclickable):
                                 try:
                                     n:int = [self.slider1,self.slider2,self.slider3,self.slider4].index(focus_widget)
                                     self.quickEventShortCut = (n,'') # restart with the focused slider event type
@@ -15174,13 +15225,13 @@ class ApplicationWindow(QMainWindow):
                         c += 1
                         try:
                             # error: Cannot assign to attribute "value" for class "MergedCell" "str" is not assignable to "None"
-                            ws.cell(row=r,column=c).value = el[0] # pyright:ignore[reportAttributeAccessIssue] # pyrefly: ignore[bad-assignment]
+                            ws.cell(row=r,column=c).value = el[0] # zuban:ignore[misc,assignment] # pyright:ignore[reportAttributeAccessIssue] # pyrefly: ignore[bad-assignment]
                         except Exception:
                             pass
                         c += 1
                         try:
                             # error: Cannot assign to attribute "value" for class "MergedCell" "str" is not assignable to "None"
-                            ws.cell(row=r,column=c).value = el[1] # pyright:ignore[reportAttributeAccessIssue] # pyrefly: ignore[bad-assignment]
+                            ws.cell(row=r,column=c).value = el[1] # zuban:ignore[assignment,misc] # pyright:ignore[reportAttributeAccessIssue] # pyrefly: ignore[bad-assignment]
                         except Exception:
                             pass
 
@@ -15229,12 +15280,12 @@ class ApplicationWindow(QMainWindow):
 
                             for j in range(6):
                                 try:
-                                    ws.cell(row=r+i, column=j+1).value = eval(fieldlist[j][1]) # pylint: disable=eval-used
+                                    ws.cell(row=r+i, column=j+1).value = eval(fieldlist[j][1]) # zuban:ignore[misc] # pylint: disable=eval-used
                                 except Exception: # pylint: disable=broad-except
                                     pass
 
                             for j, etemp in enumerate(extratemps):
-                                ws.cell(row=r+i, column=7+j).value = etemp # pyrefly:ignore[bad-assignment] # pyright:ignore[reportAttributeAccessIssue]
+                                ws.cell(row=r+i, column=7+j).value = etemp # zuban:ignore[assignment,misc] # pyrefly:ignore[bad-assignment] # pyright:ignore[reportAttributeAccessIssue]
 
                         last_time = time1
 
@@ -16222,7 +16273,7 @@ class ApplicationWindow(QMainWindow):
 
             # only load annotations position if the temperature mode did not change
             if 'anno_positions' in profile and self.qmc.mode == m:
-                self.qmc.setAnnoPositions(profile['anno_positions'])
+                self.qmc.setAnnoPositions(profile['anno_positions']) # zuban:ignore[arg-type]
             else:
                 self.qmc.l_annotations_pos_dict = {}
             if 'flag_positions' in profile and self.qmc.mode == m:
@@ -17776,6 +17827,12 @@ class ApplicationWindow(QMainWindow):
     def kaleidoSendMessage(self, target:str, value:str) -> None:
         if self.kaleido is not None:
             self.kaleido.send_msg(target, value)
+
+    # orbiterSendMessage() just sends out the message to the machine without waiting for a response
+    @pyqtSlot(bytes,bytes,bytes,int)
+    def orbiterSendMessage(self, cmd:bytes, data:bytes, param:bytes, time:int) -> None:
+        if self.orbiter is not None:
+            self.orbiter.send_msg(cmd, data, param, time)
 
     # if record is True, an event is added during recording, otherwise only the slider is moved
     # if fire_slider_action is True, the slider action is fired
@@ -22335,7 +22392,7 @@ class ApplicationWindow(QMainWindow):
                     elif src == 'rank' and fld in rd:
                         res_fld = rd[fld]
                     elif src == 'prod' and pd is not None and fld in pd:
-                        res_fld = pd[fld] # type: ignore[literal-required] # TypedDict key must be a string literal; expected one of ("id", "nr", "title", "datetime", "time", ...)
+                        res_fld = pd[fld] # type: ignore[literal-required, misc, unused-ignore, unused-ignore] # TypedDict key must be a string literal; expected one of ("id", "nr", "title", "datetime", "time", ...)
                     elif src == 'eval':
                         res_fld = eval(fld) # pylint: disable=eval-used
                         if res_fld in {'None', None}:
@@ -22578,7 +22635,7 @@ class ApplicationWindow(QMainWindow):
                     min_start_time:float = 0
                     max_end_time:float = 0
                     first_profile:bool = True
-                    first_profile_event_time = 0
+                    first_profile_event_time:float = 0
                     max_drop_time = 0
                     label_chr_nr = 0
 
@@ -23208,7 +23265,7 @@ class ApplicationWindow(QMainWindow):
                             elif src == 'rank' and fld in rd:
                                 res_fld = rd[fld]
                             elif src == 'prod' and fld in pd:
-                                res_fld = pd[fld] # type:ignore[literal-required]
+                                res_fld = pd[fld] # type:ignore[literal-required, misc, unused-ignore]
                             elif src == 'eval':
                                 try:
                                     res_fld = eval(fld) # pylint: disable=eval-used
@@ -24714,7 +24771,7 @@ class ApplicationWindow(QMainWindow):
                 self.buttonCONTROL.setStyleSheet(self.pushbuttonstyles['PID'])
 
     def HottopControlOn(self, autosuper:bool=True) -> None:
-        # if super holds, the superusermode is autoatically activated (if control is activated via an HOTTOP Command 'control')
+        # if super holds, the superusermode is automatically activated (if control is activated via an HOTTOP Command 'control')
         # on just pressing the CONTROL button the superusermode is not automatically activated and has to be activated manually by the user (for safety reasons)
         if autosuper:
             self.superusermode = True
@@ -27145,11 +27202,13 @@ class ApplicationWindow(QMainWindow):
                     self.sendmessage(QApplication.translate('Error Message', 'Analyze: no background profile data available'))
                     self.qmc.backgroundDetails = orig_backgroundDetails
                     self.redrawOnResize = True
+                    progress.cancel()
                     return
                 if not (self.qmc.timeindexB[0] > -1 and self.qmc.timeindexB[6]):
                     self.sendmessage(QApplication.translate('Error Message', 'Analyze: background profile requires CHARGE and DROP events'))
                     self.qmc.backgroundDetails = orig_backgroundDetails
                     self.redrawOnResize = True
+                    progress.cancel()
                     return
 
                 # set curvefit_starttime to match analysis_starttime

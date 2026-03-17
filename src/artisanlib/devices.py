@@ -1680,14 +1680,16 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                 self.scale2NameComboBox.setEnabled(False)
                 self.scale2EditButton.setEnabled(False)
                 self.scale2ScanButton.setEnabled(False)
-            elif self.aw.scale2_model < len(SUPPORTED_SCALES):
-                self.scale2ModelComboBox.setCurrentIndex(self.aw.scale2_model + 1)
-                if self.aw.scale2_name is None:
-                    self.scale2NameComboBox.setEnabled(False)
-                    self.scale2EditButton.setEnabled(False)
-                else:
-                    self.scale2NameComboBox.setEnabled(True)
-                    self.scale2EditButton.setEnabled(True)
+            else:
+                s2m:int = self.aw.scale2_model # hack to keep ty happy
+                if s2m < len(SUPPORTED_SCALES):
+                    self.scale2ModelComboBox.setCurrentIndex(s2m + 1)
+                    if self.aw.scale2_name is None:
+                        self.scale2NameComboBox.setEnabled(False)
+                        self.scale2EditButton.setEnabled(False)
+                    else:
+                        self.scale2NameComboBox.setEnabled(True)
+                        self.scale2EditButton.setEnabled(True)
             self.scale2ModelComboBox.currentIndexChanged.connect(self.scale2ModelChanged)
             self.scale2NameComboBox.currentIndexChanged.connect(self.scale2NameChanged)
             self.scale2ScanButton.clicked.connect(self.scanScale2)
@@ -4472,6 +4474,30 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                 ##########################
                 ####  DEVICE 195 is +Yocto Meteo Pressure
                 ##########################
+                ##########################
+                ####  DEVICE 196 is Kaleido BT/ET
+                elif meter == 'Orbiter BT/ET':
+                    self.aw.qmc.device = 196
+                    #self.aw.ser.comport = "COM4"
+                    self.aw.ser.baudrate = 115200
+                    self.aw.ser.bytesize = 8
+                    self.aw.ser.parity= 'N'
+                    self.aw.ser.stopbits = 1
+                    self.aw.ser.timeout = 1.0
+                    message = QApplication.translate('Message','Device set to {0}').format(meter)
+                ##########################
+                ##########################
+                ####  DEVICE 197 is +Orbiter IT/DT but +DEVICE cannot be set as main device
+                ##########################
+                ##########################
+                ####  DEVICE 198 is +Orbiter Sound/Drum but +DEVICE cannot be set as main device
+                ##########################
+                ##########################
+                ####  DEVICE 199 is +Orbiter Damper/Heater but +DEVICE cannot be set as main device
+                ##########################
+                ##########################
+                ####  DEVICE 200 is +Orbiter Air/RoR but +DEVICE cannot be set as main device
+                ##########################
 
 
                 # ADD DEVICE:
@@ -4687,7 +4713,12 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
                 3, # 192
                 3, # 193
                 3, # 194
-                3  # 195
+                3, # 195
+                8, # 196
+                8, # 197
+                8, # 198
+                8, # 199
+                8  # 200
                 ]
             #init serial settings of extra devices
             for i, _ in enumerate(self.aw.qmc.extradevices):

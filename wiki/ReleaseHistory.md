@@ -2,6 +2,21 @@ Detailed Release History
 ========================
 
 ----
+v4.0.4 (Mar XX, 2026)
+------------------
+
+* ADDITIONS
+  - adds support for [Orbiter](https://artisan-scope.org/machines/orbiter/) smart roasters
+  - adds support for [Pratter](https://artisan-scope.org/machines/pratter/) roasting machines
+  - adds Artisan Command `pidSVbuttons(<bool>)` ([Issue #2121](../../../issues/2121))
+* CHANGES
+  - added a popup explaining the reason the Roast Properties dialog is opened on START if plus is connected and disabled the OK button until beans are specified  ([Issue #2133](../../../issues/2133))
+* FIXES
+  - fixes autosave as PDF on regular `Save` on macOS ([Issue #2118](../../../issues/2118))
+  - fixes regression which led to large automatic x-axis extensions for larger sampling rates ([Issue #2142](../../../issues/2142))
+  - fixes issue w.r.t. alarm set activations which could cause alarm table to be lost on re-opening the Alarms dialog in some cases ([Issue #2144](../../../issues/2144))
+
+----
 v4.0.2 (Feb 7, 2026)
 ------------------
 
@@ -12,7 +27,7 @@ v4.0.2 (Feb 7, 2026)
 * FIXES
   - fixes regression where cut/copy/paste shortcuts are not working in file selector dialogs ([Issue #2114](../../../issues/2114))
   - fixes build issues which broke PDF reports on Linux and macOS ([Issue #2113](../../../issues/2113))
-  - fixes issue with delta axis assignents in extra device setups on loading background profiles
+  - fixes issue with delta axis assignments in extra device setups on loading background profiles
 
 ----
 v4.0.0 (Jan 28, 2026)
@@ -33,7 +48,7 @@ v4.0.0 (Jan 28, 2026)
   - adds calculation of energy data from PID Duty %
   - adds OPTION click on ET/BT or DeltaET/DeltaBT LCDs to hide/show the corresponding background curves
   - adds title click shortcut to open Roast Properties dialog
-  - adds deselection of selected event using key ESC
+  - adds deselection of selected custom event using key ESC
   - adds temporary autozoom gesture (double-click on the graph canvas) to scale the y-axis such that all data is rendered on screen
   - adds legend to cupping spider chart
 
