@@ -24,12 +24,12 @@ environment:
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   matrix:
-  - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2022
+#  - job_name: windows
+#    appveyor_build_worker_image: Visual Studio 2022
 #  - job_name: macos
 #    appveyor_build_worker_image: macos-ventura
-#  - job_name: linux
-#    appveyor_build_worker_image: Ubuntu2204
+  - job_name: linux
+    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -251,6 +251,11 @@ for:
     - sudo apt install -y software-properties-common
     - sudo add-apt-repository -y ppa:deadsnakes/ppa
     - sudo apt update
+
+    - lsb_release -a  # Shows Ubuntu version
+    - sudo apt-cache search python3.14  # Check if 3.14 exists
+    - sudo apt-cache policy python3.14  # Shows where it would come from
+
     - sudo apt install -y python${PYTHON_UPGRADE_V} python${PYTHON_UPGRADE_V}-venv libpython${PYTHON_UPGRADE_V}
     # Create and activate virtual environment
     - echo "Creating and activating virtual environment"
