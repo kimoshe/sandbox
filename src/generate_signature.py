@@ -101,7 +101,7 @@ def write_signature_to_file(filepath: str, signature_hex: str) -> None:
 
 def main() -> None:
     """Main entry point."""
-    init_filepath: str = os.path.join('src', 'artisanlib', '__init__.py')
+    init_filepath: str = os.path.join('artisanlib', '__init__.py')
     
     # Read the file
     content = read_init_file(init_filepath)
