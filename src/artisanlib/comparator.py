@@ -18,8 +18,9 @@
 import sys
 import platform
 import numpy
-from matplotlib import ticker, transforms # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore]
-from matplotlib import rcParams # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore]
+from pathlib import Path
+from matplotlib import ticker, transforms # type:ignore[untyped-import,unused-ignore]
+from matplotlib import rcParams # type:ignore[untyped-import,unused-ignore]
 import logging
 from collections.abc import Callable, Sequence
 from typing import override, Final, TypedDict, Literal, cast, TYPE_CHECKING
@@ -27,9 +28,9 @@ from typing import override, Final, TypedDict, Literal, cast, TYPE_CHECKING
 if TYPE_CHECKING:
     from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
     from artisanlib.atypes import ProfileData # pylint: disable=unused-import
-    from matplotlib.lines import Line2D # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore] # pylint: disable=unused-import
-    from matplotlib.backend_bases import PickEvent # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore] # pylint: disable=unused-import
-    from matplotlib.legend import Legend # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore] # pylint: disable=unused-import
+    from matplotlib.lines import Line2D # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
+    from matplotlib.backend_bases import PickEvent # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
+    from matplotlib.legend import Legend # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
     from PyQt6.QtWidgets import QLayoutItem, QLayout, QScrollBar # pylint: disable=unused-import
     from PyQt6.QtGui import QStandardItem, QKeyEvent, QDropEvent, QDragEnterEvent, QCloseEvent # pylint: disable=unused-import
     from PyQt6.QtCore import QMimeData # pylint: disable=unused-import
@@ -87,15 +88,12 @@ class RoastProfile:
         self.aligned:bool = True # if the profile could not be aligned it is not drawn
         self.active:bool = True # if selected or all are unselected; active profiles are drawn in color, inactive profiles in gray
         self.color:tuple[float, float, float, float] = color
-        hslf:tuple[float|None, float|None, float|None, float|None] = QColor.fromRgbF(*color).getHslF()
+        hslf:tuple[float, float, float, float] = QColor.fromRgbF(*color).getHslF()
         self.gray:tuple[float, float, float, float]
-        ch:float|None = hslf[0]
-        cl:float|None = hslf[2]
-        ca:float|None = hslf[3]
-        if ch is not None and cl is not None and ca is not None:
-            g0 = QColor.fromHslF(ch,0,cl,ca)
-        else:
-            g0 = QColor.fromHslF(0.5,0,0.5,0.5) # saturation set to 0
+        ch:float = hslf[0]
+        cl:float = hslf[2]
+        ca:float = hslf[3]
+        g0 = QColor.fromHslF(ch,0,cl,ca)
         self.gray = (
                 g0.redF(),
                 g0.greenF(),
@@ -327,15 +325,15 @@ class RoastProfile:
                 self.metadata['weight'] = str(w).rstrip('0').rstrip('.') + weight_unit
         if 'moisture_greens' in profile and profile['moisture_greens'] != 0.0:
             self.metadata['moisture_greens'] = profile['moisture_greens']
-        if 'ambientTemp' in profile:
+        if 'ambientTemp' in profile and self.ambientTemp != 0:
             self.metadata['ambientTemp'] = f'{float2float(self.ambientTemp):g}{self.aw.qmc.mode}'
-        if 'ambient_humidity' in profile:
+        if 'ambient_humidity' in profile and profile['ambient_humidity'] != 0:
             self.metadata['ambient_humidity'] = f"{float2float(profile['ambient_humidity']):g}%"
-        if 'ambient_pressure' in profile:
+        if 'ambient_pressure' in profile and profile['ambient_pressure'] != 0:
             self.metadata['ambient_pressure'] = f"{float2float(profile['ambient_pressure']):g}hPa"
         if 'computed' in profile and 'weight_loss' in profile['computed']:
             self.metadata['weight_loss'] = f"-{profile['computed']['weight_loss']:g}%"
-        if 'ground_color' in profile:
+        if 'ground_color' in profile and profile['ground_color'] != 0:
             self.metadata['ground_color'] = f"#{float2str(profile['ground_color'])}"
         if 'computed' in profile and 'AUC' in profile['computed'] and \
                 profile['computed']['AUC'] != 0:
@@ -420,7 +418,7 @@ class RoastProfile:
         self.events1 = []
         self.events2 = []
         self.events_timex = []
-        if self.stemp1 is not None and self.stemp2 is not None: # type:ignore[redundant-expr] # ty:ignore[ignore]
+        if self.stemp1 is not None and self.stemp2 is not None: # type:ignore[redundant-expr]
             for ti in self.timeindex[:-1]:
                 temp1:float|None = (self.stemp1[ti] if len(self.stemp1)>ti else None)
                 temp2:float|None = (self.stemp2[ti] if len(self.stemp2)>ti else None)
@@ -1093,7 +1091,7 @@ class roastCompareDlg(ArtisanDialog):
         self.disableButtons()
         self.aw.disableEditMenus(compare=True)
 
-        self.pick_handler_id = self.aw.qmc.fig.canvas.mpl_connect('pick_event', self.onpick_event) # type: ignore[arg-type] # ty:ignore[ignore] # incompatible type "Callable[[PickEvent], None]"; expected "Callable[[Event], Any]
+        self.pick_handler_id = self.aw.qmc.fig.canvas.mpl_connect('pick_event', self.onpick_event) # type: ignore[arg-type] # incompatible type "Callable[[PickEvent], None]"; expected "Callable[[Event], Any]
 
         settings = QSettings()
         if settings.contains('CompareGeometry'):
@@ -1479,10 +1477,10 @@ class roastCompareDlg(ArtisanDialog):
         self.profileTable.setVerticalHeaderItem(i,header)
 
     def renderToolTip(self, profile:RoastProfile) -> str:
-        tooltip:str = ''
+        tooltip:str = f'{Path(profile.filepath).name}\n-\n'
         try:
             if 'roastdate' in profile.metadata:
-                tooltip = profile.metadata['roastdate'].date().toString()
+                tooltip += profile.metadata['roastdate'].date().toString()
                 tooltip += ', ' + profile.metadata['roastdate'].time().toString()[:-3]
             if 'roastoftheday' in profile.metadata:
                 if tooltip != '':
@@ -1500,6 +1498,8 @@ class roastCompareDlg(ArtisanDialog):
                 tooltip += profile.metadata['beans'].strip()
                 if 'moisture_greens' in profile.metadata:
                     tooltip += f" ({float2float(profile.metadata['moisture_greens'],self.aw.percent_decimals):g}%)"
+            if tooltip != '':
+                tooltip += '\n'
             if 'ambientTemp' in profile.metadata:
                 if tooltip != '':
                     tooltip += '\n'

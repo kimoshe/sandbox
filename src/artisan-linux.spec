@@ -28,6 +28,7 @@ hiddenimports_list=[
 ] + collect_submodules('dbus_fast')
 
 EXCLUDES = [
+    'pkg_resources',
     'PyQt5',
     'PyQt6.Multimedia',
     'PyQt6.Network',
@@ -65,6 +66,7 @@ a = Analysis(['artisan.py'],
     hiddenimports=hiddenimports_list,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
+    optimize=2,
     cipher=block_cipher)
 
 

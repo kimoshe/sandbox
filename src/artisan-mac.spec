@@ -50,7 +50,7 @@ except Exception:
     HOME = expanduser('~')
     QTDIR = HOME + r'/Qt/6.5.3/macos/'
 
-SUPPORTED_LANGUAGES = ['ar', 'cs', 'da', 'de','el','en','es','fa','fi','fr','gd', 'he','hu','id','it','ja','ko','lv', 'nl','no','pl','pt_BR','pt','sk', 'sv','th','tr','uk','vi','zh_CN','zh_TW']
+SUPPORTED_LANGUAGES = ['ar', 'bg', 'cs', 'da', 'de','el','en','es','fa','fi','fr','gd', 'he','hu','id','it','ja','ko','lv', 'nl','no','pl','pt_BR','pt','sk', 'sv','th','tr','uk','vi','zh_CN','zh_TW']
 
 DATA_FILES = [
         (r'Assets.car', '.'),
@@ -135,10 +135,11 @@ a = Analysis(['artisan.py'],
              hookspath=[],
              runtime_hooks=['./pyinstaller_hooks/rthooks/pyi_rth_mplconfig.py'], # overwrites default MPL runtime hook which keeps loading font cache from (new) temp directory
              additional_hooks_dir=[],
-             excludes= ['tkinter', 'mypy'],
+             excludes= ['tkinter', 'mypy', 'pkg_resources'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher,
+             optimize=2,
              noarchive=False)
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)

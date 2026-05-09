@@ -79,6 +79,22 @@ def appFrozen() -> bool:
         _log.exception(e)
     return ib
 
+##
+
+def replace_umlauts(text: str) -> str:
+    """replace special German umlauts (vowel mutations) from text."""
+    vowel_char_map = {
+        ord('ä'): 'ae', ord('ü'): 'ue', ord('ö'): 'oe', ord('ß'): 'ss',
+        ord('Ä'): 'Ae', ord('Ü'): 'Ue', ord('Ö'): 'Oe'
+    }
+    return text.translate(vowel_char_map)
+
+def to_ascii(s:str) -> str:
+    from unidecode import unidecode
+    return unidecode(replace_umlauts(s))
+
+##
+
 # returns empty string for values out of the valid Unicode range
 def uchr(x:int) -> str:
     try:
@@ -162,6 +178,7 @@ def stringfromseconds(seconds_raw:float, leadingzero:bool = True) -> str:
 # Converts a string into a seconds integer. Use for example to interpret times from Roaster Properties Dlg inputs
 # accepted formats: "00:00","-00:00"
 # raises ValueError or IndexError on invalid inputs
+@functools.lru_cache(maxsize=100)
 def stringtoseconds(string:str) -> int:
     timeparts = string.split(':') # mm:ss
     hours:bool = False
@@ -362,8 +379,10 @@ def fill_gaps(ll:'Sequence[float|int]|npt.NDArray[numpy.floating[Any]]', interpo
 def replace_duplicates(data:list[float]) -> list[float]:
     lv:float = -1
     data_core:list[float] = []
+    max_eliminations: Final[int] = 20
     for v in data:
-        if v == lv:
+        if v == lv and not all(val == -1 for val in data_core[-(min(max_eliminations,len(data_core))):]):
+            # replace by -1, only if the previous max_eliminations once were not replaced
             data_core.append(-1)
         else:
             data_core.append(v)
@@ -473,7 +492,7 @@ def getDirectory(filename: str, ext: str|None = None, share: bool = False) -> st
     fn = filename
     if not share:
         app = QCoreApplication.instance()
-        if app.artisanviewerMode: # type: ignore[union-attr]
+        if app is not None and app.artisanviewerMode: # type:ignore[attr-defined]
             fn = filename + '_viewer'
     dd = getDataDirectory()
     fp = Path(('' if dd is None else dd), fn)
@@ -508,10 +527,7 @@ def rgba_colorname2argb_colorname(c:str) -> str:
 @functools.lru_cache(maxsize=50)
 def toGrey(color:str) -> str:
     h, _s, l, a = QColor(rgba_colorname2argb_colorname(color)).getHslF()
-    if h is not None and l is not None and a is not None:
-        gray = QColor.fromHslF(h,0,(1-l)/1.7+l,a) # saturation set to 0
-    else:
-        gray = QColor.fromHslF(0.5,0,0.5,1.0)
+    gray = QColor.fromHslF(h,0,(1-l)/1.7+l,a) # saturation set to 0
     if len(color) == 9:
         return gray.name(QColor.NameFormat.HexArgb)
     return gray.name(QColor.NameFormat.HexRgb)
@@ -520,10 +536,7 @@ def toGrey(color:str) -> str:
 @functools.lru_cache(maxsize=50)
 def toDim(color:str) -> str:
     h, s, l, a = QColor(rgba_colorname2argb_colorname(color)).getHslF()
-    if h is not None and s is not None and l is not None and a is not None:
-        gray = QColor.fromHslF(h,s/4,(1-l)/1.7+l,a)
-    else:
-        gray = QColor.fromHslF(0.5,0,0.5,1.0)
+    gray = QColor.fromHslF(h,s/4,(1-l)/1.7+l,a)
     if len(color) == 9:
         return gray.name(QColor.NameFormat.HexArgb)
     return gray.name(QColor.NameFormat.HexRgb)
@@ -544,12 +557,8 @@ def createRGBGradient(rgb:QColor|str, tint_factor:float = 0.3, shade_factor:floa
         rgb_tuple: tuple[float, float, float]
         if isinstance(rgb, QColor):
             r,g,b,_ = rgb.getRgbF()
-            if r is not None and g is not None and b is not None:
-                rgb_tuple = (r,g,b)
-            else:
-                rgb_tuple = (0.5,0.5,0.5)
+            rgb_tuple = (r,g,b)
         elif rgb[0:1] == '#':   # hex input like "#ffaa00"
-#            rgb_tuple = tuple(int(rgb[i:i+2], 16)/255 for i in (1, 3 ,5))
             rgb_tuple = (float(int(rgb[1:3], 16)/255),float(int(rgb[3:5], 16)/255),float(int(rgb[5:7], 16)/255))
         else:                 # color name
             rgb_tuple = colors.hex2color(colors.cnames[rgb])
@@ -577,6 +586,7 @@ def isOpen(ip: str, port: int) -> bool:
     except Exception as e: # pylint: disable=broad-except
         _log.info(e)
     return False
+
 
 # Logging
 
@@ -698,6 +708,7 @@ def float2floatNone(f:float|None, n:int=1) -> float|None:
 
 # the int n>=0 specifies the number of digits
 # returns 0 if f is not a number
+@functools.lru_cache(maxsize=500)
 def float2float(f:float|str, n:int=1) -> float:
     n = max(n, 0)
     f = float(f)

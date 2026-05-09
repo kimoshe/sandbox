@@ -43,10 +43,10 @@ import io
 import functools
 import dateutil.parser
 import copy as copyd
-import arabic_reshaper # type:ignore[import-untyped] # ty:ignore [ignore]
+import arabic_reshaper # type:ignore[import-untyped]
+from bidi import get_display # type:ignore[import-untyped] # newer rust based implementation of the original Python implementation
 from enum import IntEnum
 from pathlib import Path
-from bidi import get_display # type:ignore[import-untyped] # ty:ignore [ignore] # newer rust based implementation of the above Python implementation
 
 # links CTR-C signals to the system default (ignore)
 import signal
@@ -102,7 +102,6 @@ except Exception: # pylint: disable=broad-except
 #    syslog.syslog(syslog.LOG_ALERT, str(e))
 #    syslog.syslog(syslog.LOG_ALERT, str(traceback.format_exc()))
 
-QtWebEngineSupport:bool = False # set to True if the QtWebEngine was successfully imported
 
 
 from PyQt6.QtWidgets import (QApplication, QWidget, QMessageBox, QLabel, QMainWindow, QFileDialog, QGraphicsDropShadowEffect,
@@ -122,6 +121,7 @@ from PyQt6.QtCore import (QStandardPaths, QLibraryInfo, QTranslator, QLocale, QF
                           QRegularExpression, QDate, QUrl, QUrlQuery, QDir, Qt, QPoint, QEvent, QDateTime, QThread, qInstallMessageHandler)
 from PyQt6.QtNetwork import QLocalSocket
 
+QtWebEngineSupport:bool = False # set to True if the QtWebEngine was successfully imported
 #QtWebEngineWidgets must be imported before a QCoreApplication instance is created
 try:
     from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -136,30 +136,30 @@ from PyQt6 import sip
 from artisanlib.suppress_errors import suppress_stdout_stderr
 
 with suppress_stdout_stderr():
-    import matplotlib as mpl # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
-    from matplotlib import colormaps # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
-    import matplotlib.colors as mcolors # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
+    import matplotlib as mpl # type:ignore[untyped-import,unused-ignore]
+    from matplotlib import colormaps # type:ignore[untyped-import,unused-ignore]
+    import matplotlib.colors as mcolors # type:ignore[untyped-import,unused-ignore]
 
 #try:
 #    mpl_version = [int(i) for i in mpl.__version__.split('.')]
 #except Exception: # pylint: disable=broad-except
 #    mpl_version = [7,7,7] # a trunk version
 
-from matplotlib.backend_bases import _Mode as MPL_Mode # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore] # pylint: disable=import-private-name,unknown-option-value # @UnresolvedImport
+from matplotlib.backend_bases import _Mode as MPL_Mode # type:ignore[untyped-import,unused-ignore] # pylint: disable=import-private-name,unknown-option-value # @UnresolvedImport
 
 svgsupport = next((x for x in QImageReader.supportedImageFormats() if x == b'svg'),None)
 
-from matplotlib.figure import Figure # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
-from matplotlib import rcParams, ticker # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
-from matplotlib.font_manager import FontProperties, fontManager # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
-from matplotlib.transforms import Bbox # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
+from matplotlib.figure import Figure # type:ignore[untyped-import,unused-ignore]
+from matplotlib import rcParams, ticker # type:ignore[untyped-import,unused-ignore]
+from matplotlib.font_manager import FontProperties, fontManager # type:ignore[untyped-import,unused-ignore]
+from matplotlib.transforms import Bbox # type:ignore[untyped-import,unused-ignore]
 
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore] # @Reimport
-from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore] # @Reimport
-from matplotlib.backend_bases import LocationEvent as mplLocationevent # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas # type:ignore[untyped-import,unused-ignore] # @Reimport
+from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar # type:ignore[untyped-import,unused-ignore] # @Reimport
+from matplotlib.backend_bases import LocationEvent as mplLocationevent # type:ignore[untyped-import,unused-ignore]
 
-from matplotlib.backends.qt_editor import figureoptions # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
-import matplotlib.backends.qt_editor._formlayout as formlayout # type:ignore[untyped-import,unused-ignore] # ty:ignore [ignore]
+from matplotlib.backends.qt_editor import figureoptions # type:ignore[untyped-import,unused-ignore]
+import matplotlib.backends.qt_editor._formlayout as formlayout # type:ignore[untyped-import,unused-ignore]
 
 
 if TYPE_CHECKING:
@@ -183,16 +183,16 @@ if TYPE_CHECKING:
         from artisanlib.ikawa import IKAWA_BLE # pylint: disable=unused-import
     except Exception: # pylint: disable=broad-except
         pass
-    from matplotlib.text import Annotation # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore] # pylint: disable=unused-import
+    from matplotlib.text import Annotation # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
     from openpyxl.worksheet.worksheet import Worksheet # pylint: disable=unused-import
     import numpy.typing as npt # pylint: disable=unused-import
     from PyQt6.QtWidgets import QTableWidgetItem, QTableWidget, QScrollBar # pylint: disable=unused-import
     from PyQt6.QtGui import QStyleHints, QClipboard, QKeyEvent, QMouseEvent, QDropEvent, QDragEnterEvent, QCloseEvent, QResizeEvent, QValidator # pylint: disable=unused-import
     from PyQt6.QtCore import QFile, QObject, QPermission, QMessageLogContext  # noqa: F401 # pylint: disable=unused-import,reimported # QFile is reimported for mypy!?
     from PyQt6.QtWebEngineCore import QWebEnginePage  # noqa: F401 # pylint: disable=unused-import
-    from matplotlib.backend_bases import Event as MplEvent, MouseEvent # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore] # pylint: disable=unused-import
-    from matplotlib.artist import Artist # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore] # pylint: disable=unused-import
-    from matplotlib.lines import Line2D # type:ignore[untyped-import,unused-ignore] # ty:ignore[ignore] # pylint: disable=unused-import
+    from matplotlib.backend_bases import Event as MplEvent, MouseEvent # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
+    from matplotlib.artist import Artist # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
+    from matplotlib.lines import Line2D # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
     from xml.etree.ElementTree import Element as XMLElement
 
 # fix socket.inet_pton on Windows (used by pymodbus TCP/UDP)
@@ -220,15 +220,14 @@ from artisanlib.qtsingleapplication import QtSingleApplication
 
 
 try:
-    # spanning a second multiprocessing instance (Hottop server) on macOS falils to import the YAPI interface
-    from yoctopuce.yocto_api import YAPI # type: ignore[import-untyped] # ty:ignore[ignore]
+    from yoctopuce.yocto_api import YAPI # type: ignore[import-untyped]
 except ImportError:
     pass
 
 # platform dependent imports:
 if sys.platform.startswith('darwin'):
     # control app napping on OS X >= 10.9
-    import appnope # type: ignore[import-untyped]  # ty:ignore[ignore # @UnresolvedImport # pylint: disable=import-error
+    import appnope # type: ignore[import-untyped]  # @UnresolvedImport # pylint: disable=import-error
     appnope.nope()
 
 
@@ -419,15 +418,19 @@ class Artisan(QtSingleApplication):
                 elif file_suffix == 'xls' and not aw.app.artisanviewerMode and aw.comparator is None:
                     # import Cropster XLS profile
                     from artisanlib.cropster import extractProfileCropsterXLS
-                    aw.importExternal(extractProfileCropsterXLS, QApplication.translate('Message','Import Cropster XLS'),'*.xls',filename)
+                    aw.importExternal(extractProfileCropsterXLS, QApplication.translate('Message','Import {}').format('Cropster XLS'),'*.xls',filename)
                 elif file_suffix == 'csv' and not aw.app.artisanviewerMode and aw.comparator is None:
                     # import Giesen CSV profile
                     from artisanlib.giesen import extractProfileGiesenCSV
-                    aw.importExternal(extractProfileGiesenCSV, QApplication.translate('Message','Import Giesen CSV'),'*.csv',filename)
+                    aw.importExternal(extractProfileGiesenCSV, QApplication.translate('Message','Import {}').format('Giesen CSV'),'*.csv',filename)
                 elif file_suffix == 'xlsx' and not aw.app.artisanviewerMode and aw.comparator is None:
                     # import Stronghold XLSX profile
                     from artisanlib.stronghold import extractProfileStrongholdXLSX
-                    aw.importExternal(extractProfileStrongholdXLSX, QApplication.translate('Message','Import Stronghold XLSX'),'*.xlsx',filename)
+                    aw.importExternal(extractProfileStrongholdXLSX, QApplication.translate('Message','Import {}').format('Stronghold XLSX'),'*.xlsx',filename)
+                if filename.endswith(('.zip', '.rop')) and not aw.app.artisanviewerMode and aw.comparator is None:
+                    # import Orbiter .rop/.zip profile
+                    from artisanlib.orbiter import extractProfileOrbiterROP
+                    aw.importExternal(extractProfileOrbiterROP, QApplication.translate('Message','Import {}').format('Orbiter'),'(*.rop *.zip)',filename)
 
 
         elif platform.system() == 'Windows' and not self.artisanviewerMode:
@@ -534,7 +537,7 @@ class Artisan(QtSingleApplication):
             from PyQt6.QtCore import QBluetoothPermission # pylint: disable=no-name-in-module
             try:
                 def permissionUpdated(permission:'QPermission') -> None:
-                    if permission.status() == Qt.PermissionStatus.Granted: # type:ignore[union-attr,unused-ignore] # ty:ignore[ignore
+                    if permission.status() == Qt.PermissionStatus.Granted: # type:ignore[union-attr,unused-ignore]
                         _log.info('Bluetooth permission updated: granted')
                     else:
                         _log.info('Bluetooth permission updated: denied')
@@ -543,7 +546,7 @@ class Artisan(QtSingleApplication):
                 if res == Qt.PermissionStatus.Undetermined:
                     _log.info('Bluetooth permission not granted. Requesting permission...')
                     if request:
-                        self.requestPermission(bluetoothPermission, permissionUpdated) # type:ignore[arg-type] # ty:ignore[ignore]
+                        self.requestPermission(bluetoothPermission, permissionUpdated) # type:ignore[arg-type]
                     return None
                 return res == Qt.PermissionStatus.Granted
             except Exception as e:
@@ -694,6 +697,7 @@ if platform.system().startswith('Windows'):
 
 from artisanlib.s7port import s7port
 from artisanlib.wsport import wsport
+from artisanlib.mqttport import mqttport
 from artisanlib.modbusport import modbusport
 from artisanlib.slider_style import artisan_slider_style
 from artisanlib.event_button_style import artisan_event_button_style
@@ -759,7 +763,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
         # holds the last known cursor event while mouse pointer is in canvas, set by mouse_move()
         self._last_event:mplLocationevent|None = None
 
-        NavigationToolbar.__init__(self, plotCanvas, parent) # type:ignore[no-untyped-call] # ty:ignore[ignore]
+        NavigationToolbar.__init__(self, plotCanvas, parent) # type:ignore[no-untyped-call]
 
         # lets make the font of the coordinates QLabel a little larger
         f = self.locLabel.font()
@@ -803,13 +807,13 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
 
         self.aw.updatePlusStatus(self)
 
-        self.update_view_org = self._update_view # type: ignore[has-type] # ty:ignore[ignore] # Cannot determine type of "_update_view"
+        self.update_view_org = self._update_view # type: ignore[has-type] # Cannot determine type of "_update_view"
         self._update_view = self.update_view_new # pyright: ignore # Cannot assign to a method  [method-assign]
 
         self.release_pan_org = self.release_pan
-        self.release_pan = self.release_pan_new # type:ignore[method-assign,misc,unused-ignore] # ty:ignore[unused-ignore]  # Cannot assign to a method  [method-assign]
+        self.release_pan = self.release_pan_new # type:ignore[method-assign,misc,unused-ignore]  # Cannot assign to a method  [method-assign]
         self.release_zoom_org = self.release_zoom
-        self.release_zoom = self.release_zoom_new # type:ignore[method-assign,misc,unused-ignore] # ty:ignore[unused-ignore] # Cannot assign to a method  [method-assign]
+        self.release_zoom = self.release_zoom_new # type:ignore[method-assign,misc,unused-ignore] # Cannot assign to a method  [method-assign]
 
 #        # monkey patch matplotlib figureoptions that links to svg icon by default (crashes Windows Qt4 builds!)
 #        if not svgsupport:
@@ -903,7 +907,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
                                         translated_tpls.append(tuple(tpl_list))# pyright:ignore[reportUnknownArgumentType]
                                     else:
                                         translated_tpls.append(tpl) # pyright:ignore[reportUnknownArgumentType]
-                            l[0] = translated_tpls # type: ignore[index] # ty:ignore[ignore] # Unsupported target for indexed assignment ("List[Any]|tuple[Any,...]")
+                            l[0] = translated_tpls # type: ignore[index] # Unsupported target for indexed assignment ("List[Any]|tuple[Any,...]")
                 except Exception as e: # pylint: disable=broad-except
                     _log.exception(e)
                 def my_apply(data:dict[Any,Any]) -> None:
@@ -934,7 +938,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
                                 tb.push_current()
                     except Exception as e: # pylint: disable=broad-except
                         _log.exception(e)
-                dialog = formlayout.FormDialog(data, QApplication.translate('Toolbar', 'Lines'), comment, icon, parent, my_apply) # type: ignore[no-untyped-call] # ty:ignore[ignore]
+                dialog = formlayout.FormDialog(data, QApplication.translate('Toolbar', 'Lines'), comment, icon, parent, my_apply) # type: ignore[no-untyped-call]
                 dialog.exec()
 
 #######################################################################################
@@ -1040,11 +1044,11 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
 
     @override
     def _icon(self, name:str) -> QIcon:
-        if name.startswith('plus'):
+        if name.startswith('plus') or self.white_icons:
             basedir = os.path.join(getResourcePath(),'Icons')
         else:
             basedir = os.path.join(mpl.get_data_path(), 'images')
-        if name.startswith('plus') and not self.white_icons:
+        if (self.white_icons and not name.startswith('plus')) or not self.white_icons and name.startswith('plus'):
             name = 'white_' + name
         #dirty hack to prefer .svg over .png Toolbar icons
         if not svgsupport:
@@ -1055,24 +1059,24 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
         name = name.replace('.png', '_large.png')
         p = os.path.join(basedir, name)
         pm = QPixmap(p)
-        if not name.startswith('plus') and not name.startswith('white_plus'):
-            if self.white_icons:
-                pm = self.recolorIcon(pm, QColor('#dfdfdf'))
-            else:
-                pm = self.recolorIcon(pm, QColor('#424242'))
+#        if not name.startswith('plus') and not name.startswith('white_plus'):
+#            if self.white_icons:
+#                pm = self.recolorIcon(pm, QColor('#dfdfdf'))
+#            else:
+#                pm = self.recolorIcon(pm, QColor('#424242'))
         if hasattr(pm, 'setDevicePixelRatio'):
             pm.setDevicePixelRatio(self.devicePixelRatioF() or 1) # pyright:ignore[reportUnknownArgumentType]
 
         return QIcon(pm)
 
-    @staticmethod
-    def recolorIcon(pixmap:QPixmap, color:QColor) -> QPixmap:
-        tmp = pixmap.toImage()
-        for y in range(tmp.height()):
-            for x in range(tmp.width()):
-                color.setAlpha(tmp.pixelColor(x,y).alpha())
-                tmp.setPixelColor(x,y,color)
-        return QPixmap.fromImage(tmp)
+#    @staticmethod
+#    def recolorIcon(pixmap:QPixmap, color:QColor) -> QPixmap:
+#        tmp = pixmap.toImage()
+#        for y in range(tmp.height()):
+#            for x in range(tmp.width()):
+#                color.setAlpha(tmp.pixelColor(x,y).alpha())
+#                tmp.setPixelColor(x,y,color)
+#        return QPixmap.fromImage(tmp)
 
     def update_message(self) -> None:
         if not self.qmc.twoAxisMode():
@@ -1083,10 +1087,10 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
         backgroundtimeindex = None # caches the background timex index computed at x cursor position
         # update xy cursor position widget
         if self._last_event is None:
-            self.set_message(f'<PRE>{self.mode}</PRE>') # type:ignore[no-untyped-call] # ty:ignore[ignore]
+            self.set_message(f'<PRE>{self.mode}</PRE>') # type:ignore[no-untyped-call]
         else:
             if not self.qmc.fmt_data_ON:
-                self.set_message(f'<PRE>{self.mode}</PRE>') # type:ignore[no-untyped-call] # ty:ignore[ignore]
+                self.set_message(f'<PRE>{self.mode}</PRE>') # type:ignore[no-untyped-call]
             else:
                 try:
                     channel = ''
@@ -1139,15 +1143,15 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
                             if inaxes is not None and self._last_event.ydata is not None:
                                 ys = float(inaxes.format_ydata(self._last_event.ydata))
                 except Exception: # pylint: disable=broad-except
-                    self.set_message(f'<PRE>{self.mode}</PRE>') # type:ignore[no-untyped-call] # ty:ignore[ignore]
+                    self.set_message(f'<PRE>{self.mode}</PRE>') # type:ignore[no-untyped-call]
                 else:
                     min_temp_digits = 5 if self.qmc.LCDdecimalplaces else 3
                     if self.qmc.fmt_data_RoR:
                         min_temp_digits -= 1
                     if self.mode:
-                        self.set_message(f"<PRE>{self.mode}  {xs: >5}\n{channel} {'' if ys is None else ys: >{min_temp_digits}}\u00B0{self.qmc.mode}{'/min' if self.qmc.fmt_data_RoR else ''}</PRE>") # type:ignore[no-untyped-call] # ty:ignore[ignore]
+                        self.set_message(f"<PRE>{self.mode}  {xs: >5}\n{channel} {'' if ys is None else ys: >{min_temp_digits}}\u00B0{self.qmc.mode}{'/min' if self.qmc.fmt_data_RoR else ''}</PRE>") # type:ignore[no-untyped-call]
                     else:
-                        self.set_message(f"<PRE>{xs: >5}\n{channel} {'' if ys is None else ys: >{min_temp_digits}}\u00B0{self.qmc.mode}{'/min' if self.qmc.fmt_data_RoR else ''}</PRE>") # type:ignore[no-untyped-call] # ty:ignore[ignore]
+                        self.set_message(f"<PRE>{xs: >5}\n{channel} {'' if ys is None else ys: >{min_temp_digits}}\u00B0{self.qmc.mode}{'/min' if self.qmc.fmt_data_RoR else ''}</PRE>") # type:ignore[no-untyped-call]
             # update running LCDs
             if not self.qmc.flagon and self.aw.comparator is None and self._last_event.xdata is not None:
                 if self.qmc.running_LCDs == 1: # show foreground profile readings at cursor position in LCDs
@@ -1305,7 +1309,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
 
                     with warnings.catch_warnings():
                         warnings.filterwarnings('ignore') # , category=numpy.VisibleDeprecationWarning)
-                        figureoptions.figure_edit(axes) # type:ignore[no-untyped-call] # ty:ignore[ignore]
+                        figureoptions.figure_edit(axes) # type:ignore[no-untyped-call]
 #                        for line in steps_post_lines:
 #                            line.set_drawstyle("steps-post")
 
@@ -1780,8 +1784,10 @@ class ApplicationWindow(QMainWindow):
         #create an s7 port object (main s7 device)
         self.s7:s7port = s7port(self)
         self.extraS7tx:float = 0.
-        #create an WebSocket port object (main device eg Probat Sample)
+        #create an WebSocket port object
         self.ws:wsport = wsport(self)
+        #create an MQTT port object
+        self.mqtt:mqttport = mqttport(self)
         #list with extra serial ports (extra devices)
         self.extraser:list[serialport] = []
         #extra comm port settings
@@ -2075,15 +2081,15 @@ class ApplicationWindow(QMainWindow):
 
         self.importMenu.addSeparator()
 
-        importBulletAction = QAction('Aillio RoasTime...', self)
-        #importBulletAction.triggered.connect(self.importBullet)
-        self.importMenu.addAction(importBulletAction)
-        importBulletAction.setEnabled(False)
-
-        importBulletAction = QAction('Aillio Roast.World URL...', self)
-        #importBulletAction.triggered.connect(self.importBulletURL)
-        self.importMenu.addAction(importBulletAction)
-        importBulletAction.setEnabled(False)
+#        importBulletAction = QAction('Aillio RoasTime...', self)
+#        #importBulletAction.triggered.connect(self.importBullet)
+#        self.importMenu.addAction(importBulletAction)
+#        importBulletAction.setEnabled(False)
+#
+#        importBulletAction = QAction('Aillio Roast.World URL...', self)
+#        #importBulletAction.triggered.connect(self.importBulletURL)
+#        self.importMenu.addAction(importBulletAction)
+#        importBulletAction.setEnabled(False)
 
         importCropsterAction = QAction('Cropster XLS...', self)
         importCropsterAction.triggered.connect(self.importCropster)
@@ -2125,6 +2131,10 @@ class ApplicationWindow(QMainWindow):
         importLoringAction.triggered.connect(self.importLoring)
         self.importMenu.addAction(importLoringAction)
 
+        imporOrbiterAction = QAction('Orbiter...', self)
+        imporOrbiterAction.triggered.connect(self.importOrbiter)
+        self.importMenu.addAction(imporOrbiterAction)
+
         importPetronciniAction = QAction('Petroncini CSV...', self)
         importPetronciniAction.triggered.connect(self.importPetroncini)
         self.importMenu.addAction(importPetronciniAction)
@@ -2137,22 +2147,22 @@ class ApplicationWindow(QMainWindow):
         importRubasseAction.triggered.connect(self.importRubasse)
         self.importMenu.addAction(importRubasseAction)
 
-        importPilotAction = QAction('Probat Pilot...', self)
-        importPilotAction.triggered.connect(self.importPilot)
-        self.importMenu.addAction(importPilotAction)
+#        importPilotAction = QAction('Probat Pilot...', self)
+#        importPilotAction.triggered.connect(self.importPilot)
+#        self.importMenu.addAction(importPilotAction)
 
-        fileImportRoastLoggerAction = QAction('RoastLogger...', self)
-        fileImportRoastLoggerAction.triggered.connect(self.fileImportRoastLogger)
-        self.importMenu.addAction(fileImportRoastLoggerAction)
+#        fileImportRoastLoggerAction = QAction('RoastLogger...', self)
+#        fileImportRoastLoggerAction.triggered.connect(self.fileImportRoastLogger)
+#        self.importMenu.addAction(fileImportRoastLoggerAction)
 
         importRoastLogAction = QAction('RoastLog URL...',self)
         importRoastLogAction.triggered.connect(self.importRoastLog)
         self.importMenu.addAction(importRoastLogAction)
 
-        importRoastPathAction = QAction('RoastPATH URL...',self)
-        #importRoastPathAction.triggered.connect(self.importRoastPATH)
-        self.importMenu.addAction(importRoastPathAction)
-        importRoastPathAction.setEnabled(False)
+#        importRoastPathAction = QAction('RoastPATH URL...',self)
+#        #importRoastPathAction.triggered.connect(self.importRoastPATH)
+#        self.importMenu.addAction(importRoastPathAction)
+#        importRoastPathAction.setEnabled(False)
 
         importStrongholdAction = QAction('Stronghold XLSX...', self)
         importStrongholdAction.triggered.connect(self.importStronghold)
@@ -2182,6 +2192,10 @@ class ApplicationWindow(QMainWindow):
         fileConvertFromLoringAction = QAction(QApplication.translate('Menu', 'Loring CSV...'), self)
         fileConvertFromLoringAction.triggered.connect(self.convertFromLoring)
         self.convFromMenu.addAction(fileConvertFromLoringAction)
+
+        fileConvertFromOrbiterAction = QAction('Orbiter...', self)
+        fileConvertFromOrbiterAction.triggered.connect(self.convertFromOrbiter)
+        self.convFromMenu.addAction(fileConvertFromOrbiterAction)
 
         fileConvertFromPetronciniAction = QAction(QApplication.translate('Menu', 'Petroncini CSV...'), self)
         fileConvertFromPetronciniAction.triggered.connect(self.convertFromPetroncini)
@@ -2234,13 +2248,17 @@ class ApplicationWindow(QMainWindow):
 
         self.exportMenu.addSeparator()
 
-        fileExportPilotAction = QAction(QApplication.translate('Menu', 'Probat Pilot...'), self)
-        fileExportPilotAction.triggered.connect(self.fileExportPilot)
-        self.exportMenu.addAction(fileExportPilotAction)
+        fileExportOrbiterAction = QAction('Orbiter...', self)
+        fileExportOrbiterAction.triggered.connect(self.fileExportOrbiter)
+        self.exportMenu.addAction(fileExportOrbiterAction)
 
-        fileExportRoastLoggerAction = QAction(QApplication.translate('Menu', 'RoastLogger...'), self)
-        fileExportRoastLoggerAction.triggered.connect(self.fileExportRoastLogger)
-        self.exportMenu.addAction(fileExportRoastLoggerAction)
+#        fileExportPilotAction = QAction(QApplication.translate('Menu', 'Probat Pilot...'), self)
+#        fileExportPilotAction.triggered.connect(self.fileExportPilot)
+#        self.exportMenu.addAction(fileExportPilotAction)
+#
+#        fileExportRoastLoggerAction = QAction(QApplication.translate('Menu', 'RoastLogger...'), self)
+#        fileExportRoastLoggerAction.triggered.connect(self.fileExportRoastLogger)
+#        self.exportMenu.addAction(fileExportRoastLoggerAction)
 
         self.convMenu:QMenu = QMenu(QApplication.translate('Menu', 'Convert To'))
         fileConvertFahrenheitAction = QAction(QApplication.translate('Menu', 'Fahrenheit...'), self)
@@ -2250,12 +2268,6 @@ class ApplicationWindow(QMainWindow):
         fileConvertCelsiusAction = QAction(QApplication.translate('Menu', 'Celsius...'), self)
         fileConvertCelsiusAction.triggered.connect(self.fileConvertToCelsius)
         self.convMenu.addAction(fileConvertCelsiusAction)
-
-        self.convMenu.addSeparator()
-
-        fileConvertExcelAction = QAction(QApplication.translate('Menu', 'Excel...'), self)
-        fileConvertExcelAction.triggered.connect(self.fileConvertExcel)
-        self.convMenu.addAction(fileConvertExcelAction)
 
         self.convMenu.addSeparator()
 
@@ -2269,13 +2281,23 @@ class ApplicationWindow(QMainWindow):
 
         self.convMenu.addSeparator()
 
-        fileConvertProbatAction = QAction(QApplication.translate('Menu', 'Probat Pilot...'), self)
-        fileConvertProbatAction.triggered.connect(self.fileConvertPilot)
-        self.convMenu.addAction(fileConvertProbatAction)
+        fileConvertOrbiterAction = QAction('Orbiter...', self)
+        fileConvertOrbiterAction.triggered.connect(self.fileConvertOrbiter)
+        self.convMenu.addAction(fileConvertOrbiterAction)
 
-        fileConvertRoastLoggerAction = QAction(QApplication.translate('Menu', 'RoastLogger...'), self)
-        fileConvertRoastLoggerAction.triggered.connect(self.fileConvertRoastLogger)
-        self.convMenu.addAction(fileConvertRoastLoggerAction)
+#        fileConvertProbatAction = QAction(QApplication.translate('Menu', 'Probat Pilot...'), self)
+#        fileConvertProbatAction.triggered.connect(self.fileConvertPilot)
+#        self.convMenu.addAction(fileConvertProbatAction)
+#
+#        fileConvertRoastLoggerAction = QAction(QApplication.translate('Menu', 'RoastLogger...'), self)
+#        fileConvertRoastLoggerAction.triggered.connect(self.fileConvertRoastLogger)
+#        self.convMenu.addAction(fileConvertRoastLoggerAction)
+
+        self.convMenu.addSeparator()
+
+        fileConvertExcelAction = QAction(QApplication.translate('Menu', 'Excel...'), self)
+        fileConvertExcelAction.triggered.connect(self.fileConvertExcel)
+        self.convMenu.addAction(fileConvertExcelAction)
 
         self.convMenu.addSeparator()
 
@@ -2530,6 +2552,7 @@ class ApplicationWindow(QMainWindow):
         # use s.encode("ascii", 'backslashreplace').decode("utf-8") and remove the duplicate \\
         for iso, name in [
                 ('ar', '\u0627\u0644\u0639\u0631\u0628\u064a\u0629'),
+                ('bg', '\u0431\u044a\u043b\u0433\u0430\u0440\u0441\u043a\u0438'),
                 ('cs', '\u010d\u0065\u0161\u0074\u0069\u006e\u0061'),
                 ('da', 'Dansk'),
                 ('de', 'Deutsch'),
@@ -4540,6 +4563,16 @@ class ApplicationWindow(QMainWindow):
         if self.ui_mode is not UI_MODE.EXPERT:
             self.set_ui_mode(UI_MODE.EXPERT)
 
+    def announce_current_ui_mode(self) -> None:
+        if self.ui_mode is UI_MODE.PRODUCTION:
+            mode_name = QApplication.translate('Menu', 'Production')
+        elif self.ui_mode is UI_MODE.EXPERT:
+            mode_name = QApplication.translate('Menu', 'Expert')
+        else:
+            mode_name = QApplication.translate('Menu', 'Standard')
+        self.sendmessageSignal.emit(
+            f"{QApplication.translate('Menu', 'Mode')}: {mode_name}",True,None)
+
     # configures apps UI for different usage scenario by adjusting menus, dialogs, and shortcuts
     def set_ui_mode(self, ui_mode:UI_MODE) -> None:
         self.ui_mode = ui_mode
@@ -4551,14 +4584,7 @@ class ApplicationWindow(QMainWindow):
         # configure toolbar
         self.set_toolbar(ui_mode)
         # send message
-        if ui_mode is UI_MODE.PRODUCTION:
-            mode_name = QApplication.translate('Menu', 'Production')
-        elif ui_mode is UI_MODE.EXPERT:
-            mode_name = QApplication.translate('Menu', 'Expert')
-        else:
-            mode_name = QApplication.translate('Menu', 'Standard')
-        self.sendmessageSignal.emit(
-            f"{QApplication.translate('Menu', 'Mode')}: {mode_name}",True,None)
+        self.announce_current_ui_mode()
 
     #
 
@@ -5252,9 +5278,7 @@ class ApplicationWindow(QMainWindow):
     @staticmethod
     def QColorBrightness(c:QColor) -> float:
         r,g,b,_ = c.getRgb()
-        if r is not None and g is not None and b is not None:
-            return ((r*299) + (g*587) + (b*114)) / 1000
-        return 127
+        return ((r*299) + (g*587) + (b*114)) / 1000
 
     # this is important to have . as decimal separator independent of the systems locale
     # dec: number of decimals
@@ -5613,9 +5637,9 @@ class ApplicationWindow(QMainWindow):
         if 'colorSystem' in rr:
             if rr['colorSystem'] in self.qmc.color_systems:
                 self.qmc.color_system_idx = self.qmc.color_systems.index(rr['colorSystem'])
-            elif isinstance(rr['colorSystem'], int) and rr['colorSystem'] < len(self.qmc.color_systems): # type: ignore[unreachable] # ty:ignore[ignore]
+            elif isinstance(rr['colorSystem'], int) and rr['colorSystem'] < len(self.qmc.color_systems): # type: ignore[unreachable]
                 # to stay compatible with older versions were rr['colorSystem'] was an index instead of the name of a system
-                self.qmc.color_system_idx = rr['colorSystem'] # type: ignore[unreachable] # ty:ignore[ignore]
+                self.qmc.color_system_idx = rr['colorSystem'] # type: ignore[unreachable]
 
         # Note: the background profile will not be changed if recent roast is activated from Roast Properties
 #PLUS
@@ -5875,12 +5899,13 @@ class ApplicationWindow(QMainWindow):
                     self.loadSettings(fn=action.data()[0],remember=False,machine=True,reload=False)
                     res:bool = False
                     res2: bool|None = None
+                    ### setup specific configuration dialogs
                     if action.data()[1] == 'Phidget':
                         if action.text() == 'VINT Ambient Modules':
                             elevation, res2 = QInputDialog.getInt(self,
                                 QApplication.translate('Message', 'Ambient'),
                                 QApplication.translate('Message', 'Elevation (MASL)'),value=self.qmc.elevation)
-                            if res2 is not None and res2:
+                            if res2:
                                 try:
                                     self.qmc.elevation = int(elevation)
                                 except Exception: # pylint: disable=broad-except
@@ -5893,16 +5918,48 @@ class ApplicationWindow(QMainWindow):
                             self.qmc.machinesetup = action.text()
                         if res:
                             QTimer.singleShot(700, self.qmc.startPhidgetManager)
+                    elif action.data()[1] == 'ROEST' and self.qmc.device:
+                        # select ROEST machine and retrieve MQTT credentials
+                        from artisanlib.roest import RoestMachine, selectROESTmachine
+                        roest_machine:RoestMachine|None = selectROESTmachine(self)
+                        if roest_machine is not None:
+                            self.mqtt.user = roest_machine['mqtt_user']
+                            self.mqtt.password = roest_machine['mqtt_password']
+                            self.mqtt.topic = roest_machine['mqtt_topic']
+
+                            has_drum = roest_machine.get('has_drum', None)
+                            if has_drum is not None:
+                                self.extraLCDvisibility1[0] = has_drum
+                                self.extraLCDframe1[0].setVisible(has_drum)
+                                self.extraCurveVisibility1[0] = has_drum
+                                self.qmc.resetlinecountcaches()
+
+                            has_inlet = roest_machine.get('has_inlet', None)
+                            if has_inlet is not None:
+                                self.extraLCDvisibility2[0] = has_inlet
+                                self.extraLCDframe2[0].setVisible(has_inlet)
+                                self.extraCurveVisibility2[0] = has_inlet
+                                self.qmc.resetlinecountcaches()
+
+                            if 'next_batch_number' in roest_machine:
+                                self.qmc.batchcounter = max(0, roest_machine['next_batch_number'] - 1)
+                            if 'elevation' in roest_machine:
+                                self.qmc.elevation = roest_machine['elevation']
+                            res = True
+                        else:
+                            res = False
+                            self.sendmessage(QApplication.translate('Message','Action canceled'))
                     else:
                         self.qmc.machinesetup = action.text()
                         res = True
+                    ###
                     if (self.qmc.device == 29 or 29 in self.qmc.extradevices) and self.modbus.type in {3,4}: # MODBUS TCP or UDP
                         # as default we offer the current settings MODBUS host, or if this is set to its default as after a factory reset (self.modbus.default_host) we take the one from the machine setup
                         defaultModbusHost:str = (self.modbus.host if org_modbus_host == self.modbus.default_host else org_modbus_host)
                         host, res2 = QInputDialog.getText(self,
                             f"{QApplication.translate('Message', 'Machine')} (MODBUS)",
                             QApplication.translate('Message', 'Network name or IP address'),text=defaultModbusHost)
-                        if res2 is not None and res2:
+                        if res2:
                             res = res2
                             self.modbus.host = host
                         else:
@@ -5913,7 +5970,7 @@ class ApplicationWindow(QMainWindow):
                         host, res2 = QInputDialog.getText(self,
                             f"{QApplication.translate('Message', 'Machine')} (S7)",
                             QApplication.translate('Message', 'Network name or IP address'),text=defaultS7Host)
-                        if res2 is not None and res2:
+                        if res2:
                             res = res2
                             self.s7.host = host
                         else:
@@ -5924,7 +5981,7 @@ class ApplicationWindow(QMainWindow):
                         host, res2 = QInputDialog.getText(self,
                             f"{QApplication.translate('Message', 'Machine')} (WebSocket)",
                             QApplication.translate('Message', 'Network name or IP address'),text=defaultWSHost)
-                        if res2 is not None and res2:
+                        if res2:
                             res = res2
                             self.ws.host = host
                         else:
@@ -5935,7 +5992,7 @@ class ApplicationWindow(QMainWindow):
                         host, res2 = QInputDialog.getText(self,
                             QApplication.translate('Message', 'Machine'),
                             QApplication.translate('Message', 'Network name or IP address'),text=defaultKaleidoHost)
-                        if res2 is not None and res2:
+                        if res2:
                             res = res2
                             self.kaleidoHost = host
                         else:
@@ -5946,7 +6003,7 @@ class ApplicationWindow(QMainWindow):
                         host, res2 = QInputDialog.getText(self,
                             QApplication.translate('Message', 'Machine'),
                             QApplication.translate('Message', 'Network name or IP address'),text=defaultMugmaHost)
-                        if res2 is not None and res2:
+                        if res2:
                             res = res2
                             self.mugmaHost = host
                         else:
@@ -5990,7 +6047,7 @@ class ApplicationWindow(QMainWindow):
                                 0, # min
                                 999, # max
                                 1) # decimals
-                            if res2 is not None and res2:
+                            if res2:
                                 res = res2
                                 self.qmc.roastersize_setup = self.qmc.roastersize = batchsize
                         else:
@@ -6269,7 +6326,7 @@ class ApplicationWindow(QMainWindow):
     def colorDifference(self, color1:str|None, color2:str|None) -> float:
         cDiff = 100
         try:
-            from colorspacious import deltaE # type: ignore[import-untyped] # ty:ignore[ignore]
+            from colorspacious import deltaE # type: ignore[import-untyped]
             if color1 is None or color1 == 'None':
                 color1 = '#f0f0f0'
             if color2 is None or color2 == 'None':
@@ -6481,9 +6538,9 @@ class ApplicationWindow(QMainWindow):
             self.level1layout.removeWidget(self.ntb) # remove current bar
 
             if self.ntb.mode == MPL_Mode.PAN:
-                self.ntb.pan() # type:ignore[no-untyped-call] # ty:ignore[ignore] # PAN is active, we deactivate it before changing the ToolBar
+                self.ntb.pan() # type:ignore[no-untyped-call] # PAN is active, we deactivate it before changing the ToolBar
             if self.ntb.mode == MPL_Mode.ZOOM:
-                self.ntb.zoom() # type:ignore[no-untyped-call] # ty:ignore[ignore] # ZOOM is active, we deactivate it before changing the ToolBar
+                self.ntb.zoom() # type:ignore[no-untyped-call] # ZOOM is active, we deactivate it before changing the ToolBar
             self.removeToolBar(self.ntb)
 #            self.ntb.hide() # seems not to be necessary anymore with the removeToolBar() above
             self.ntb.destroy()
@@ -9341,6 +9398,8 @@ class ApplicationWindow(QMainWindow):
                     ##  santoker(<target>,<value>) : the byte <target> indicates where <value> of type integer should be written to
                     ##  kaleido(<target>,<value>) : the <target> string indicates where <value> of type string should be written to
                     ##  shellyrelay(n,b) : switches Shelly plug number <n> ON if b is true or 1, and OFF otherwise
+                    ##  publish(<topic>,<data>) : converts the given data to JSON and publishes it on the MQTT server to the given topic.
+                    #      Publish will connect to the specified broker if not yet connected and subscribe to the configured topics
                     #
                     if cmd_str:
                         cmds = filter(None, cmd_str.split(';')) # allows for sequences of commands like in "<cmd>;<cmd>;...;<cmd>"
@@ -9600,6 +9659,16 @@ class ApplicationWindow(QMainWindow):
                                         except Exception as e: # pylint: disable=broad-except
                                             _log.error(e)
 
+                                ##  publish(<topic>,<data>) : converts the given data to JSON and publishes it on the MQTT server to the given topic.
+                                #      Publish will connect to the specified broker if not yet connected and subscribe to the configured topics
+                                elif c.startswith('publish'):
+                                    if self.mqtt is not None:
+                                        args = c[len('publish'):]
+                                        if args.startswith('(') and args.endswith(')'):
+                                            comma_pos = args.index(',')
+                                            topic = args[1:comma_pos]
+                                            data = eval(args[comma_pos+1:-1]) # pylint: disable=eval-used
+                                            self.mqtt.publish(topic, data, self.qmc.device_logging)
 
                                 # Yoctopuce Relay Command Actions
                                 # yset(c,b[,sn])
@@ -10622,21 +10691,22 @@ class ApplicationWindow(QMainWindow):
                                         elif event == 'START' and not self.qmc.flagstart:
                                             #self.lastbuttonpressed = -1 # action triggers reset which resets all button states
                                             self.qmc.toggleRecorderSignal.emit()
-                                        elif event == 'CHARGE':
+                                        elif event == 'CHARGE' and self.qmc.timeindex[0] < 0:
+                                            # only mark CHARGE from an alarm if not yet set to prevent an undo CHARGE
                                             self.qmc.markChargeDelaySignal.emit(0)
-                                        elif event == 'DRY':
+                                        elif event == 'DRY' and self.qmc.timeindex[1] == 0:
                                             self.qmc.markDRYSignal.emit(False)
-                                        elif event == 'FCs':
+                                        elif event == 'FCs' and self.qmc.timeindex[2] == 0:
                                             self.qmc.markFCsSignal.emit(False)
-                                        elif event == 'FCe':
+                                        elif event == 'FCe' and self.qmc.timeindex[3] == 0:
                                             self.qmc.markFCeSignal.emit(False)
-                                        elif event == 'SCs':
+                                        elif event == 'SCs' and self.qmc.timeindex[4] == 0:
                                             self.qmc.markSCsSignal.emit(False)
-                                        elif event == 'SCe':
+                                        elif event == 'SCe' and self.qmc.timeindex[5] == 0:
                                             self.qmc.markSCeSignal.emit(False)
-                                        elif event == 'DROP':
+                                        elif event == 'DROP' and self.qmc.timeindex[6] == 0:
                                             self.qmc.markDropSignal.emit(False)
-                                        elif event == 'COOL':
+                                        elif event == 'COOL' and self.qmc.timeindex[7] == 0:
                                             self.qmc.markCoolSignal.emit(False)
                                         elif event == 'OFF' and self.qmc.flagon:
                                             self.qmc.toggleMonitorSignal.emit()
@@ -11218,7 +11288,7 @@ class ApplicationWindow(QMainWindow):
                             # command not recognized
                             _log.info('WebSocket Command <%s> not recognized', cs)
                 elif action == 23:
-                    # PHIDGETS   sn : has the form <hub_serial>[:<hub_port>], an optional serial number of the hub, optionally specifying the port number the module is connected to
+                    # Stepper Command   sn : has the form <hub_serial>[:<hub_port>], an optional serial number of the hub, optionally specifying the port number the module is connected to
                     ##  rescale(ch,rs,[,sn]) : sets the rescaleFactor
                     ##  engaged(ch,b[,sn])   : engage (b=1) or disengage (b = 0)
                     ##  set(ch,pos[,sn])     : set the target position
@@ -12418,7 +12488,12 @@ class ApplicationWindow(QMainWindow):
                             self.qmc.redraw()
                         # load background when there are no modifiers
                         elif no_modifier or control_modifier:
-                            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Load Background'),ext='*.alog')
+                            # path
+                            path:str|None = None
+                            if bool(self.qmc.backgroundprofile is not None) and self.qmc.backgroundpath:
+                                # if a background profile is loaded we open the file selector using its path
+                                path = self.qmc.backgroundpath
+                            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Load Background'),path =path, ext='*.alog')
                             if len(filename) != 0:
                                 self.loadBackgroundSignal.emit(filename)
                 elif k == Qt.Key.Key_L and no_modifier and self.ui_mode is not UI_MODE.PRODUCTION: # 76:       #L (load alarms)
@@ -12746,7 +12821,7 @@ class ApplicationWindow(QMainWindow):
                         self.sendmessage(f"{QApplication.translate('Label','Event button')}", append=False)
                     elif no_modifier and not self.app.artisanviewerMode and not self.qmc.designerflag and not self.qmc.wheelflag:
                         self.toggleextraeventrows()
-                elif k == Qt.Key.Key_M and no_modifier: # 77:                          #M (hides/shows standard buttons row)
+                elif k == Qt.Key.Key_M and no_modifier: # 77:          #M (hides/shows standard buttons row)
                     if self.qmc.flagstart:
                         self.standardButtonsVisibility()
                 #Extra event buttons palette. Numerical keys [0,1,2,3,4,5,6,7,8,9]
@@ -12861,7 +12936,7 @@ class ApplicationWindow(QMainWindow):
     # and enables/disables buttons depending if undo is applicable
     def onMarkMoveToNext(self, button:EventPushButton) -> None:
         try:
-            this_index = self.keyboardButtonList.index(button)
+            this_index = self.keyboardButtonList.index(button) # zuban:ignore[arg-type]
             if self.qmc.buttonvisibility[this_index]:
                 if button.isFlat():
                     if self.keyboardmoveflag:
@@ -13204,6 +13279,10 @@ class ApplicationWindow(QMainWindow):
             self.exportCSV(filename + '.csv')
         elif self.qmc.autosaveimageformat == 'JSON':
             self.exportJSON(filename + '.json')
+        elif self.qmc.autosaveimageformat == 'Excel':
+            self.exportExcel(filename + '.xlsx')
+        elif self.qmc.autosaveimageformat == 'Orbiter':
+            self.exportOrbiterROP(filename + '.zip')
         else:
             self.resizeImgToSize(0,0,self.qmc.autosaveimageformat,fname=filename)
 
@@ -13728,8 +13807,6 @@ class ApplicationWindow(QMainWindow):
 
                 #check colors
                 self.checkColors(self.getcolorPairsToCheck())
-                #update menus
-                self.set_ui_mode(self.ui_mode)
 
         except OSError as ex:
             _, _, exc_tb = sys.exc_info()
@@ -14005,7 +14082,7 @@ class ApplicationWindow(QMainWindow):
         try:
             dirty = False
             for j,xd in enumerate(self.qmc.extradevices):
-                if xd == 25:  #virtual device
+                if xd in {25, 50}:  #virtual or dummy device
                     if len(self.qmc.extratimex[j]) > 0 and not update:  # move on if the virtual device already has data
                         continue
 
@@ -14168,19 +14245,19 @@ class ApplicationWindow(QMainWindow):
                 f.close()
                 profile = deserialize(filename)
                 self.plusAddPath(profile, filename)
-                self.qmc.backgroundprofile = cast('ProfileData',profile)
-                tb = profile['timex']
-                t1 = profile['temp1']
-                t2 = profile['temp2']
+                self.qmc.backgroundprofile = cast('ProfileData', profile)
+                tb:list[float] = profile['timex']
+                t1:list[float] = profile['temp1']
+                t2:list[float] = profile['temp2']
                 # ensure that timex, temp1 and temp2 are all of the same (minimal-)length
                 data_len:int = min(len(tb), len(t1), len(t2))
                 tb = tb[:data_len]
                 t1 = t1[:data_len]
                 t2 = t2[:data_len]
 
-                timex = profile['extratimex']
-                t1x = profile['extratemp1']
-                t2x = profile['extratemp2']
+                timex:list[list[float]] = profile['extratimex']
+                t1x:list[list[float]] = profile['extratemp1']
+                t2x:list[list[float]] = profile['extratemp2']
                 # ensure that number of extra device data is consistent
                 number_extra_devices = min(len(timex), len(t1x), len(t2x))
                 timex = timex[:number_extra_devices]
@@ -14194,9 +14271,9 @@ class ApplicationWindow(QMainWindow):
                     if len(timex[c]) != data_len:
                         timex[c] = tb[:]
                     if len(t1x[c]) != data_len:
-                        t1x[c] = [-1]*data_len
+                        t1x[c] = [-1.]*data_len
                     if len(t2x[c]) != data_len:
-                        t2x[c] = [-1]*data_len
+                        t2x[c] = [-1.]*data_len
 
 
                 # reset the movebackground cache:
@@ -14229,7 +14306,7 @@ class ApplicationWindow(QMainWindow):
 
                 names1x = [decodeLocalStrict(x) for x in profile['extraname1']]
                 names2x = [decodeLocalStrict(x) for x in profile['extraname2']]
-                self.qmc.temp1B,self.qmc.temp2B,self.qmc.timeB, self.qmc.temp1BX, self.qmc.temp2BX = t1,t2,tb,t1x,t2x
+                self.qmc.temp1B,self.qmc.temp2B,self.qmc.timeB, self.qmc.temp1BX, self.qmc.temp2BX = t1,t2,tb,[numpy.array(tx) for tx in t1x],[numpy.array(tx) for tx in t2x]
                 self.qmc.abs_timeB = tb.copy()  #invariant copy of timeB
                 self.qmc.extratimexB = timex
 
@@ -14254,7 +14331,7 @@ class ApplicationWindow(QMainWindow):
 
                 # we resample the temperatures to regular interval timestamps
                 tb_lin:numpy.ndarray[tuple[Literal[1]],numpy.dtype[numpy.double]]|None = None
-                if tb is not None and tb:
+                if tb:
                     tb_lin = cast(numpy.ndarray[tuple[Literal[1]]], numpy.linspace(tb[0],tb[-1],len(tb)))
                 decay_smoothing_p = not self.qmc.optimalSmoothing
                 b1 = self.qmc.smooth_list(tb,t1,window_len=self.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=tb_lin)
@@ -14273,7 +14350,7 @@ class ApplicationWindow(QMainWindow):
                     if (self.qmc.xtcurveidx > 0 and n3 == i) or (self.qmc.ytcurveidx > 0 and n4 == i): # this is the 3rd or 4th background curve to be drawn, we smooth it
                         tx=timex[i]
                         tx_lin:numpy.ndarray[tuple[Literal[1]],numpy.dtype[numpy.double]]|None = None
-                        if tx is not None and tx:
+                        if tx:
                             tx_lin = cast(numpy.ndarray[tuple[Literal[1]],numpy.dtype[numpy.double]], numpy.linspace(tx[0],tx[-1],len(tx)))
                         if (self.qmc.xtcurveidx > 0 and n3 == i and self.qmc.xtcurveidx % 2) or (self.qmc.ytcurveidx > 0 and n4 == i and self.qmc.ytcurveidx % 2):
                             b1x.append(self.qmc.smooth_list(tx,t1x[i],window_len=self.qmc.curvefilter,decay_smoothing=decay_smoothing_p,a_lin=tx_lin))
@@ -14512,6 +14589,8 @@ class ApplicationWindow(QMainWindow):
             if self.qmc.ax is not None:
                 self.qmc.extratemp1lines.append(self.qmc.ax.plot(self.qmc.extratimex[l], self.qmc.extratemp1[l],color=self.qmc.extradevicecolor1[l],markersize=self.qmc.extramarkersizes1[l],marker=self.qmc.extramarkers1[l],linewidth=self.qmc.extralinewidths1[l],linestyle=self.qmc.extralinestyles1[l],drawstyle=self.qmc.extradrawstyles1[l],label=self.qmc.extraname1[l])[0])
                 self.qmc.extratemp2lines.append(self.qmc.ax.plot(self.qmc.extratimex[l], self.qmc.extratemp2[l],color=self.qmc.extradevicecolor2[l],markersize=self.qmc.extramarkersizes2[l],marker=self.qmc.extramarkers2[l],linewidth=self.qmc.extralinewidths2[l],linestyle=self.qmc.extralinestyles2[l],drawstyle=self.qmc.extradrawstyles2[l],label=self.qmc.extraname2[l])[0])
+                self.qmc.extrafill1lines.append(None)
+                self.qmc.extrafill2lines.append(None)
 
             self.updateLCDproperties()
         except Exception as e: # pylint: disable=broad-except
@@ -14524,13 +14603,26 @@ class ApplicationWindow(QMainWindow):
                 from json import dump as json_dump
                 json_dump(self.getProfile(), outfile, indent=None, separators=(',', ':'), ensure_ascii=False)
                 outfile.write('\n')
-            self.sendmessage(f"{QApplication.translate('Message','Artisan JSON file saved successfully')} ({filename})")
+            self.sendmessage(f"{QApplication.translate('Message','{} file saved successfully').format('Artisan JSON')} ({filename})")
             return True
         except Exception as ex: # pylint: disable=broad-except
             _log.exception(ex)
             _, _, exc_tb = sys.exc_info()
             self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' exportJSON() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
             return False
+
+    def exportOrbiterROP(self, filename:str) -> bool:
+        from artisanlib.orbiter import saveOrbiterROP
+        try:
+            res:bool = saveOrbiterROP(filename, self.getProfile())
+            if res:
+                self.sendmessage(f"{QApplication.translate('Message','{} file saved successfully').format('Orbiter')} ({filename})")
+                return True
+        except Exception as ex: # pylint: disable=broad-except
+            _log.exception(ex)
+            _, _, exc_tb = sys.exc_info()
+            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' exportOrbiterROP() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
+        return False
 
     def indent(self, elem:'XMLElement', level:int = 0) -> None:
         i = '\r\n' + level*'  ' # Windows line ending (as Pilot is only available on Windows)
@@ -14548,209 +14640,209 @@ class ApplicationWindow(QMainWindow):
         elif level and (not elem_tail or not elem_tail.strip()):
             elem.tail = i
 
-    def exportPilot(self, filename:str) -> bool:
-        try:
-            # warning popup if filename contains more than one _
-            # only contain one _ followed by an index number like Name_0.xml
-            s = filename.split('_')
-            if (len(s) < 2 or len(s) > 2):
-                QMessageBox.warning(None, #self, # only without super this one shows the native dialog on macOS under Qt 6.6.2 and later
-                    QApplication.translate('Message', 'Warning'),QApplication.translate('Message', 'The Probat Shop Pilot Software expects files named <Name>_<Index>.xml like in Test_0.xml on import'))
+#    def exportPilot(self, filename:str) -> bool:
+#        try:
+#            # warning popup if filename contains more than one _
+#            # only contain one _ followed by an index number like Name_0.xml
+#            s = filename.split('_')
+#            if (len(s) < 2 or len(s) > 2):
+#                QMessageBox.warning(None, #self, # only without super this one shows the native dialog on macOS under Qt 6.6.2 and later
+#                    QApplication.translate('Message', 'Warning'),QApplication.translate('Message', 'The Probat Shop Pilot Software expects files named <Name>_<Index>.xml like in Test_0.xml on import'))
+#
+#            import xml.etree.ElementTree as ET
+#            tree = ET.Element('recipe')
+#
+#            charge = ET.SubElement(tree, 'charge')
+#            charge.text = str(float2float(convertWeight(self.qmc.weight[0],weight_units.index(self.qmc.weight[2]),1)))
+#
+#            beans = ET.SubElement(tree, 'coffeetype')
+#            if self.qmc.beans and self.qmc.beans != '':
+#                beans.text = self.qmc.beans
+#
+#            color = ET.SubElement(tree, 'coffeecolor')
+#            if self.qmc.ground_color:
+#                color.text = str(self.qmc.ground_color)
+#
+#            endtemperature = ET.SubElement(tree, 'endtemperature')
+#            endtime = ET.SubElement(tree, 'endtime')
+#            cooling = ET.SubElement(tree, 'coolingtime')
+#
+#            roaster = ET.SubElement(tree, 'roaster')
+#            if self.qmc.roastertype and self.qmc.roastertype != '':
+#                roaster.text = self.qmc.roastertype
+#
+#            notes = ET.SubElement(tree, 'notes')
+#            if self.qmc.roastingnotes and self.qmc.roastingnotes != '':
+#                notes.text = self.qmc.roastingnotes
+#
+#            roasttype = ET.SubElement(tree, 'roasttype')
+#            roasttype.text = '0' # 0: global, 1: time, 2: temp
+#
+#            recipedata = ET.SubElement(tree, 'recipedata_temp_unit')
+#            recipedata.text = self.qmc.mode
+#
+#            diagrampoints = ET.SubElement(tree, 'diagrampoints')
+#
+#            time_tag = 'sTime'
+#            temp_tag = 'nTemperature'
+#            burner_tag = 'nBurnercapacity'
+#            rising_tag = 'bRising'
+#
+#            # if CHARGE is defined, only export from CHARGE
+#            # if DROP is defined only export until DROP
+#            end_temp = None
+#            end_time = None
+#            idx = 1
+#            for i, tx in enumerate(self.qmc.timex):
+#                if (self.qmc.timeindex[0] < 0 or i >= self.qmc.timeindex[0]) and (self.qmc.timeindex[6] == 0 or i <= self.qmc.timeindex[6]):
+#                    data = ET.SubElement(diagrampoints, 'data', index=str(idx))
+#                    t = tx
+#                    if self.qmc.timeindex[0] > -1:
+#                        t = t - self.qmc.timex[self.qmc.timeindex[0]]
+#                    time = ET.SubElement(data,time_tag)
+#                    di, mo = divmod(t,60)
+#                    time.text = f'{di:02.0f}:{mo:02.0f}'
+#                    end_time = time.text
+#                    temp = ET.SubElement(data,temp_tag)
+#                    temp.text = str(int(round(self.qmc.temp2[i])))
+#                    end_temp = temp.text
+#                    burner = ET.SubElement(data,burner_tag)
+#                    if len(self.qmc.extradevices) > 0:
+#                        burner.text = str(max(0,int(round(self.qmc.extratemp1[0][i]))))
+#                    else:
+#                        burner.text = '0'
+#                    rising = ET.SubElement(data,rising_tag)
+#                    delta2i = self.qmc.delta2[i]
+#                    if delta2i is not None and delta2i > 0:
+#                        rising.text = 'true'
+#                    else:
+#                        rising.text = 'false'
+#                    idx = idx + 1
+#
+#            if end_temp:
+#                endtemperature.text = end_temp
+#
+#            if end_temp:
+#                endtime.text = end_time
+#
+#            if self.qmc.timeindex[7]:
+#                t = self.qmc.timex[self.qmc.timeindex[7]] - self.qmc.timex[self.qmc.timeindex[6]]
+#                di,mo = divmod(t,60)
+#                cooling.text = f'{di:02.0f}:{mo:02.0f}'
+#            else:
+#                cooling.text = '00:00'
+#
+#            switchpoints = ET.SubElement(tree, 'switchpoints')
+#            # take data from 2nd extra event type
+#            idx = 1
+#            for i, spe in enumerate(self.qmc.specialevents):
+#                if self.qmc.specialeventstype[i] == 3 and (self.qmc.timeindex[0] < 0 or spe >= self.qmc.timeindex[0]) and (self.qmc.timeindex[6] == 0 or spe <= self.qmc.timeindex[6]):
+#                    data = ET.SubElement(switchpoints, 'data', index=str(idx))
+#                    if self.qmc.timeindex[0] > -1 and len(self.qmc.timex) > self.qmc.timeindex[0]:
+#                        timez = stringfromseconds(self.qmc.timex[spe]-self.qmc.timex[self.qmc.timeindex[0]])
+#                    else:
+#                        timez = stringfromseconds(self.qmc.timex[spe])
+#                    t = spe
+#                    if self.qmc.timeindex[0] > -1:
+#                        t = t - self.qmc.timeindex[0]
+#                    time = ET.SubElement(data,time_tag)
+#                    time.text = timez
+#                    temp = ET.SubElement(data,temp_tag)
+#                    temp.text = str(int(round(self.qmc.temp2[spe])))
+#                    burner = ET.SubElement(data,burner_tag)
+#                    b = self.qmc.eventsInternal2ExternalValue(self.qmc.specialeventsvalue[i])
+#                    burner.text = str(int(round(b)))
+#                    rising = ET.SubElement(data,rising_tag)
+#                    delta2i = self.qmc.delta2[i]
+#                    if delta2i is not None and delta2i > 0:
+#                        rising.text = 'true'
+#                    else:
+#                        rising.text = 'false'
+#                    idx = idx + 1
+#            self.indent(tree)
+#            ET.ElementTree(tree).write(filename,encoding='utf-8', xml_declaration=True)
+#            return True
+#        except Exception as ex: # pylint: disable=broad-except
+#            _log.exception(ex)
+#            _, _, exc_tb = sys.exc_info()
+#            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' exportPilot() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
+#            return False
 
-            import xml.etree.ElementTree as ET
-            tree = ET.Element('recipe')
-
-            charge = ET.SubElement(tree, 'charge')
-            charge.text = str(float2float(convertWeight(self.qmc.weight[0],weight_units.index(self.qmc.weight[2]),1)))
-
-            beans = ET.SubElement(tree, 'coffeetype')
-            if self.qmc.beans and self.qmc.beans != '':
-                beans.text = self.qmc.beans
-
-            color = ET.SubElement(tree, 'coffeecolor')
-            if self.qmc.ground_color:
-                color.text = str(self.qmc.ground_color)
-
-            endtemperature = ET.SubElement(tree, 'endtemperature')
-            endtime = ET.SubElement(tree, 'endtime')
-            cooling = ET.SubElement(tree, 'coolingtime')
-
-            roaster = ET.SubElement(tree, 'roaster')
-            if self.qmc.roastertype and self.qmc.roastertype != '':
-                roaster.text = self.qmc.roastertype
-
-            notes = ET.SubElement(tree, 'notes')
-            if self.qmc.roastingnotes and self.qmc.roastingnotes != '':
-                notes.text = self.qmc.roastingnotes
-
-            roasttype = ET.SubElement(tree, 'roasttype')
-            roasttype.text = '0' # 0: global, 1: time, 2: temp
-
-            recipedata = ET.SubElement(tree, 'recipedata_temp_unit')
-            recipedata.text = self.qmc.mode
-
-            diagrampoints = ET.SubElement(tree, 'diagrampoints')
-
-            time_tag = 'sTime'
-            temp_tag = 'nTemperature'
-            burner_tag = 'nBurnercapacity'
-            rising_tag = 'bRising'
-
-            # if CHARGE is defined, only export from CHARGE
-            # if DROP is defined only export until DROP
-            end_temp = None
-            end_time = None
-            idx = 1
-            for i, tx in enumerate(self.qmc.timex):
-                if (self.qmc.timeindex[0] < 0 or i >= self.qmc.timeindex[0]) and (self.qmc.timeindex[6] == 0 or i <= self.qmc.timeindex[6]):
-                    data = ET.SubElement(diagrampoints, 'data', index=str(idx))
-                    t = tx
-                    if self.qmc.timeindex[0] > -1:
-                        t = t - self.qmc.timex[self.qmc.timeindex[0]]
-                    time = ET.SubElement(data,time_tag)
-                    di, mo = divmod(t,60)
-                    time.text = f'{di:02.0f}:{mo:02.0f}'
-                    end_time = time.text
-                    temp = ET.SubElement(data,temp_tag)
-                    temp.text = str(int(round(self.qmc.temp2[i])))
-                    end_temp = temp.text
-                    burner = ET.SubElement(data,burner_tag)
-                    if len(self.qmc.extradevices) > 0:
-                        burner.text = str(max(0,int(round(self.qmc.extratemp1[0][i]))))
-                    else:
-                        burner.text = '0'
-                    rising = ET.SubElement(data,rising_tag)
-                    delta2i = self.qmc.delta2[i]
-                    if delta2i is not None and delta2i > 0:
-                        rising.text = 'true'
-                    else:
-                        rising.text = 'false'
-                    idx = idx + 1
-
-            if end_temp:
-                endtemperature.text = end_temp
-
-            if end_temp:
-                endtime.text = end_time
-
-            if self.qmc.timeindex[7]:
-                t = self.qmc.timex[self.qmc.timeindex[7]] - self.qmc.timex[self.qmc.timeindex[6]]
-                di,mo = divmod(t,60)
-                cooling.text = f'{di:02.0f}:{mo:02.0f}'
-            else:
-                cooling.text = '00:00'
-
-            switchpoints = ET.SubElement(tree, 'switchpoints')
-            # take data from 2nd extra event type
-            idx = 1
-            for i, spe in enumerate(self.qmc.specialevents):
-                if self.qmc.specialeventstype[i] == 3 and (self.qmc.timeindex[0] < 0 or spe >= self.qmc.timeindex[0]) and (self.qmc.timeindex[6] == 0 or spe <= self.qmc.timeindex[6]):
-                    data = ET.SubElement(switchpoints, 'data', index=str(idx))
-                    if self.qmc.timeindex[0] > -1 and len(self.qmc.timex) > self.qmc.timeindex[0]:
-                        timez = stringfromseconds(self.qmc.timex[spe]-self.qmc.timex[self.qmc.timeindex[0]])
-                    else:
-                        timez = stringfromseconds(self.qmc.timex[spe])
-                    t = spe
-                    if self.qmc.timeindex[0] > -1:
-                        t = t - self.qmc.timeindex[0]
-                    time = ET.SubElement(data,time_tag)
-                    time.text = timez
-                    temp = ET.SubElement(data,temp_tag)
-                    temp.text = str(int(round(self.qmc.temp2[spe])))
-                    burner = ET.SubElement(data,burner_tag)
-                    b = self.qmc.eventsInternal2ExternalValue(self.qmc.specialeventsvalue[i])
-                    burner.text = str(int(round(b)))
-                    rising = ET.SubElement(data,rising_tag)
-                    delta2i = self.qmc.delta2[i]
-                    if delta2i is not None and delta2i > 0:
-                        rising.text = 'true'
-                    else:
-                        rising.text = 'false'
-                    idx = idx + 1
-            self.indent(tree)
-            ET.ElementTree(tree).write(filename,encoding='utf-8', xml_declaration=True)
-            return True
-        except Exception as ex: # pylint: disable=broad-except
-            _log.exception(ex)
-            _, _, exc_tb = sys.exc_info()
-            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' exportPilot() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
-            return False
-
-    #Write readings to RoastLogger CSV file
-    def exportRoastLogger(self, filename:str) -> bool:
-        import csv
-        try:
-            with open(filename, 'w', encoding='utf-8') as outfile:
-                outfile.write('Log created at 09:00:00 '+ self.qmc.roastdate.date().toString("dd'/'MM'/'yyyy") + '\n')
-                outfile.write('Use Options|Set template for new log to modify this template.\n')
-                outfile.write('------------------------------------------------------\n')
-                outfile.write('Bean/Blend name:\n')
-                outfile.write('\n')
-                outfile.write('Profile description:\n')
-                outfile.write('\n')
-                outfile.write('Roast notes:\n')
-                outfile.write('\n')
-                outfile.write('Cupping results:\n')
-                outfile.write('\n')
-                outfile.write('Roast Logger Copyright ? T. R. Coxon (GreenBean TMC).\n')
-                outfile.write('Roast started at 09:00:00 ' + self.qmc.roastdate.date().toString("dd'/'MM'/'yyyy") + '\n')
-                if len(self.qmc.timex) > 0:
-                    CHARGE = self.qmc.timex[self.qmc.timeindex[0]]
-                else:
-                    CHARGE = 0
-                writer= csv.writer(outfile,delimiter=',')
-                writer.writerow(['Elapsed time ',' T1 ',' T2 ',' Event type'])
-                for i, _ in enumerate(self.qmc.timex):
-                    if i == self.qmc.timeindex[0]:
-                        kind = 'Beans loaded'
-                    elif i!=0 and i == self.qmc.timeindex[2]:
-                        kind = 'First crack start'
-                    elif i!=0 and i == self.qmc.timeindex[3]:
-                        kind = 'First crack end'
-                    elif i!=0 and i == self.qmc.timeindex[4]:
-                        kind = 'Second crack start'
-                    elif i!=0 and i == self.qmc.timeindex[6]:
-                        kind = 'Beans ejected'
-                    else:
-                        kind = 'timer'
-                    writer.writerow([stringfromseconds(self.qmc.timex[i]-CHARGE),f'{self.qmc.temp2[i]:.1f}',f'{self.qmc.temp1[i]:.1f}',kind])
-                outfile.write('\n')
-                outfile.write('@actionT1Table\n')
-                outfile.write('120|null|30\n')
-                outfile.write('178|65|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('\n')
-                outfile.write('@actionSecsFCTable\n')
-                outfile.write('60|50|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('null|null|null\n')
-                outfile.write('\n')
-                outfile.write('@actionResetTable\n')
-                outfile.write('100|0\n')
-                outfile.write('\n')
-                outfile.write('@loadBeansTable\n')
-                outfile.write('146\n')
-                outfile.write('\n')
-            return True
-        except Exception as ex: # pylint: disable=broad-except
-            _log.exception(ex)
-            _, _, exc_tb = sys.exc_info()
-            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' exportRoastLogger() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
-            return False
+#    #Write readings to RoastLogger CSV file
+#    def exportRoastLogger(self, filename:str) -> bool:
+#        import csv
+#        try:
+#            with open(filename, 'w', encoding='utf-8') as outfile:
+#                outfile.write('Log created at 09:00:00 '+ self.qmc.roastdate.date().toString("dd'/'MM'/'yyyy") + '\n')
+#                outfile.write('Use Options|Set template for new log to modify this template.\n')
+#                outfile.write('------------------------------------------------------\n')
+#                outfile.write('Bean/Blend name:\n')
+#                outfile.write('\n')
+#                outfile.write('Profile description:\n')
+#                outfile.write('\n')
+#                outfile.write('Roast notes:\n')
+#                outfile.write('\n')
+#                outfile.write('Cupping results:\n')
+#                outfile.write('\n')
+#                outfile.write('Roast Logger Copyright ? T. R. Coxon (GreenBean TMC).\n')
+#                outfile.write('Roast started at 09:00:00 ' + self.qmc.roastdate.date().toString("dd'/'MM'/'yyyy") + '\n')
+#                if len(self.qmc.timex) > 0:
+#                    CHARGE = self.qmc.timex[self.qmc.timeindex[0]]
+#                else:
+#                    CHARGE = 0
+#                writer= csv.writer(outfile,delimiter=',')
+#                writer.writerow(['Elapsed time ',' T1 ',' T2 ',' Event type'])
+#                for i, _ in enumerate(self.qmc.timex):
+#                    if i == self.qmc.timeindex[0]:
+#                        kind = 'Beans loaded'
+#                    elif i!=0 and i == self.qmc.timeindex[2]:
+#                        kind = 'First crack start'
+#                    elif i!=0 and i == self.qmc.timeindex[3]:
+#                        kind = 'First crack end'
+#                    elif i!=0 and i == self.qmc.timeindex[4]:
+#                        kind = 'Second crack start'
+#                    elif i!=0 and i == self.qmc.timeindex[6]:
+#                        kind = 'Beans ejected'
+#                    else:
+#                        kind = 'timer'
+#                    writer.writerow([stringfromseconds(self.qmc.timex[i]-CHARGE),f'{self.qmc.temp2[i]:.1f}',f'{self.qmc.temp1[i]:.1f}',kind])
+#                outfile.write('\n')
+#                outfile.write('@actionT1Table\n')
+#                outfile.write('120|null|30\n')
+#                outfile.write('178|65|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('\n')
+#                outfile.write('@actionSecsFCTable\n')
+#                outfile.write('60|50|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('null|null|null\n')
+#                outfile.write('\n')
+#                outfile.write('@actionResetTable\n')
+#                outfile.write('100|0\n')
+#                outfile.write('\n')
+#                outfile.write('@loadBeansTable\n')
+#                outfile.write('146\n')
+#                outfile.write('\n')
+#            return True
+#        except Exception as ex: # pylint: disable=broad-except
+#            _log.exception(ex)
+#            _, _, exc_tb = sys.exc_info()
+#            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' exportRoastLogger() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
+#            return False
 
     def importJSON(self, filename:str) -> None:
         try:
@@ -14791,20 +14883,20 @@ class ApplicationWindow(QMainWindow):
             _, _, exc_tb = sys.exc_info()
             self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' importCSV() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
 
-    def importRoastLogger(self, filename:str) -> None:
-        self.resetExtraDevices()
-        # the RoastLogger file might be in utf-8 or latin1 encoding, we cannot know so let's test both
-        try:
-            try:
-                self.importRoastLoggerEnc(filename,'utf-8')
-            except Exception: # pylint: disable=broad-except
-                self.importRoastLoggerEnc(filename,'latin1')
-            self.qmc.fileDirtySignal.emit()
-            self.sendmessage(f"{QApplication.translate('Message','RoastLogger file loaded successfully')} ({filename})")
-        except Exception as ex: # pylint: disable=broad-except
-            _log.exception(ex)
-            _, _, exc_tb = sys.exc_info()
-            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' importRoastLogger() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
+#    def importRoastLogger(self, filename:str) -> None:
+#        self.resetExtraDevices()
+#        # the RoastLogger file might be in utf-8 or latin1 encoding, we cannot know so let's test both
+#        try:
+#            try:
+#                self.importRoastLoggerEnc(filename,'utf-8')
+#            except Exception: # pylint: disable=broad-except
+#                self.importRoastLoggerEnc(filename,'latin1')
+#            self.qmc.fileDirtySignal.emit()
+#            self.sendmessage(f"{QApplication.translate('Message','RoastLogger file loaded successfully')} ({filename})")
+#        except Exception as ex: # pylint: disable=broad-except
+#            _log.exception(ex)
+#            _, _, exc_tb = sys.exc_info()
+#            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' importRoastLogger() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
 
     def resetExtraDevices(self) -> None:
         try:
@@ -14819,6 +14911,7 @@ class ApplicationWindow(QMainWindow):
             self.qmc.extractimex1,self.qmc.extractimex2 = [],[]
             self.qmc.extractemp1,self.qmc.extractemp2 = [],[]
             self.qmc.extratemp1lines,self.qmc.extratemp2lines = [],[]
+            self.qmc.extrafill1lines,self.qmc.extrafill2lines = [],[]
             self.qmc.extralinestyles1,self.qmc.extralinestyles2 = [],[]
             self.qmc.extradrawstyles1,self.qmc.extradrawstyles2 = [],[]
             self.qmc.extralinewidths1,self.qmc.extralinewidths2 = [],[]
@@ -14842,270 +14935,270 @@ class ApplicationWindow(QMainWindow):
             _, _, exc_tb = sys.exc_info()
             self.qmc.adderror((QApplication.translate('Error Message', 'Exception:') + ' resetExtraDevices(): {0}').format(str(e)),getattr(exc_tb, 'tb_lineno', '?'))
 
-    def importRoastLoggerEnc(self, filename:str, enc:str = 'utf-8') -> None:
-        import csv
-        roastlogger_action_section = ''
-        # use io.open instead of open to have encoding support on Python 2
-        with open(filename, encoding=enc) as infile:
-            obj:ProfileData = ProfileData()
-            obj['mode'] = 'C'
-            obj['title'] = str(QFileInfo(filename).fileName())
-            roastdate_str = encodeLocal(QDate.currentDate().toString())
-            if roastdate_str is not None:
-                obj['roastdate'] = roastdate_str
-            # read roastdate from file
-            while True:
-                l = infile.readline()
-                if l.startswith('Roast started at '):
-                    #extract roast date
-                    roastdate = QDateTime(QDate.fromString(l.split(' ')[-1][0:10],"dd'/'MM'/'yyyy"), QTime())
-                    if not roastdate.isNull():
-                        roastdate_str = encodeLocal(roastdate.date().toString())
-                        if roastdate_str is not None:
-                            obj['roastdate'] = roastdate_str
-                    break
-                if l == '':
-                    break
-            timeindex:list[int] = [-1,0,0,0,0,0,0,0]
-            timex:list[float] = []
-            temp1:list[float] = []
-            temp2:list[float] = []
-            data = csv.reader(infile,delimiter=',')
-            #read file header
-            next(data) # we do not use the labels
-            #header = list(map(lambda s:s.strip(),next(data)))
-            while True:
-                fields = next(data)
-                if len(fields) == 0:
-                    break
-                try:
-                    timex.append(float(stringtoseconds(fields[0])))
-                    try:
-                        t1 = float(fields[1])
-                    except Exception: # pylint: disable=broad-except
-                        t1 = -1
-                    temp1.append(t1)
-                    try:
-                        t2 = float(fields[2])
-                    except Exception: # pylint: disable=broad-except
-                        t2 = -1
-                    temp2.append(t2)
-                    event = fields[3]
-                    if event == 'Beans loaded':
-                        timeindex[0] = max(-1,len(timex) - 1)
-                    elif event == 'First crack start':
-                        timeindex[2] = max(0,len(timex) - 1)
-                    elif event == 'First crack end':
-                        timeindex[3] = max(0,len(timex) - 1)
-                    elif event == 'Second crack start':
-                        timeindex[4] = max(0,len(timex) - 1)
-                    elif event == 'Beans ejected':
-                        timeindex[6] = max(0,len(timex) - 1)
-                except Exception: # pylint: disable=broad-except
-                    pass # stringtoseconds might have detected an invalid timestamp thus we skip this row
-            obj['timeindex'] = timeindex
-            obj['timex'] = timex
-            obj['temp1'] = temp2
-            obj['temp2'] = temp1
-
-            if len(obj['timex']) > 2:
-                obj['samplinginterval'] = (obj['timex'][-1] - obj['timex'][0])/(len(obj['timex']) - 1)
-
-            res = self.setProfile(filename,obj)
-
-            error_msg:str = ''
-            try:
-                if self.qmc.loadalarmsfromprofile:
-                    self.qmc.alarmsfile = filename
-                    roastlogger_action_section = 'No actions loaded'
-
-                    #Find sliders - exact names of the sliders must be defined
-                    slider_power = -1
-                    slider_fan = -1
-                    try:
-                        slider_power=self.qmc.etypes.index('Power')
-                    except Exception: # pylint: disable=broad-except
-                        pass
-                    try:
-                        slider_fan=self.qmc.etypes.index('Fan')
-                    except Exception: # pylint: disable=broad-except
-                        pass
-                    #load only "Power" and "Fan" events
-                    if slider_power != -1 and slider_fan != -1:
-                        data_action = csv.reader(infile,delimiter='|')
-
-                        self.qmc.alarmsetlabel = ''
-                        self.qmc.alarmflag = []
-                        self.qmc.alarmguard = []
-                        self.qmc.alarmnegguard = []
-                        self.qmc.alarmtime = []
-                        self.qmc.alarmoffset = []
-                        self.qmc.alarmcond = []
-                        self.qmc.alarmstate = []
-                        self.qmc.alarmsource = []
-                        self.qmc.alarmtemperature = []
-                        self.qmc.alarmaction = []
-                        self.qmc.alarmbeep = []
-                        self.qmc.alarmstrings = []
-
-                        while True:
-                            fields_action = next(data_action)
-                            if len(fields_action) == 0:
-                                pass
-                            elif len(fields_action) == 1 and fields_action[0].startswith('@'):
-                                roastlogger_action_section=fields_action[0]
-                            #process items in the section
-                            elif roastlogger_action_section.startswith('@actionT1Table'):
-                                if len(fields_action) == 3 and fields_action[0] != 'null':
-                                    #add temp alarm - POWER
-                                    self.qmc.alarmflag.append(1)
-                                    self.qmc.alarmguard.append(-1)
-                                    self.qmc.alarmnegguard.append(-1)
-                                    self.qmc.alarmtime.append(8)        #after TP
-                                    self.qmc.alarmoffset.append(0)
-                                    self.qmc.alarmcond.append(1)
-                                    self.qmc.alarmstate.append(-1)
-                                    self.qmc.alarmsource.append(1)    #BT
-                                    self.qmc.alarmtemperature.append(float(fields_action[0]))
-                                    self.qmc.alarmaction.append(3+slider_power)    #SLIDER POWER
-                                    self.qmc.alarmbeep.append(0)
-                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[1]))
-
-                                    #add temp alarm - FAN
-                                    self.qmc.alarmflag.append(1)
-                                    self.qmc.alarmguard.append(-1)
-                                    self.qmc.alarmnegguard.append(-1)
-                                    self.qmc.alarmtime.append(8)        #after TP
-                                    self.qmc.alarmoffset.append(0)
-                                    self.qmc.alarmcond.append(1)
-                                    self.qmc.alarmstate.append(-1)
-                                    self.qmc.alarmsource.append(1)    #BT
-                                    self.qmc.alarmtemperature.append(int(fields_action[0]))
-                                    self.qmc.alarmaction.append(3+slider_fan)    #SLIDER FAN
-                                    self.qmc.alarmbeep.append(0)
-                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[2]))
-
-                            elif roastlogger_action_section.startswith('@actionSecsFCTable'):
-                                if len(fields_action) == 3 and fields_action[0] != 'null':
-
-                                    #add time alarm - POWER
-                                    self.qmc.alarmflag.append(1)
-                                    self.qmc.alarmguard.append(-1)
-                                    self.qmc.alarmnegguard.append(-1)
-                                    self.qmc.alarmtime.append(2)        #after FC
-                                    self.qmc.alarmoffset.append(int(fields_action[0]))
-                                    self.qmc.alarmcond.append(1)
-                                    self.qmc.alarmstate.append(-1)
-                                    self.qmc.alarmsource.append(-3)       #no source - this is time alarm
-                                    self.qmc.alarmtemperature.append(0)
-                                    self.qmc.alarmaction.append(3+slider_power)    #SLIDER POWER
-                                    self.qmc.alarmbeep.append(0)
-                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[1]))
-
-                                    #add time alarm - FAN
-                                    self.qmc.alarmflag.append(1)
-                                    self.qmc.alarmguard.append(-1)
-                                    self.qmc.alarmnegguard.append(-1)
-                                    self.qmc.alarmtime.append(2)        #after FC
-                                    self.qmc.alarmoffset.append(int(fields_action[0]))
-                                    self.qmc.alarmcond.append(1)
-                                    self.qmc.alarmstate.append(-1)
-                                    self.qmc.alarmsource.append(-3)       #no source - this is time alarm
-                                    self.qmc.alarmtemperature.append(0)
-                                    self.qmc.alarmaction.append(3+slider_fan)    #SLIDER FAN
-                                    self.qmc.alarmbeep.append(0)
-                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[2]))
-
-                            elif roastlogger_action_section.startswith('@actionResetTable'):
-                                if len(fields_action) == 2 and fields_action[0] != 'null':
-
-                                    #add temp alarm - POWER
-                                    self.qmc.alarmflag.insert(0,1)
-                                    self.qmc.alarmguard.insert(0,-1)
-                                    self.qmc.alarmnegguard.insert(0,-1)
-                                    self.qmc.alarmtime.insert(0,9)        #after ON
-                                    self.qmc.alarmoffset.insert(0,0)
-                                    self.qmc.alarmcond.insert(0,1)
-                                    self.qmc.alarmstate.insert(0,-1)
-                                    self.qmc.alarmsource.insert(0,1)    #BT
-                                    self.qmc.alarmtemperature.insert(0,0)
-                                    self.qmc.alarmaction.insert(0,3+slider_power)    #SLIDER POWER
-                                    self.qmc.alarmbeep.insert(0,0)
-                                    self.qmc.alarmstrings.insert(0,QApplication.translate('Label',fields_action[0]))
-
-                                    #add temp alarm - FAN
-                                    self.qmc.alarmflag.insert(0,1)
-                                    self.qmc.alarmguard.insert(0,-1)
-                                    self.qmc.alarmnegguard.insert(0,-1)
-                                    self.qmc.alarmtime.insert(0,9)        #after ON
-                                    self.qmc.alarmoffset.insert(0,0)
-                                    self.qmc.alarmcond.insert(0,1)
-                                    self.qmc.alarmstate.insert(0,-1)
-                                    self.qmc.alarmsource.insert(0,1)    #BT
-                                    self.qmc.alarmtemperature.insert(0,0)
-                                    self.qmc.alarmaction.insert(0,3+slider_fan)    #SLIDER POWER
-                                    self.qmc.alarmbeep.insert(0,0)
-                                    self.qmc.alarmstrings.insert(0,QApplication.translate('Label',fields_action[1]))
-
-                            elif roastlogger_action_section.startswith('@loadBeansTable'):
-                                if len(fields_action) == 1 and fields_action[0] != 'null':
-
-                                    #add START TRIGGER - 10 DEG before charge temp
-                                    self.qmc.alarmflag.insert(2,1)
-                                    self.qmc.alarmguard.insert(2,-1)
-                                    self.qmc.alarmnegguard.insert(2,-1)
-                                    self.qmc.alarmtime.insert(0,9)        #after ON
-                                    self.qmc.alarmoffset.insert(2,0)
-                                    self.qmc.alarmcond.insert(2,1)
-                                    self.qmc.alarmstate.insert(2,-1)
-                                    self.qmc.alarmsource.insert(2,1)    #BT
-                                    self.qmc.alarmtemperature.insert(2,float(fields_action[0])-10)
-                                    self.qmc.alarmaction.insert(2,7)    #initiate 7 (START)
-                                    self.qmc.alarmbeep.insert(2,0)
-                                    self.qmc.alarmstrings.insert(2,QApplication.translate('Label','Start recording'))
-
-                                    #add CHARGE alarm
-                                    self.qmc.alarmflag.insert(3,1)
-                                    self.qmc.alarmguard.insert(3,-1)
-                                    self.qmc.alarmnegguard.insert(3,-1)
-                                    self.qmc.alarmtime.insert(3,-1)        #after START
-                                    self.qmc.alarmoffset.insert(3,0)
-                                    self.qmc.alarmcond.insert(3,1)
-                                    self.qmc.alarmstate.insert(3,-1)
-                                    self.qmc.alarmsource.insert(3,1)    #BT
-                                    self.qmc.alarmtemperature.insert(3,float(fields_action[0]))
-                                    self.qmc.alarmaction.insert(3,0)    #POPUP
-                                    self.qmc.alarmbeep.insert(3,1)      #do beep for charge
-                                    self.qmc.alarmstrings.insert(3,QApplication.translate('Label','Charge the beans'))
-                                break
-                    else:
-                        if slider_power == -1:
-                            error_msg += "Could not find slider named 'Power' "
-                        if slider_fan == -1:
-                            error_msg += "Could not find slider named 'Fan' "
-                        error_msg += 'Please rename sliders in Config - Events menu'
-
-            except Exception as e: # pylint: disable=broad-except
-                _log.exception(e)
-                if roastlogger_action_section == 'No actions loaded':
-                    error_msg += 'Roastlogger file does not contain actions.  Alarms will not be loaded.'
-                else:
-                    error_msg += "Roastlogger actions are not complete. Last loaded section is '" + roastlogger_action_section + "'"
-
-            finally:
-                if res:
-                    self.autoAdjustAxis()
-                    self.qmc.redraw()
-
-            if error_msg != '':
-                self.qmc.adderror(QApplication.translate('Error Message','Roastlogger log file exception: ' + error_msg))
+#    def importRoastLoggerEnc(self, filename:str, enc:str = 'utf-8') -> None:
+#        import csv
+#        roastlogger_action_section = ''
+#        # use io.open instead of open to have encoding support on Python 2
+#        with open(filename, encoding=enc) as infile:
+#            obj:ProfileData = ProfileData()
+#            obj['mode'] = 'C'
+#            obj['title'] = str(QFileInfo(filename).fileName())
+#            roastdate_str = encodeLocal(QDate.currentDate().toString())
+#            if roastdate_str is not None:
+#                obj['roastdate'] = roastdate_str
+#            # read roastdate from file
+#            while True:
+#                l = infile.readline()
+#                if l.startswith('Roast started at '):
+#                    #extract roast date
+#                    roastdate = QDateTime(QDate.fromString(l.split(' ')[-1][0:10],"dd'/'MM'/'yyyy"), QTime())
+#                    if not roastdate.isNull():
+#                        roastdate_str = encodeLocal(roastdate.date().toString())
+#                        if roastdate_str is not None:
+#                            obj['roastdate'] = roastdate_str
+#                    break
+#                if l == '':
+#                    break
+#            timeindex:list[int] = [-1,0,0,0,0,0,0,0]
+#            timex:list[float] = []
+#            temp1:list[float] = []
+#            temp2:list[float] = []
+#            data = csv.reader(infile,delimiter=',')
+#            #read file header
+#            next(data) # we do not use the labels
+#            #header = list(map(lambda s:s.strip(),next(data)))
+#            while True:
+#                fields = next(data)
+#                if len(fields) == 0:
+#                    break
+#                try:
+#                    timex.append(float(stringtoseconds(fields[0])))
+#                    try:
+#                        t1 = float(fields[1])
+#                    except Exception: # pylint: disable=broad-except
+#                        t1 = -1
+#                    temp1.append(t1)
+#                    try:
+#                        t2 = float(fields[2])
+#                    except Exception: # pylint: disable=broad-except
+#                        t2 = -1
+#                    temp2.append(t2)
+#                    event = fields[3]
+#                    if event == 'Beans loaded':
+#                        timeindex[0] = max(-1,len(timex) - 1)
+#                    elif event == 'First crack start':
+#                        timeindex[2] = max(0,len(timex) - 1)
+#                    elif event == 'First crack end':
+#                        timeindex[3] = max(0,len(timex) - 1)
+#                    elif event == 'Second crack start':
+#                        timeindex[4] = max(0,len(timex) - 1)
+#                    elif event == 'Beans ejected':
+#                        timeindex[6] = max(0,len(timex) - 1)
+#                except Exception: # pylint: disable=broad-except
+#                    pass # stringtoseconds might have detected an invalid timestamp thus we skip this row
+#            obj['timeindex'] = timeindex
+#            obj['timex'] = timex
+#            obj['temp1'] = temp2
+#            obj['temp2'] = temp1
+#
+#            if len(obj['timex']) > 2:
+#                obj['samplinginterval'] = (obj['timex'][-1] - obj['timex'][0])/(len(obj['timex']) - 1)
+#
+#            res = self.setProfile(filename,obj)
+#
+#            error_msg:str = ''
+#            try:
+#                if self.qmc.loadalarmsfromprofile:
+#                    self.qmc.alarmsfile = filename
+#                    roastlogger_action_section = 'No actions loaded'
+#
+#                    #Find sliders - exact names of the sliders must be defined
+#                    slider_power = -1
+#                    slider_fan = -1
+#                    try:
+#                        slider_power=self.qmc.etypes.index('Power')
+#                    except Exception: # pylint: disable=broad-except
+#                        pass
+#                    try:
+#                        slider_fan=self.qmc.etypes.index('Fan')
+#                    except Exception: # pylint: disable=broad-except
+#                        pass
+#                    #load only "Power" and "Fan" events
+#                    if slider_power != -1 and slider_fan != -1:
+#                        data_action = csv.reader(infile,delimiter='|')
+#
+#                        self.qmc.alarmsetlabel = ''
+#                        self.qmc.alarmflag = []
+#                        self.qmc.alarmguard = []
+#                        self.qmc.alarmnegguard = []
+#                        self.qmc.alarmtime = []
+#                        self.qmc.alarmoffset = []
+#                        self.qmc.alarmcond = []
+#                        self.qmc.alarmstate = []
+#                        self.qmc.alarmsource = []
+#                        self.qmc.alarmtemperature = []
+#                        self.qmc.alarmaction = []
+#                        self.qmc.alarmbeep = []
+#                        self.qmc.alarmstrings = []
+#
+#                        while True:
+#                            fields_action = next(data_action)
+#                            if len(fields_action) == 0:
+#                                pass
+#                            elif len(fields_action) == 1 and fields_action[0].startswith('@'):
+#                                roastlogger_action_section=fields_action[0]
+#                            #process items in the section
+#                            elif roastlogger_action_section.startswith('@actionT1Table'):
+#                                if len(fields_action) == 3 and fields_action[0] != 'null':
+#                                    #add temp alarm - POWER
+#                                    self.qmc.alarmflag.append(1)
+#                                    self.qmc.alarmguard.append(-1)
+#                                    self.qmc.alarmnegguard.append(-1)
+#                                    self.qmc.alarmtime.append(8)        #after TP
+#                                    self.qmc.alarmoffset.append(0)
+#                                    self.qmc.alarmcond.append(1)
+#                                    self.qmc.alarmstate.append(-1)
+#                                    self.qmc.alarmsource.append(1)    #BT
+#                                    self.qmc.alarmtemperature.append(float(fields_action[0]))
+#                                    self.qmc.alarmaction.append(3+slider_power)    #SLIDER POWER
+#                                    self.qmc.alarmbeep.append(0)
+#                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[1]))
+#
+#                                    #add temp alarm - FAN
+#                                    self.qmc.alarmflag.append(1)
+#                                    self.qmc.alarmguard.append(-1)
+#                                    self.qmc.alarmnegguard.append(-1)
+#                                    self.qmc.alarmtime.append(8)        #after TP
+#                                    self.qmc.alarmoffset.append(0)
+#                                    self.qmc.alarmcond.append(1)
+#                                    self.qmc.alarmstate.append(-1)
+#                                    self.qmc.alarmsource.append(1)    #BT
+#                                    self.qmc.alarmtemperature.append(int(fields_action[0]))
+#                                    self.qmc.alarmaction.append(3+slider_fan)    #SLIDER FAN
+#                                    self.qmc.alarmbeep.append(0)
+#                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[2]))
+#
+#                            elif roastlogger_action_section.startswith('@actionSecsFCTable'):
+#                                if len(fields_action) == 3 and fields_action[0] != 'null':
+#
+#                                    #add time alarm - POWER
+#                                    self.qmc.alarmflag.append(1)
+#                                    self.qmc.alarmguard.append(-1)
+#                                    self.qmc.alarmnegguard.append(-1)
+#                                    self.qmc.alarmtime.append(2)        #after FC
+#                                    self.qmc.alarmoffset.append(int(fields_action[0]))
+#                                    self.qmc.alarmcond.append(1)
+#                                    self.qmc.alarmstate.append(-1)
+#                                    self.qmc.alarmsource.append(-3)       #no source - this is time alarm
+#                                    self.qmc.alarmtemperature.append(0)
+#                                    self.qmc.alarmaction.append(3+slider_power)    #SLIDER POWER
+#                                    self.qmc.alarmbeep.append(0)
+#                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[1]))
+#
+#                                    #add time alarm - FAN
+#                                    self.qmc.alarmflag.append(1)
+#                                    self.qmc.alarmguard.append(-1)
+#                                    self.qmc.alarmnegguard.append(-1)
+#                                    self.qmc.alarmtime.append(2)        #after FC
+#                                    self.qmc.alarmoffset.append(int(fields_action[0]))
+#                                    self.qmc.alarmcond.append(1)
+#                                    self.qmc.alarmstate.append(-1)
+#                                    self.qmc.alarmsource.append(-3)       #no source - this is time alarm
+#                                    self.qmc.alarmtemperature.append(0)
+#                                    self.qmc.alarmaction.append(3+slider_fan)    #SLIDER FAN
+#                                    self.qmc.alarmbeep.append(0)
+#                                    self.qmc.alarmstrings.append(QApplication.translate('Label',fields_action[2]))
+#
+#                            elif roastlogger_action_section.startswith('@actionResetTable'):
+#                                if len(fields_action) == 2 and fields_action[0] != 'null':
+#
+#                                    #add temp alarm - POWER
+#                                    self.qmc.alarmflag.insert(0,1)
+#                                    self.qmc.alarmguard.insert(0,-1)
+#                                    self.qmc.alarmnegguard.insert(0,-1)
+#                                    self.qmc.alarmtime.insert(0,9)        #after ON
+#                                    self.qmc.alarmoffset.insert(0,0)
+#                                    self.qmc.alarmcond.insert(0,1)
+#                                    self.qmc.alarmstate.insert(0,-1)
+#                                    self.qmc.alarmsource.insert(0,1)    #BT
+#                                    self.qmc.alarmtemperature.insert(0,0)
+#                                    self.qmc.alarmaction.insert(0,3+slider_power)    #SLIDER POWER
+#                                    self.qmc.alarmbeep.insert(0,0)
+#                                    self.qmc.alarmstrings.insert(0,QApplication.translate('Label',fields_action[0]))
+#
+#                                    #add temp alarm - FAN
+#                                    self.qmc.alarmflag.insert(0,1)
+#                                    self.qmc.alarmguard.insert(0,-1)
+#                                    self.qmc.alarmnegguard.insert(0,-1)
+#                                    self.qmc.alarmtime.insert(0,9)        #after ON
+#                                    self.qmc.alarmoffset.insert(0,0)
+#                                    self.qmc.alarmcond.insert(0,1)
+#                                    self.qmc.alarmstate.insert(0,-1)
+#                                    self.qmc.alarmsource.insert(0,1)    #BT
+#                                    self.qmc.alarmtemperature.insert(0,0)
+#                                    self.qmc.alarmaction.insert(0,3+slider_fan)    #SLIDER POWER
+#                                    self.qmc.alarmbeep.insert(0,0)
+#                                    self.qmc.alarmstrings.insert(0,QApplication.translate('Label',fields_action[1]))
+#
+#                            elif roastlogger_action_section.startswith('@loadBeansTable'):
+#                                if len(fields_action) == 1 and fields_action[0] != 'null':
+#
+#                                    #add START TRIGGER - 10 DEG before charge temp
+#                                    self.qmc.alarmflag.insert(2,1)
+#                                    self.qmc.alarmguard.insert(2,-1)
+#                                    self.qmc.alarmnegguard.insert(2,-1)
+#                                    self.qmc.alarmtime.insert(0,9)        #after ON
+#                                    self.qmc.alarmoffset.insert(2,0)
+#                                    self.qmc.alarmcond.insert(2,1)
+#                                    self.qmc.alarmstate.insert(2,-1)
+#                                    self.qmc.alarmsource.insert(2,1)    #BT
+#                                    self.qmc.alarmtemperature.insert(2,float(fields_action[0])-10)
+#                                    self.qmc.alarmaction.insert(2,7)    #initiate 7 (START)
+#                                    self.qmc.alarmbeep.insert(2,0)
+#                                    self.qmc.alarmstrings.insert(2,QApplication.translate('Label','Start recording'))
+#
+#                                    #add CHARGE alarm
+#                                    self.qmc.alarmflag.insert(3,1)
+#                                    self.qmc.alarmguard.insert(3,-1)
+#                                    self.qmc.alarmnegguard.insert(3,-1)
+#                                    self.qmc.alarmtime.insert(3,-1)        #after START
+#                                    self.qmc.alarmoffset.insert(3,0)
+#                                    self.qmc.alarmcond.insert(3,1)
+#                                    self.qmc.alarmstate.insert(3,-1)
+#                                    self.qmc.alarmsource.insert(3,1)    #BT
+#                                    self.qmc.alarmtemperature.insert(3,float(fields_action[0]))
+#                                    self.qmc.alarmaction.insert(3,0)    #POPUP
+#                                    self.qmc.alarmbeep.insert(3,1)      #do beep for charge
+#                                    self.qmc.alarmstrings.insert(3,QApplication.translate('Label','Charge the beans'))
+#                                break
+#                    else:
+#                        if slider_power == -1:
+#                            error_msg += "Could not find slider named 'Power' "
+#                        if slider_fan == -1:
+#                            error_msg += "Could not find slider named 'Fan' "
+#                        error_msg += 'Please rename sliders in Config - Events menu'
+#
+#            except Exception as e: # pylint: disable=broad-except
+#                _log.exception(e)
+#                if roastlogger_action_section == 'No actions loaded':
+#                    error_msg += 'Roastlogger file does not contain actions.  Alarms will not be loaded.'
+#                else:
+#                    error_msg += "Roastlogger actions are not complete. Last loaded section is '" + roastlogger_action_section + "'"
+#
+#            finally:
+#                if res:
+#                    self.autoAdjustAxis()
+#                    self.qmc.redraw()
+#
+#            if error_msg != '':
+#                self.qmc.adderror(QApplication.translate('Error Message','Roastlogger log file exception: ' + error_msg))
 
 
     #Write readings to Artisan csv file
     def exportCSV(self, filename:str) -> bool:
         try:
             if exportProfile2CSV(filename, self.getProfile()):
-                self.sendmessage(f"{QApplication.translate('Message','Artisan CSV file saved successfully')} ({filename})")
+                self.sendmessage(f"{QApplication.translate('Message','{} file saved successfully').format('Artisan CSV')} ({filename})")
                 return True
         except Exception as ex: # pylint: disable=broad-except
             _log.exception(ex)
@@ -15173,7 +15266,7 @@ class ApplicationWindow(QMainWindow):
                 from openpyxl.cell import MergedCell
 
                 wb = Workbook()
-                ws:Worksheet|None = wb.active # type: ignore[assignment,unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "_WorkbookChild|None", variable has type "Worksheet|None")
+                ws:Worksheet|None = wb.active # type: ignore[assignment,unused-ignore] # Incompatible types in assignment (expression has type "_WorkbookChild|None", variable has type "Worksheet|None")
                 if ws is not None:
                     ws.title = QApplication.translate('HTML Report Template', 'Profile')
 
@@ -15249,8 +15342,8 @@ class ApplicationWindow(QMainWindow):
                             time2 = '' #@UnusedVariable #@UnusedVariable # pylint: disable=unused-variable # noqa: F841
                         event:str = ''     #@UnusedVariable #@UnusedVariable # pylint: disable=unused-variable # noqa: F841
                         for ev in events:
-                            if not ev[2] and int(round(tx)) == int(round(ev[0])): # type: ignore[arg-type] # ty:ignore[ignore]
-                                event = ev[1] # type: ignore[assignment] # ty:ignore[ignore] # #@UnusedVariable #@UnusedVariable # pylint: disable=unused-variable # noqa: F841
+                            if not ev[2] and int(round(tx)) == int(round(ev[0])): # type: ignore[arg-type]
+                                event = ev[1] # type: ignore[assignment] # #@UnusedVariable #@UnusedVariable # pylint: disable=unused-variable # noqa: F841
                                 ev[2] = True
                                 break
                         if i in self.qmc.specialevents:
@@ -15931,10 +16024,9 @@ class ApplicationWindow(QMainWindow):
                 self.qmc.flavoraspect = min(2.0, max(0.5, float(profile['flavoraspect'])))
             else:
                 self.qmc.flavoraspect = 1.
+            self.qmc.title = QApplication.translate('Scope Title', 'Roaster Scope')
             if 'title' in profile:
-                self.qmc.title = decodeLocalStrict(profile['title'], 'Roaster Scope')
-            else:
-                self.qmc.title = QApplication.translate('Scope Title', 'Roaster Scope')
+                self.qmc.title = decodeLocalStrict(profile['title'], self.qmc.title)
 
 #PLUS
             if 'plus_store' in profile:
@@ -15977,21 +16069,53 @@ class ApplicationWindow(QMainWindow):
                 self.qmc.beans = decodeLocalStrict(profile['beans'])
             else:
                 self.qmc.beans = ''
+            #
+            weight_unit_idx = 0
+            # we keep the user selected weight unit and convert the profiles weights accordingly
+            try:
+                current_weight_unit_idx = weight_units.index(self.qmc.weight[2])
+            except ValueError:
+                current_weight_unit_idx = 0
             if 'weight' in profile:
                 weight = profile['weight']
-                self.qmc.weight = (float(weight[0]),float(weight[1]),decodeLocalStrict(weight[2], 'g'))
+                unit = decodeLocalStrict(weight[2], 'g')
+                try:
+                    weight_unit_idx = weight_units.index(unit)
+                except ValueError:
+                    weight_unit_idx = 0
+                self.qmc.weight = (
+                    convertWeight(float(weight[0]), weight_unit_idx, current_weight_unit_idx),
+                    convertWeight(float(weight[1]), weight_unit_idx, current_weight_unit_idx),
+                    self.qmc.weight[2])
             else:
-                self.qmc.weight = (0,0,'g')
+                self.qmc.weight = (0,0,self.qmc.weight[2])
+            #
             if 'defects_weight' in profile:
                 defects = profile['defects_weight']
-                self.qmc.roasted_defects_weight = min(self.qmc.weight[1], max(0.,float(defects)))
+                self.qmc.roasted_defects_weight = convertWeight(min(self.qmc.weight[1], max(0.,float(defects))), weight_unit_idx, current_weight_unit_idx)
             else:
                 self.qmc.roasted_defects_weight = 0
+            #
             if 'volume' in profile:
                 volume = profile['volume']
-                self.qmc.volume = (float(volume[0]),float(volume[1]),decodeLocalStrict(volume[2], 'l'))
+                unit = decodeLocalStrict(volume[2], 'l')
+                try:
+                    volume_unit_idx = volume_units.index(unit)
+                except ValueError:
+                    volume_unit_idx = 0
+                # we keep the user selected volume unit and convert the profiles volume accordingly
+                try:
+                    current_volume_unit_idx = volume_units.index(self.qmc.volume[2])
+                except ValueError:
+                    current_volume_unit_idx = 0
+                self.qmc.volume = (
+                    convertVolume(float(volume[0]), volume_unit_idx, current_volume_unit_idx),
+                    convertVolume(float(volume[1]), volume_unit_idx, current_volume_unit_idx),
+                    self.qmc.volume[2])
             else:
-                self.qmc.volume = (0,0,'l')
+                self.qmc.volume = (0,0,self.qmc.volume[2])
+            #
+
             if 'density' in profile:
                 density = profile['density']
                 self.qmc.density = (float(density[0]),decodeLocalStrict(density[1], 'g'),float(density[2]),decodeLocalStrict(density[3], 'l'))
@@ -16409,7 +16533,10 @@ class ApplicationWindow(QMainWindow):
 
                 # Count the number of decimal places in a float
                 def ndec(num:float) -> int:
-                    return len(re.sub(r'(?:[{0}]+$)', '', str(num)).split('.')[1])
+                    try:
+                        return len(re.sub(r'(?:[{0}]+$)', '', str(num)).split('.')[1])
+                    except Exception: # pylint: disable=broad-except
+                        return 0
 
                 # Total number of samples
                 totalSamples = len(self.qmc.timex)
@@ -17150,7 +17277,7 @@ class ApplicationWindow(QMainWindow):
             try:
                 ds = list(self.qmc.extradevices)
                 ds.insert(0,self.qmc.device)
-                profile['devices'] = [('PID' if d==0 else self.qmc.devices[d-1]) for d in ds]
+                profile['devices'] = [('PID' if d==0 else (self.qmc.devices[24] if d > len(self.qmc.devices) else self.qmc.devices[d-1])) for d in ds]
             except Exception: # pylint: disable=broad-except
                 pass
             profile['elevation'] = self.qmc.elevation
@@ -17327,27 +17454,32 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot()
     @pyqtSlot(bool)
     def fileExportExcel(self, _:bool = False) -> None:
-        self.fileExport(QApplication.translate('Message', 'Export Excel'),'*.xlsx',self.exportExcel)
+        self.fileExport(QApplication.translate('Message', 'Export {}').format('Excel'),'*.xlsx',self.exportExcel)
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def fileExportCSV(self, _:bool = False) -> None:
-        self.fileExport(QApplication.translate('Message', 'Export CSV'),'*.csv',self.exportCSV)
+        self.fileExport(QApplication.translate('Message', 'Export {}').format('CSV'),'*.csv',self.exportCSV)
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def fileExportJSON(self, _:bool = False) -> None:
-        self.fileExport(QApplication.translate('Message', 'Export JSON'),'*.json',self.exportJSON)
+        self.fileExport(QApplication.translate('Message', 'Export {}').format('JSON'),'*.json',self.exportJSON)
 
     @pyqtSlot()
     @pyqtSlot(bool)
-    def fileExportRoastLogger(self, _:bool = False) -> None:
-        self.fileExport(QApplication.translate('Message', 'Export RoastLogger'),'*.csv',self.exportRoastLogger)
+    def fileExportOrbiter(self, _:bool = False) -> None:
+        self.fileExport(QApplication.translate('Message', 'Export {}').format('Orbiter'),'*.rop.zip',self.exportOrbiterROP)
 
-    @pyqtSlot()
-    @pyqtSlot(bool)
-    def fileExportPilot(self, _:bool = False) -> None:
-        self.fileExport(QApplication.translate('Message', 'Export Probat Pilot'),'*.xml',self.exportPilot)
+#    @pyqtSlot()
+#    @pyqtSlot(bool)
+#    def fileExportRoastLogger(self, _:bool = False) -> None:
+#        self.fileExport(QApplication.translate('Message', 'Export RoastLogger'),'*.csv',self.exportRoastLogger)
+#
+#    @pyqtSlot()
+#    @pyqtSlot(bool)
+#    def fileExportPilot(self, _:bool = False) -> None:
+#        self.fileExport(QApplication.translate('Message', 'Export Probat Pilot'),'*.xml',self.exportPilot)
 
 #--
 
@@ -17392,6 +17524,12 @@ class ApplicationWindow(QMainWindow):
     def convertFromPetroncini(self, _:bool = False) -> None:
         from artisanlib.petroncini import extractProfilePetronciniCSV
         self.fileConvertFrom('*.csv', extractProfilePetronciniCSV)
+
+    @pyqtSlot()
+    @pyqtSlot(bool)
+    def convertFromOrbiter(self, _:bool = False) -> None:
+        from artisanlib.orbiter import extractProfileOrbiterROP
+        self.fileConvertFrom('(*.rop *.zip)', extractProfileOrbiterROP)
 
     @pyqtSlot()
     @pyqtSlot(bool)
@@ -17526,13 +17664,18 @@ class ApplicationWindow(QMainWindow):
 
     @pyqtSlot()
     @pyqtSlot(bool)
-    def fileConvertRoastLogger(self, _:bool = False) -> None:
-        self.fileConvert('.csv',self.exportRoastLogger)
+    def fileConvertOrbiter(self, _:bool = False) -> None:
+        self.fileConvert('.zip',self.exportOrbiterROP)
 
-    @pyqtSlot()
-    @pyqtSlot(bool)
-    def fileConvertPilot(self, _:bool = False) -> None:
-        self.fileConvert('.xml',self.exportPilot)
+#    @pyqtSlot()
+#    @pyqtSlot(bool)
+#    def fileConvertRoastLogger(self, _:bool = False) -> None:
+#        self.fileConvert('.csv',self.exportRoastLogger)
+#
+#    @pyqtSlot()
+#    @pyqtSlot(bool)
+#    def fileConvertPilot(self, _:bool = False) -> None:
+#        self.fileConvert('.xml',self.exportPilot)
 
     @pyqtSlot()
     @pyqtSlot(bool)
@@ -17784,24 +17927,24 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot(bool)
     def urlImport(self, _:bool = False) -> None:
         try:
-            self.importExternalURL(self.artisanURLextractor, QApplication.translate('Message','Import Artisan URL'))
+            self.importExternalURL(self.artisanURLextractor, QApplication.translate('Message','Import {}').format('Artisan URL'))
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def fileImportCSV(self, _:bool = False) -> None:
-        self.fileImport(QApplication.translate('Message', 'Import CSV'),self.importCSV,True)
+        self.fileImport(QApplication.translate('Message', 'Import {}').format('CSV'),self.importCSV,True)
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def fileImportJSON(self, _:bool = False) -> None:
-        self.fileImport(QApplication.translate('Message', 'Import JSON'),self.importJSON,True)
+        self.fileImport(QApplication.translate('Message', 'Import {}').format('JSON'),self.importJSON,True)
 
-    @pyqtSlot()
-    @pyqtSlot(bool)
-    def fileImportRoastLogger(self, _:bool = False) -> None:
-        self.fileImport(QApplication.translate('Message', 'Import RoastLogger'),self.importRoastLogger,True)
+#    @pyqtSlot()
+#    @pyqtSlot(bool)
+#    def fileImportRoastLogger(self, _:bool = False) -> None:
+#        self.fileImport(QApplication.translate('Message', 'Import {}').format('RoastLogger'),self.importRoastLogger,True)
 
     @pyqtSlot(bool)
     def notificationsSetEnabled(self, enabled:bool) -> None:
@@ -17832,7 +17975,7 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot(bytes,bytes,bytes,int)
     def orbiterSendMessage(self, cmd:bytes, data:bytes, param:bytes, time:int) -> None:
         if self.orbiter is not None:
-            self.orbiter.send_msg(cmd, data, param, time)
+            self.orbiter.send_msg_await(cmd, data, param, time)
 
     # if record is True, an event is added during recording, otherwise only the slider is moved
     # if fire_slider_action is True, the slider action is fired
@@ -17985,7 +18128,7 @@ class ApplicationWindow(QMainWindow):
 
             if self.resetqsettings or (filename is None and QApplication.queryKeyboardModifiers() == (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier)):
                 self.resetqsettings = 0
-#                settings.clear() # this allows to get rid of old Artisan settings via "Save Settings >> Factory Reset >> Load Settings"
+                settings.clear() # this allows to get rid of old Artisan settings via "Save Settings >> Factory Reset >> Load Settings"
                 if 'canvas' in self.qmc.palette:
                     self.updateCanvasColors(checkColors=False)
                 # remove window geometry and splitter settings
@@ -18477,6 +18620,30 @@ class ApplicationWindow(QMainWindow):
             self.s7.fetch_max_blocks = toBool(settings.value('fetch_max_blocks',self.s7.fetch_max_blocks))
             settings.endGroup()
 #--- END GROUP S7
+
+#--- BEGIN GROUP MQTT
+            #restore MQTT port
+            settings.beginGroup('MQTT')
+            self.mqtt.protocol_version = toInt(settings.value('protocol_version',self.mqtt.protocol_version))
+            self.mqtt.transport = toInt(settings.value('transport',self.mqtt.transport))
+            self.mqtt.tls = toBool(settings.value('tls',self.mqtt.tls))
+            self.mqtt.host = toString(settings.value('host',self.mqtt.host))
+            self.mqtt.port = toInt(settings.value('port',self.mqtt.port))
+            self.mqtt.user = toString(settings.value('user',self.mqtt.user))
+            self.mqtt.connect_timeout = toFloat(settings.value('connect_timeout',self.mqtt.connect_timeout))
+            self.mqtt.keepalive = toInt(settings.value('keepalive',self.mqtt.keepalive))
+            self.mqtt.topic = toString(settings.value('topic',self.mqtt.topic))
+            self.mqtt.channel_topics = list(toStringList(settings.value('channel_topics',self.mqtt.channel_topics)))[:self.mqtt.CHANNELS]
+            self.mqtt.channel_topics = self.mqtt.channel_topics + ['']*max(0, self.mqtt.CHANNELS - len(self.mqtt.channel_topics))
+            self.mqtt.channel_nodes = list(toStringList(settings.value('channel_nodes',self.mqtt.channel_nodes)))[:self.mqtt.CHANNELS]
+            self.mqtt.channel_nodes = self.mqtt.channel_nodes + ['']*max(0, self.mqtt.CHANNELS - len(self.mqtt.channel_nodes))
+            self.mqtt.channel_modes = list(toStringList(settings.value('channel_modes',self.mqtt.channel_modes)))[:self.mqtt.CHANNELS]
+            self.mqtt.channel_modes = self.mqtt.channel_modes + ['']*max(0, self.mqtt.CHANNELS - len(self.mqtt.channel_modes))
+            settings.endGroup()
+#--- END GROUP MQTT
+
+            self.mqtt.load_credentials() # if self.mqtt.user is set we try to load the self.mqtt.password from the keychain
+
 
 #--- BEGIN GROUP Modbus
             #restore modbus port
@@ -18998,7 +19165,7 @@ class ApplicationWindow(QMainWindow):
 
             try:
                 _log.info('machine: %s (%s, %skg, %s)', self.qmc.machinesetup, self.qmc.roastertype_setup, self.qmc.roastersize_setup, ([''] + self.qmc.sourcenames)[self.qmc.roasterheating_setup])
-                _log.info('device: %s (%s extra devices)', (['Fuji PID']+self.qmc.devices)[self.qmc.device], len(self.qmc.extradevices))
+                _log.info('device: %s (%s extra devices)', ('??' if self.qmc.device > len(self.qmc.devices) else (['PID']+self.qmc.devices)[self.qmc.device]), len(self.qmc.extradevices))
                 _log.info('serial: %s @%s', self.ser.comport, self.ser.baudrate)
                 _log.info('MODBUS %s: %s, %s %s%s%s@%s (%s, %s, %s / %s, %s)', ['Serial RTU','Serial ASCII','Serial Binary','TCP','UDP'][self.modbus.type],
                         self.modbus.host, self.modbus.comport, self.modbus.bytesize, self.modbus.parity, self.modbus.stopbits, self.modbus.baudrate, self.modbus.timeout, self.modbus.modbus_serial_connect_delay, self.modbus.serial_readRetries, self.modbus.IP_timeout, self.modbus.IP_retries)
@@ -19997,40 +20164,14 @@ class ApplicationWindow(QMainWindow):
     @functools.cache
     def get_os() -> tuple[str,str,str]:
         # subprocess above below is problematic in signed builds on macOS 14 especially on AppleSilicon
-#        def get_macOS_version():
-#            # platform.mac_ver() returns 10.16-style version info on BigSur
-#            # and is likely to do so until Python is compiled with the macOS 11 SDK
-#            # which may not happen for a while. And Apple's odd tricks mean that even
-#            # reading /System/Library/CoreServices/SystemVersion.plist is unreliable.
-#            import subprocess
-#            try:
-#                os_version_tuple = subprocess.check_output(
-#                    ('/usr/bin/sw_vers', '-productVersion'),
-#                    env={'SYSTEM_VERSION_COMPAT': '0'}
-#                ).decode('UTF-8').rstrip().split('.')
-#            except subprocess.CalledProcessError:
-#                os_version_tuple = platform.mac_ver()[0].split('.')
-#            os_version_tuple = platform.mac_ver()[0].split('.')
-#            os_version_tuple = os_version_tuple[0:2]
-#            return '.'.join(os_version_tuple)
-# cpuinfo.get_cpu_info().get('brand_raw') hangs on macOS 14 if app is signed (not cpuinfo needs multiprocessing.freeze_support() !)
-#        def get_macOS_arch():
-#            # platform.machine() returns x86_64 on M1 macs running Artisan under Rossetta2
-#            try:
-#                import cpuinfo # type: ignore # ty:ignore[ignore]
-#                manufacturer = cpuinfo.get_cpu_info().get('brand_raw')
-#                return 'm1' if 'm1' in manufacturer.lower() else 'x86_64'
-#            except Exception as e: # pylint: disable=broad-except
-#                return platform.machine()
         try:
             if platform.system().startswith('Darwin'):
-#                return 'macOS', get_macOS_version(), get_macOS_arch()
                 return 'macOS', platform.mac_ver()[0], platform.machine() # reports wrong version on macOS 12 on older Python versions
             if platform.system().startswith('Windows'):
                 return 'Windows', platform.release(), platform.machine()
             # we assume Linux
-            if os.uname()[4][:3] == 'arm': # type:ignore[unused-ignore,attr-defined] # ty:ignore[ignore] # pylint: disable=no-member # not available on Windows
-                return 'RPi',platform.release(),os.uname()[4] # type:ignore[unused-ignore,attr-defined] # ty:ignore[ignore] # pylint: disable=no-member # not available on Windows
+            if os.uname()[4][:3] == 'arm': # type:ignore[unused-ignore,attr-defined] # pylint: disable=no-member # not available on Windows
+                return 'RPi',platform.release(),os.uname()[4] # type:ignore[unused-ignore,attr-defined] # pylint: disable=no-member # not available on Windows
             try:
                 lib,version = platform.libc_ver()
                 return 'Linux',f'{lib} {version}', platform.machine()
@@ -20439,6 +20580,24 @@ class ApplicationWindow(QMainWindow):
             self.settingsSetValue(settings, default_settings, 'fetch_max_blocks',self.s7.fetch_max_blocks, read_defaults)
             settings.endGroup()
 #--- END GROUP S7
+
+#--- BEGIN GROUP MQTT
+            #restore MQTT port
+            settings.beginGroup('MQTT')
+            self.settingsSetValue(settings, default_settings, 'protocol_version',self.mqtt.protocol_version, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'transport',self.mqtt.transport, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'tls',self.mqtt.tls, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'host',self.mqtt.host, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'port',self.mqtt.port, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'user',self.mqtt.user, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'connect_timeout',self.mqtt.connect_timeout, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'keepalive',self.mqtt.keepalive, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'topic',self.mqtt.topic, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'channel_topics',self.mqtt.channel_topics, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'channel_nodes',self.mqtt.channel_nodes, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'channel_modes',self.mqtt.channel_modes, read_defaults)
+            settings.endGroup()
+#--- END GROUP MQTT
 
 #--- BEGIN GROUP Modbus
             #save modbus port
@@ -21140,7 +21299,7 @@ class ApplicationWindow(QMainWindow):
 
             if settings.status() != QSettings.Status.NoError:
                 _log.error('Failed to save settings')
-                QMessageBox.information(self, QApplication.translate('Error Message', 'Error',None),QApplication.translate('Error Message', 'Failed to save settings'))
+                QMessageBox.information(self, QApplication.translate('Error Message', 'Error'),QApplication.translate('Error Message', 'Failed to save settings'))
                 return False
             if not read_defaults:
                 _log.info('wrote %s settings in %.2fs', len(settings.allKeys()), libtime.process_time() - start_time)
@@ -21149,7 +21308,7 @@ class ApplicationWindow(QMainWindow):
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
             _, _, exc_tb = sys.exc_info()
-            QMessageBox.information(self, QApplication.translate('Error Message', 'Error',None),QApplication.translate('Error Message', 'Exception:') + ' saveAllSettings()  @line ' + str(getattr(exc_tb, 'tb_lineno', '?')))
+            QMessageBox.information(self, QApplication.translate('Error Message', 'Error'),QApplication.translate('Error Message', 'Exception:') + ' saveAllSettings()  @line ' + str(getattr(exc_tb, 'tb_lineno', '?')))
         return False
 
     def closeEventSettings_theme(self, filename:str|None = None) -> None:
@@ -21192,7 +21351,7 @@ class ApplicationWindow(QMainWindow):
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
             _, _, exc_tb = sys.exc_info()
-            QMessageBox.information(self, QApplication.translate('Error Message', 'Error',None),QApplication.translate('Error Message', 'Exception:') + ' closeEventSettings_theme()  @line ' + str(getattr(exc_tb, 'tb_lineno', '?')))
+            QMessageBox.information(self, QApplication.translate('Error Message', 'Error'),QApplication.translate('Error Message', 'Exception:') + ' closeEventSettings_theme()  @line ' + str(getattr(exc_tb, 'tb_lineno', '?')))
 
 
     def stopActivities(self) -> None:
@@ -21802,7 +21961,7 @@ class ApplicationWindow(QMainWindow):
                         full_path = 'file:///' + filename # Explorer refuses to start otherwise
                     if pdf:
                         # select file
-                        filename = self.ArtisanSaveFileDialog(msg='Export PDF',ext='*.pdf')
+                        filename = self.ArtisanSaveFileDialog(msg=QApplication.translate('Message', 'Export {}').format('PDF'),ext='*.pdf')
                         if filename:
                             self.html2pdf(full_path, filename, landscape=True)
                     else:
@@ -21857,7 +22016,7 @@ class ApplicationWindow(QMainWindow):
             else:
                 return
             # 2. convert those to display coordinates
-            rect_extents_display = self.qmc.ax.transData.transform(rect_extents)
+            rect_extents_display = self.qmc.ax.transData.transform(rect_extents) # zuban:ignore[arg-type]
             # 3. convert display coordinates to figure-inches
             rect_extents_bbox_inches = self.qmc.fig.dpi_scale_trans.inverted().transform(rect_extents_display)
             # 4. generate
@@ -21884,7 +22043,7 @@ class ApplicationWindow(QMainWindow):
         profiles = self.reportFiles()
         if profiles and len(profiles) > 0:
             # select file
-            filename = self.ArtisanSaveFileDialog(msg='Export CSV',ext='*.csv')
+            filename = self.ArtisanSaveFileDialog(msg=QApplication.translate('Message', 'Export {}').format('CSV'),ext='*.csv')
             if filename:
                 try:
                     # write header
@@ -21945,7 +22104,7 @@ class ApplicationWindow(QMainWindow):
         profiles = self.reportFiles()
         if profiles and len(profiles) > 0:
             # select file
-            filename = self.ArtisanSaveFileDialog(msg='Export Excel',ext='*.xlsx')
+            filename = self.ArtisanSaveFileDialog(msg=QApplication.translate('Message', 'Export {}').format('Excel'),ext='*.xlsx')
             if filename:
                 try:
                     # open file
@@ -21953,7 +22112,7 @@ class ApplicationWindow(QMainWindow):
                     from openpyxl.utils.cell import get_column_letter  # @UnusedImport # pylint: disable=unused-import # noqa: F401
                     from openpyxl.styles import Font, Fill  # @UnusedImport # pylint: disable=unused-import # noqa: F401
                     wb = Workbook()
-                    ws:Worksheet|None = wb.active # type: ignore[assignment,unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "_WorkbookChild|None", variable has type "Worksheet|None")
+                    ws:Worksheet|None = wb.active # type: ignore[assignment,unused-ignore] # Incompatible types in assignment (expression has type "_WorkbookChild|None", variable has type "Worksheet|None")
 
                     if ws is not None:
                         ws.title = QApplication.translate('HTML Report Template', 'Production Report')
@@ -22003,7 +22162,7 @@ class ApplicationWindow(QMainWindow):
                                 c += 1
                                 d = self.productionData2string(raw_data,units=False)
                                 ws[f'A{c}'] = d['id']
-                                ws[f'B{c}'] = QDateTime(d['datetime']).toPyDateTime() # type: ignore[assignment, unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "datetime", target has type "str")
+                                ws[f'B{c}'] = QDateTime(d['datetime']).toPyDateTime() # type: ignore[assignment, unused-ignore] # Incompatible types in assignment (expression has type "datetime", target has type "str")
                                 ws[f'B{c}'].number_format = 'YYYY-MM-DD HH:MM'
                                 ws[f'C{c}'] = d['title']
                                 ws[f'D{c}'] = d['beans']
@@ -22011,15 +22170,15 @@ class ApplicationWindow(QMainWindow):
                                 weight = raw_data.get('weight', (0, 0, weight_units[1]))
                                 w_in = (convertWeight(weight[0],weight_units.index(weight[2]),weight_units.index(unit)) if weight is not None else 0)
                                 w_out = (convertWeight(weight[1],weight_units.index(weight[2]),weight_units.index(unit)) if weight is not None else 0)
-                                ws[f'E{c}'] = w_in # type: ignore[assignment, unused-ignore]# ty:ignore[ignore]  # Incompatible types in assignment (expression has type "float", target has type "str")
+                                ws[f'E{c}'] = w_in # type: ignore[assignment, unused-ignore]  # Incompatible types in assignment (expression has type "float", target has type "str")
                                 ws[f'E{c}'].number_format = num_format
-                                ws[f'F{c}'] = w_out # type: ignore[assignment, unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "float", target has type "str")
+                                ws[f'F{c}'] = w_out # type: ignore[assignment, unused-ignore] # Incompatible types in assignment (expression has type "float", target has type "str")
                                 ws[f'F{c}'].number_format = num_format
                                 ws[f'G{c}'] = avgFormat(c,'E','F')
                                 ws[f'G{c}'].number_format = ('0.00%' if self.percent_decimals == 2 else '0.0%')
 
                                 w_def = (convertWeight(raw_data.get('defects_weight',0),weight_units.index(weight[2]),weight_units.index(unit)) if weight is not None else 0)
-                                ws[f'H{c}'] = w_def # type: ignore[assignment, unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "float", target has type "str")
+                                ws[f'H{c}'] = w_def # type: ignore[assignment, unused-ignore] # Incompatible types in assignment (expression has type "float", target has type "str")
                                 ws[f'H{c}'].number_format = num_format
                                 ws[f'I{c}'] = f'=IF(F{c}=0,0,(H{c}) / F{c})'
                                 ws[f'I{c}'].number_format = ('0.00%' if self.percent_decimals == 2 else '0.0%')
@@ -23160,7 +23319,7 @@ class ApplicationWindow(QMainWindow):
 
                         if pdf:
                             # select file
-                            filename = self.ArtisanSaveFileDialog(msg='Export PDF',ext='*.pdf')
+                            filename = self.ArtisanSaveFileDialog(msg=QApplication.translate('Message', 'Export {}').format('PDF'),ext='*.pdf')
                             if filename:
                                 self.html2pdf(full_path, filename, landscape=True)
                         else:
@@ -23177,7 +23336,7 @@ class ApplicationWindow(QMainWindow):
         profiles = self.reportFiles()
         if profiles and len(profiles) > 0:
             # select file
-            filename = self.ArtisanSaveFileDialog(msg='Export CSV',ext='*.csv')
+            filename = self.ArtisanSaveFileDialog(msg=QApplication.translate('Message', 'Export {}').format('CSV'),ext='*.csv')
             if filename:
                 self.rankingSpreadsheetCreate(filename, profiles, 'csv')
 
@@ -23188,7 +23347,7 @@ class ApplicationWindow(QMainWindow):
         profiles = self.reportFiles()
         if profiles and len(profiles) > 0:
             # select file
-            filename = self.ArtisanSaveFileDialog(msg='Export Excel',ext='*.xlsx')
+            filename = self.ArtisanSaveFileDialog(msg=QApplication.translate('Message', 'Export {}').format('Excel'),ext='*.xlsx')
             if filename:
                 self.rankingSpreadsheetCreate(filename, profiles, 'excel')
 
@@ -23199,7 +23358,7 @@ class ApplicationWindow(QMainWindow):
             from openpyxl.utils.cell import get_column_letter,column_index_from_string  # @UnusedImport # pylint: disable=unused-import # noqa: F401
             from openpyxl.styles import Font, Fill, Alignment # @UnusedImport # pylint: disable=unused-import # noqa: F401
             wb = Workbook()
-            ws:Worksheet|None = wb.active # type: ignore[assignment,unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "_WorkbookChild|None", variable has type "Worksheet|None")
+            ws:Worksheet|None = wb.active # type: ignore[assignment,unused-ignore] # Incompatible types in assignment (expression has type "_WorkbookChild|None", variable has type "Worksheet|None")
             if ws is not None:
                 ws.title = QApplication.translate('HTML Report Template', 'Ranking Report')
                 bf = Font(name='Calibri',size='11',bold=True)
@@ -23291,7 +23450,7 @@ class ApplicationWindow(QMainWindow):
                                     conv_fld = res_fld
 
                                 if typ == 'text':
-                                    ws[cr] = conv_fld # type: ignore[assignment, unused-ignore] # ty:ignore[ignore]
+                                    ws[cr] = conv_fld # type: ignore[assignment, unused-ignore]
                                     width = len(str(conv_fld)) + 2. # pyright:ignore[reportUnknownArgumentType]
                                     if re.match(r'[0-9]+',units) and width > float(units):
                                         width = float(units)
@@ -23300,35 +23459,35 @@ class ApplicationWindow(QMainWindow):
                                         ws.column_dimensions[get_column_letter(cnum)].width = width   # pyrefly:ignore[bad-assignment]
                                     ws[cr].alignment = Alignment(wrap_text=True)
                                 elif typ == 'int':
-                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore] # ty:ignore[ignore]
+                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore]
                                 elif typ == 'float1':
-                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore] # ty:ignore[ignore]
+                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore]
                                     ws[cr].number_format = '0.0'
                                 elif typ == 'float2':
-                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore] # ty:ignore[ignore]
+                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore]
                                     ws[cr].number_format = '0.00'
                                 elif typ == 'float4':
-                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore] # ty:ignore[ignore]
+                                    ws[cr] = conv_fld  # type: ignore[assignment, unused-ignore]
                                     ws[cr].number_format = '0.0000'
                                 elif typ == 'text2float1':
-                                    ws[cr] = float2float(toFloat(conv_fld)) # type: ignore[assignment, unused-ignore] # ty:ignore[ignore] #  Incompatible types in assignment (expression has type "float", target has type "str")
+                                    ws[cr] = float2float(toFloat(conv_fld)) # type: ignore[assignment, unused-ignore] #  Incompatible types in assignment (expression has type "float", target has type "str")
                                     ws[cr].number_format = '0.0'
                                 elif typ == 'text2float2':
-                                    ws[cr] = float2float(toFloat(conv_fld)) # type: ignore[assignment, unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "float", target has type "str")
+                                    ws[cr] = float2float(toFloat(conv_fld)) # type: ignore[assignment, unused-ignore] # Incompatible types in assignment (expression has type "float", target has type "str")
                                     ws[cr].number_format = '0.00'
                                 elif typ == 'text2int':
-                                    ws[cr] = toInt(conv_fld) # type: ignore[assignment, unused-ignore] # ty:ignore[ignore]
+                                    ws[cr] = toInt(conv_fld) # type: ignore[assignment, unused-ignore]
                                     ws[cr].number_format = '0'
                                 elif typ == 'percent':
-                                    ws[cr] = conv_fld/100. # type: ignore[assignment, unused-ignore] # ty:ignore[ignore]
+                                    ws[cr] = conv_fld/100. # type: ignore[assignment, unused-ignore]
                                     ws[cr].number_format = ('0.00%' if self.percent_decimals == 2 else '0.0%')
                                 elif typ == 'time':
                                     h,m = divmod(conv_fld, 60.0) # pyright:ignore[reportUnknownArgumentType]
                                     dt = datetime.time(int(h),int(m),0) # note that rounding h and m might lead to failure of .time() as round(59.99) = 60 which is >59 thus not accepted by .time()
-                                    ws[cr] = dt # type: ignore[assignment, unused-ignore] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "time", target has type "str")
+                                    ws[cr] = dt # type: ignore[assignment, unused-ignore] # Incompatible types in assignment (expression has type "time", target has type "str")
                                     ws[cr].number_format = 'H:MM'
                                 elif typ == 'date':
-                                    ws[cr] = QDateTime(conv_fld).toPyDateTime() # type: ignore[call-overload] # ty:ignore[ignore] # Incompatible types in assignment (expression has type "datetime", target has type "str")
+                                    ws[cr] = QDateTime(conv_fld).toPyDateTime() # type: ignore[call-overload] # Incompatible types in assignment (expression has type "datetime", target has type "str")
                                     fmt = 'YYYY-MM-DD HH:MM'
                                     ws[cr].number_format = fmt
                                     width = len(fmt) + 2.
@@ -23437,7 +23596,7 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot(bool)
     def pdfReport(self, _:bool = False) -> None:
         # select file
-        filename = self.ArtisanSaveFileDialog(msg='Export PDF',ext='*.pdf')
+        filename = self.ArtisanSaveFileDialog(msg=QApplication.translate('Message', 'Export {}').format('PDF'),ext='*.pdf')
         if filename:
             self.roastReport(pdf_filename=filename)
 
@@ -24404,18 +24563,18 @@ class ApplicationWindow(QMainWindow):
         name:str = (application_viewer_name if self.app.artisanviewerMode else application_name)
         otherlibs:str = ''
         try:
-            from Phidget22.Phidget import Phidget as PhidgetDriver # type: ignore[import-untyped] # ty:ignore[ignore]
+            from Phidget22.Phidget import Phidget as PhidgetDriver # type: ignore[import-untyped]
             phidgetlibversion = PhidgetDriver.getLibraryVersion()
             otherlibs += ', ' + phidgetlibversion
         except Exception as e: # pylint: disable=broad-except
             _log.debug(e)
         try:
-            from Phidget22 import __version__ as phidget_lib_version # type: ignore[import-untyped] # ty:ignore[ignore # @UnresolvedImport
+            from Phidget22 import __version__ as phidget_lib_version # type: ignore[import-untyped] # @UnresolvedImport
             otherlibs += f' ({phidget_lib_version})'
         except Exception: # pylint: disable=broad-except
             pass
         try:
-            yocto_version = YAPI.GetAPIVersion() # type:ignore[reportPossibleUnboundVariable,unused-ignore] # ty:ignore[ignore]
+            yocto_version = YAPI.GetAPIVersion() # type:ignore[reportPossibleUnboundVariable,unused-ignore]
             otherlibs += ', Yoctopuce ' + yocto_version
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
@@ -24680,6 +24839,44 @@ class ApplicationWindow(QMainWindow):
                 self.modbus.port = toInt(str(dialog.modbus_portEdit.text()))
             except Exception as e: # pylint: disable=broad-except
                 _log.exception(e)
+
+            # MQTT Setup
+            try:
+                self.mqtt.protocol_version = dialog.mqtt_protocolCombo.currentIndex()
+                self.mqtt.transport = dialog.mqtt_transportCombo.currentIndex()
+                self.mqtt.tls = dialog.mqtt_tls_checkBox.isChecked()
+                self.mqtt.host = str(dialog.mqtt_hostEdit.text()).strip()
+                self.mqtt.port = toInt(str(dialog.mqtt_portEdit.text()))
+                self.mqtt.user = str(dialog.mqtt_user_Edit.text()).strip()
+                password = str(dialog.mqtt_password_Edit.text()).strip()
+                self.mqtt.connect_timeout = float(dialog.mqtt_connect_timeoutEdit.text())
+                self.mqtt.keepalive = toInt(str(dialog.mqtt_keepaliveEdit.text()))
+                self.mqtt.topic = str(dialog.mqtt_topic_Edit.text()).strip()
+                if password != self.mqtt.password:
+                    self.mqtt.password = password
+                    self.mqtt.store_credentials() # store/update MQTT credentials in keychain
+            except Exception as e: # pylint: disable=broad-except
+                _log.exception(e)
+
+            for i in range(self.mqtt.CHANNELS):
+                try:
+                    mqtt_input_topic = dialog.mqtt_inputTopics[i]
+                    if mqtt_input_topic is not None:
+                        self.mqtt.channel_topics[i] = str(mqtt_input_topic.text()).strip()
+                except Exception: # pylint: disable=broad-except
+                    self.mqtt.channel_topics[i] = ''
+                try:
+                    mqtt_input_nodes = dialog.mqtt_inputNodes[i]
+                    if mqtt_input_nodes is not None:
+                        self.mqtt.channel_nodes[i] = str(mqtt_input_nodes.text()).strip()
+                except Exception: # pylint: disable=broad-except
+                    self.mqtt.channel_nodes[i] = ''
+                try:
+                    inputMode = dialog.mqtt_inputModes[i]
+                    if inputMode is not None:
+                        self.mqtt.channel_modes[i] = str(inputMode.currentText())
+                except Exception: # pylint: disable=broad-except
+                    self.mqtt.channel_modes[i] = 'C'
 
             # WebSocket Setup
             try:
@@ -25539,7 +25736,7 @@ class ApplicationWindow(QMainWindow):
     def importK202(self, _:bool = False) -> None:
         import csv
         try:
-            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import K202 CSV'))
+            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import {}').format('K202 CSV'))
             if len(filename) == 0:
                 return
             if self.qmc.reset():
@@ -25605,7 +25802,7 @@ class ApplicationWindow(QMainWindow):
     def importK204(self, _:bool = False) -> None:
         import csv
         try:
-            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import K204 CSV'))
+            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import {}').format('K204 CSV'))
             if len(filename) == 0:
                 return
             if self.qmc.reset():
@@ -25694,207 +25891,207 @@ class ApplicationWindow(QMainWindow):
         for child in root:
             self.normalize_attr(child)
 
-    @pyqtSlot()
-    @pyqtSlot(bool)
-    def importPilot(self, _:bool = False) -> None: # pyright: ignore [reportGeneralTypeIssues] # Code is too complex to analyze; reduce complexity by refactoring into subroutines or reducing
-        try:
-            import xml.etree.ElementTree as ET
-            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import Probat Recipe'))
-            if len(filename) == 0:
-                return
-            if self.qmc.reset():
-                tree = ET.ElementTree(file=filename)
-                root = tree.getroot()
-                if root is not None:
-                    self.normalize_tags(root) # normalize tags to lower case
-                    self.normalize_attr(root) # normalize attributes to lower case
-
-                    if root.tag == 'history':
-                        date = root.find('historydate')
-                        time = root.find('historytime')
-                        if date is not None and time is not None:
-                            date_str = date.text
-                            time_str = time.text
-                            if date_str is not None and time_str is not None:
-                                self.qmc.roastdate = QDateTime(QDate.fromString(date_str,'M/d/yyyy'),QTime.fromString(time_str,'h:mm AP'))
-
-                    title = root.find('roasttype')
-                    if title is None:
-                        self.qmc.title = str(os.path.basename(filename))
-                    else:
-                        self.qmc.title = str(title.text)
-
-                    beans = root.find('coffeetype')
-                    if beans is not None and beans.text is not None:
-                        self.qmc.beans = str(beans.text)
-
-                    roaster = root.find('roaster')
-                    if roaster is not None and roaster.text is not None:
-                        self.qmc.roastertype = str(roaster.text)
-
-                    chargestr = root.find('charge')
-                    if chargestr is None:
-                        chargestr = root.find('chargingcapacity')
-                    if chargestr is not None: # contains floating point number; default unit Kg
-                        try:
-                            weight_in_str = chargestr.text
-                            if weight_in_str is not None:
-                                self.qmc.weight = (float(weight_in_str), self.qmc.weight[1], 'Kg')
-                        except Exception: # pylint: disable=broad-except
-                            pass
-
-                    dischargestr = root.find('dischargingcapacity')
-                    if dischargestr is not None: # contains floating point number; default unit Kg
-                        try:
-                            weight_out_str = dischargestr.text
-                            if weight_out_str is not None:
-                                self.qmc.weight = (self.qmc.weight[0], float(weight_out_str), 'Kg')
-                        except Exception: # pylint: disable=broad-except
-                            pass
-
-                    colorstr = root.find('coffeecolor')
-                    if colorstr is not None:
-                        c = None
-                        colorstr_text = colorstr.text
-                        if colorstr_text is not None:
-                            for e in colorstr_text.strip().split():
-                                try:
-                                    c = int(e)
-                                    break
-                                except Exception: # pylint: disable=broad-except
-                                    pass
-                        if c:
-                            self.qmc.ground_color = c
-
-                    notes = root.find('notes')
-                    if notes is not None and notes.text is not None:
-                        self.qmc.roastingnotes = str(notes.text)
-
-                    recipedata = None
-                    historydata = None
-                    recipedata = tree.find('recipedata')
-                    m = None
-                    if recipedata is not None:
-                        m = recipedata.get('temp_unit')
-                    else:
-                        mt = tree.find('recipedata_temp_unit')
-                        if mt is not None:
-                            m = mt.text
-                    if m is None:
-                        historydata = tree.find('historydata')
-                        if historydata is not None:
-                            m = historydata.get('temp_unit')
-                        else:
-                            mt = tree.find('historydata_temp_unit')
-                            if mt is not None:
-                                m = mt.text
-                    if m is not None:
-                        m = m.lower()
-                        if m == 'c' and self.qmc.mode == 'F':
-                            self.qmc.celsiusMode()
-                        elif m == 'f' and self.qmc.mode == 'C':
-                            self.qmc.fahrenheitMode()
-
-                    # add extra device if needed
-                    for __ in range(max(0,1 - len(self.qmc.extradevices))):
-                        self.addDevice()
-                    if self.qmc.extraname1[0] == 'Extra 1':
-                        self.qmc.extraname1[0] = 'Burner'
-
-                    diagrampoints = None
-                    if recipedata is not None:
-                        diagrampoints = tree.find('recipedata/diagrampoints')
-                    if diagrampoints is None:
-                        diagrampoints = tree.find('diagrampoints')
-                    if diagrampoints is None:
-                        diagrampoints = tree.find('historydata')
-                    last_timez = 0.
-                    if diagrampoints is not None:
-                        for elem in diagrampoints.findall('data'):
-                            time_entry = elem.find('time')
-                            if time_entry is None:
-                                time_entry = elem.find('stime')
-                            last_timez = last_timez + 1
-                            timez = last_timez
-                            try:
-                                if time_entry is not None:
-                                    time_entry_text = time_entry.text
-                                    if time_entry_text is not None:
-                                        timez = float(stringtoseconds(time_entry_text))
-                                        last_timez = timez
-                            except Exception: # pylint: disable=broad-except
-                                pass # invalid input can make stringtoseconds fail
-                            self.qmc.timex.append(timez)
-                            self.qmc.temp1.append(-1)
-                            temp_entry = elem.find('temperature')
-                            if temp_entry is None:
-                                temp_entry = elem.find('ntemperature')
-                            if temp_entry is not None:
-                                bt = temp_entry.text
-                                if bt is not None:
-                                    bt = bt.replace(',','.')
-                                    self.qmc.temp2.append(float(bt))
-                                    self.qmc.extratimex[0].append(timez)
-                                    burner_entry = elem.find('burnercapacity')
-                                    if burner_entry is None:
-                                        burner_entry = elem.find('nburnercapacity')
-                                    if burner_entry is not None:
-                                        burner = burner_entry.text
-                                        if burner is not None:
-                                            burner = burner.replace(',','.')
-                                            self.qmc.extratemp1[0].append(float(burner))
-                                            self.qmc.extratemp2[0].append(-1)
-
-                    if len(self.qmc.timex) > 2:
-                        self.qmc.profile_sampling_interval = (self.qmc.timex[-1] - self.qmc.timex[0])/(len(self.qmc.timex) - 1)
-                    self.qmc.updateDeltaSamples()
-
-                    # set CHARGE and DROP
-                    self.qmc.timeindex[0] = 0
-                    self.qmc.timeindex[6] = max(0,len(self.qmc.timex) - 1)
-
-                    if recipedata is not None:
-                        switchpoints = tree.find('recipedata/switchpoints')
-                    else:
-                        switchpoints = tree.find('switchpoints')
-                    if switchpoints is not None:
-                        for elem in switchpoints.findall('data'):
-                            time_entry = elem.find('time')
-                            if time_entry is None:
-                                time_entry = elem.find('stime')
-                            if time_entry is not None:
-                                time_str = time_entry.text
-                                if time_str is not None:
-                                    try:
-                                        time_in_seconds = float(stringtoseconds(time_str))
-                                        burner_entry = elem.find('burnercapacity')
-                                        if burner_entry is None:
-                                            burner_entry = elem.find('nburnercapacity')
-                                        if burner_entry is not None:
-                                            burner = burner_entry.text
-                                            if burner is not None:
-                                                self.qmc.addEvent(
-                                                    self.qmc.time2index(time_in_seconds),
-                                                    3,
-                                                    '',
-                                                    self.qmc.str2eventsvalue(burner))
-                                    except Exception: # pylint: disable=broad-except
-                                        pass # invalid input can make stringtoseconds
-
-                    self.autoAdjustAxis()
-
-                    self.sendmessage(QApplication.translate('Message','Probat Pilot data imported successfully'))
-                    self.qmc.redraw()
-                    self.qmc.fileDirtySignal.emit()
-        except OSError as ex:
-            self.qmc.adderror((QApplication.translate('Error Message','IO Error:') + ' importPilot(): {0}').format(str(ex)))
-        except ValueError as ex:
-            self.qmc.adderror((QApplication.translate('Error Message','Value Error:') + ' importPilot(): {0}').format(str(ex)))
-        except Exception as ex: # pylint: disable=broad-except
-            _log.exception(ex)
-            _a, _b, exc_tb = sys.exc_info()
-            self.sendmessage(QApplication.translate('Message','Import Probat Pilot failed'))
-            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' importPilot() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
+#    @pyqtSlot()
+#    @pyqtSlot(bool)
+#    def importPilot(self, _:bool = False) -> None: # pyright: ignore [reportGeneralTypeIssues] # Code is too complex to analyze; reduce complexity by refactoring into subroutines or reducing
+#        try:
+#            import xml.etree.ElementTree as ET
+#            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import Probat Recipe'))
+#            if len(filename) == 0:
+#                return
+#            if self.qmc.reset():
+#                tree = ET.ElementTree(file=filename)
+#                root = tree.getroot()
+#                if root is not None:
+#                    self.normalize_tags(root) # normalize tags to lower case
+#                    self.normalize_attr(root) # normalize attributes to lower case
+#
+#                    if root.tag == 'history':
+#                        date = root.find('historydate')
+#                        time = root.find('historytime')
+#                        if date is not None and time is not None:
+#                            date_str = date.text
+#                            time_str = time.text
+#                            if date_str is not None and time_str is not None:
+#                                self.qmc.roastdate = QDateTime(QDate.fromString(date_str,'M/d/yyyy'),QTime.fromString(time_str,'h:mm AP'))
+#
+#                    title = root.find('roasttype')
+#                    if title is None:
+#                        self.qmc.title = str(os.path.basename(filename))
+#                    else:
+#                        self.qmc.title = str(title.text)
+#
+#                    beans = root.find('coffeetype')
+#                    if beans is not None and beans.text is not None:
+#                        self.qmc.beans = str(beans.text)
+#
+#                    roaster = root.find('roaster')
+#                    if roaster is not None and roaster.text is not None:
+#                        self.qmc.roastertype = str(roaster.text)
+#
+#                    chargestr = root.find('charge')
+#                    if chargestr is None:
+#                        chargestr = root.find('chargingcapacity')
+#                    if chargestr is not None: # contains floating point number; default unit Kg
+#                        try:
+#                            weight_in_str = chargestr.text
+#                            if weight_in_str is not None:
+#                                self.qmc.weight = (float(weight_in_str), self.qmc.weight[1], 'Kg')
+#                        except Exception: # pylint: disable=broad-except
+#                            pass
+#
+#                    dischargestr = root.find('dischargingcapacity')
+#                    if dischargestr is not None: # contains floating point number; default unit Kg
+#                        try:
+#                            weight_out_str = dischargestr.text
+#                            if weight_out_str is not None:
+#                                self.qmc.weight = (self.qmc.weight[0], float(weight_out_str), 'Kg')
+#                        except Exception: # pylint: disable=broad-except
+#                            pass
+#
+#                    colorstr = root.find('coffeecolor')
+#                    if colorstr is not None:
+#                        c = None
+#                        colorstr_text = colorstr.text
+#                        if colorstr_text is not None:
+#                            for e in colorstr_text.strip().split():
+#                                try:
+#                                    c = int(e)
+#                                    break
+#                                except Exception: # pylint: disable=broad-except
+#                                    pass
+#                        if c:
+#                            self.qmc.ground_color = c
+#
+#                    notes = root.find('notes')
+#                    if notes is not None and notes.text is not None:
+#                        self.qmc.roastingnotes = str(notes.text)
+#
+#                    recipedata = None
+#                    historydata = None
+#                    recipedata = tree.find('recipedata')
+#                    m = None
+#                    if recipedata is not None:
+#                        m = recipedata.get('temp_unit')
+#                    else:
+#                        mt = tree.find('recipedata_temp_unit')
+#                        if mt is not None:
+#                            m = mt.text
+#                    if m is None:
+#                        historydata = tree.find('historydata')
+#                        if historydata is not None:
+#                            m = historydata.get('temp_unit')
+#                        else:
+#                            mt = tree.find('historydata_temp_unit')
+#                            if mt is not None:
+#                                m = mt.text
+#                    if m is not None:
+#                        m = m.lower()
+#                        if m == 'c' and self.qmc.mode == 'F':
+#                            self.qmc.celsiusMode()
+#                        elif m == 'f' and self.qmc.mode == 'C':
+#                            self.qmc.fahrenheitMode()
+#
+#                    # add extra device if needed
+#                    for __ in range(max(0,1 - len(self.qmc.extradevices))):
+#                        self.addDevice()
+#                    if self.qmc.extraname1[0] == 'Extra 1':
+#                        self.qmc.extraname1[0] = 'Burner'
+#
+#                    diagrampoints = None
+#                    if recipedata is not None:
+#                        diagrampoints = tree.find('recipedata/diagrampoints')
+#                    if diagrampoints is None:
+#                        diagrampoints = tree.find('diagrampoints')
+#                    if diagrampoints is None:
+#                        diagrampoints = tree.find('historydata')
+#                    last_timez = 0.
+#                    if diagrampoints is not None:
+#                        for elem in diagrampoints.findall('data'):
+#                            time_entry = elem.find('time')
+#                            if time_entry is None:
+#                                time_entry = elem.find('stime')
+#                            last_timez = last_timez + 1
+#                            timez = last_timez
+#                            try:
+#                                if time_entry is not None:
+#                                    time_entry_text = time_entry.text
+#                                    if time_entry_text is not None:
+#                                        timez = float(stringtoseconds(time_entry_text))
+#                                        last_timez = timez
+#                            except Exception: # pylint: disable=broad-except
+#                                pass # invalid input can make stringtoseconds fail
+#                            self.qmc.timex.append(timez)
+#                            self.qmc.temp1.append(-1)
+#                            temp_entry = elem.find('temperature')
+#                            if temp_entry is None:
+#                                temp_entry = elem.find('ntemperature')
+#                            if temp_entry is not None:
+#                                bt = temp_entry.text
+#                                if bt is not None:
+#                                    bt = bt.replace(',','.')
+#                                    self.qmc.temp2.append(float(bt))
+#                                    self.qmc.extratimex[0].append(timez)
+#                                    burner_entry = elem.find('burnercapacity')
+#                                    if burner_entry is None:
+#                                        burner_entry = elem.find('nburnercapacity')
+#                                    if burner_entry is not None:
+#                                        burner = burner_entry.text
+#                                        if burner is not None:
+#                                            burner = burner.replace(',','.')
+#                                            self.qmc.extratemp1[0].append(float(burner))
+#                                            self.qmc.extratemp2[0].append(-1)
+#
+#                    if len(self.qmc.timex) > 2:
+#                        self.qmc.profile_sampling_interval = (self.qmc.timex[-1] - self.qmc.timex[0])/(len(self.qmc.timex) - 1)
+#                    self.qmc.updateDeltaSamples()
+#
+#                    # set CHARGE and DROP
+#                    self.qmc.timeindex[0] = 0
+#                    self.qmc.timeindex[6] = max(0,len(self.qmc.timex) - 1)
+#
+#                    if recipedata is not None:
+#                        switchpoints = tree.find('recipedata/switchpoints')
+#                    else:
+#                        switchpoints = tree.find('switchpoints')
+#                    if switchpoints is not None:
+#                        for elem in switchpoints.findall('data'):
+#                            time_entry = elem.find('time')
+#                            if time_entry is None:
+#                                time_entry = elem.find('stime')
+#                            if time_entry is not None:
+#                                time_str = time_entry.text
+#                                if time_str is not None:
+#                                    try:
+#                                        time_in_seconds = float(stringtoseconds(time_str))
+#                                        burner_entry = elem.find('burnercapacity')
+#                                        if burner_entry is None:
+#                                            burner_entry = elem.find('nburnercapacity')
+#                                        if burner_entry is not None:
+#                                            burner = burner_entry.text
+#                                            if burner is not None:
+#                                                self.qmc.addEvent(
+#                                                    self.qmc.time2index(time_in_seconds),
+#                                                    3,
+#                                                    '',
+#                                                    self.qmc.str2eventsvalue(burner))
+#                                    except Exception: # pylint: disable=broad-except
+#                                        pass # invalid input can make stringtoseconds
+#
+#                    self.autoAdjustAxis()
+#
+#                    self.sendmessage(QApplication.translate('Message','Probat Pilot data imported successfully'))
+#                    self.qmc.redraw()
+#                    self.qmc.fileDirtySignal.emit()
+#        except OSError as ex:
+#            self.qmc.adderror((QApplication.translate('Error Message','IO Error:') + ' importPilot(): {0}').format(str(ex)))
+#        except ValueError as ex:
+#            self.qmc.adderror((QApplication.translate('Error Message','Value Error:') + ' importPilot(): {0}').format(str(ex)))
+#        except Exception as ex: # pylint: disable=broad-except
+#            _log.exception(ex)
+#            _a, _b, exc_tb = sys.exc_info()
+#            self.sendmessage(QApplication.translate('Message','Import Probat Pilot failed'))
+#            self.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' importPilot() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
 
 #    @pyqtSlot()
 #    @pyqtSlot(bool)
@@ -26031,86 +26228,92 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot(bool)
     def importCropster(self, _:bool = False) -> None:
         from artisanlib.cropster import extractProfileCropsterXLS
-        self.importExternal(extractProfileCropsterXLS, QApplication.translate('Message','Import Cropster XLS'),'*.xls')
+        self.importExternal(extractProfileCropsterXLS, QApplication.translate('Message','Import {}').format('Cropster XLS'),'*.xls')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importStronghold(self, _:bool = False) -> None:
         from artisanlib.stronghold import extractProfileStrongholdXLSX
-        self.importExternal(extractProfileStrongholdXLSX, QApplication.translate('Message','Import Stronghold XLSX'), '*.xlsx')
+        self.importExternal(extractProfileStrongholdXLSX, QApplication.translate('Message','Import {}').format('Stronghold XLSX'), '*.xlsx')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importRoastLog(self, _:bool = False) -> None:
         from artisanlib.roastlog import extractProfileRoastLog
-        self.importExternalURL(extractProfileRoastLog,QApplication.translate('Message','Import RoastLog URL'))
+        self.importExternalURL(extractProfileRoastLog,QApplication.translate('Message','Import {}').format('RoastLog URL'))
 
 #    @pyqtSlot()
 #    @pyqtSlot(bool)
 #    def importRoastPATH(self, _:bool = False) -> None:
 #        from artisanlib.roastpath import extractProfileRoastPathHTML
-#        self.importExternalURL(extractProfileRoastPathHTML,QApplication.translate('Message','Import RoastPATH URL'))
+#        self.importExternalURL(extractProfileRoastPathHTML,QApplication.translate('Message','Import {}').format('RoastPath URL'))
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importHiBean(self, _:bool = False) -> None:
         from artisanlib.hibean import extractProfileHiBeanJSON
-        self.importExternal(extractProfileHiBeanJSON,QApplication.translate('Message','Import HiBean JSON'),'*.json')
+        self.importExternal(extractProfileHiBeanJSON,QApplication.translate('Message','Import {}').format('HiBean JSON'),'*.json')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importGiesen(self, _:bool = False) -> None:
         from artisanlib.giesen import extractProfileGiesenCSV
-        self.importExternal(extractProfileGiesenCSV,QApplication.translate('Message','Import Giesen CSV'),'*.csv')
+        self.importExternal(extractProfileGiesenCSV,QApplication.translate('Message','Import {}').format('Giesen CSV'),'*.csv')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importPetroncini(self, _:bool = False) -> None:
         from artisanlib.petroncini import extractProfilePetronciniCSV
-        self.importExternal(extractProfilePetronciniCSV,QApplication.translate('Message','Import Petroncini CSV'),'*.csv')
+        self.importExternal(extractProfilePetronciniCSV,QApplication.translate('Message','Import {}').format('Petroncini CSV'),'*.csv')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importIkawaURL(self, _:bool = False) -> None:
         from artisanlib.ikawa import extractProfileIkawaURL
-        self.importExternalURL(extractProfileIkawaURL,QApplication.translate('Message','Import IKAWA URL'))
+        self.importExternalURL(extractProfileIkawaURL,QApplication.translate('Message','Import {}').format('IKAWA URL'))
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importIkawa(self, _:bool = False) -> None:
         from artisanlib.ikawa import extractProfileIkawaCSV
-        self.importExternal(extractProfileIkawaCSV,QApplication.translate('Message','Import IKAWA CSV'),'*.csv')
+        self.importExternal(extractProfileIkawaCSV,QApplication.translate('Message','Import {}').format('IKAWA CSV'),'*.csv')
+
+    @pyqtSlot()
+    @pyqtSlot(bool)
+    def importOrbiter(self, _:bool = False) -> None:
+        from artisanlib.orbiter import extractProfileOrbiterROP
+        self.importExternal(extractProfileOrbiterROP,QApplication.translate('Message','Import {}').format('Orbiter'),'(*.rop *.zip)')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importKaleido(self, _:bool = False) -> None:
         from artisanlib.kaleido import extractProfileKaleidoCSV
-        self.importExternal(extractProfileKaleidoCSV,QApplication.translate('Message','Import Kaleido CSV'),'*.csv')
+        self.importExternal(extractProfileKaleidoCSV,QApplication.translate('Message','Import {}').format('Kaleido CSV'),'*.csv')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importLoring(self, _:bool = False) -> None:
         from artisanlib.loring import extractProfileLoringCSV
-        self.importExternal(extractProfileLoringCSV,QApplication.translate('Message','Import Loring CSV'),'*.csv')
+        self.importExternal(extractProfileLoringCSV,QApplication.translate('Message','Import {}').format('Loring CSV'),'*.csv')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importRoest(self, _:bool = False) -> None:
         from artisanlib.roest import extractProfileRoestCSV
-        self.importExternal(extractProfileRoestCSV,QApplication.translate('Message','Import ROEST CSV'),'*.csv')
+        self.importExternal(extractProfileRoestCSV,QApplication.translate('Message','Import {}').format('ROEST CSV'),'*.csv')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importRubasse(self, _:bool = False) -> None:
         from artisanlib.rubasse import extractProfileRubasseCSV
-        self.importExternal(extractProfileRubasseCSV,QApplication.translate('Message','Import Rubasse CSV'),'*.csv')
+        self.importExternal(extractProfileRubasseCSV,QApplication.translate('Message','Import {}').format('Rubasse CSV'),'*.csv')
 
     @pyqtSlot()
     @pyqtSlot(bool)
     def importHH506RA(self, _:bool = False) -> None:
         import csv
         try:
-            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import HH506RA CSV'))
+            filename = self.ArtisanOpenFileDialog(msg=QApplication.translate('Message','Import {}').format('HH506RA CSV'))
             if len(filename) == 0:
                 return
             if self.qmc.reset():
@@ -27530,7 +27733,7 @@ class ApplicationWindow(QMainWindow):
                         else:
                             toff = 0
                     else:
-                        x_range = list(range(int(self.qmc.startofx),int(self.qmc.endofx))) # Object of type `list[int]` is not assignable to `list[int | float]`
+                        x_range = [float(x) for x in range(int(self.qmc.startofx),int(self.qmc.endofx))]
                         toff = 0
                     #create y range
                     y_range:list[float] = []
@@ -27779,8 +27982,8 @@ sys.excepthook = excepthook
 # the following avoids the "No document could be created" dialog and the Console message
 # "The Artisan Profile type doesn't map to any NSDocumentClass." on startup (since pyobjc-core 3.1.1)
 if sys.platform.startswith('darwin'):
-    from Cocoa import NSDocument # type: ignore[import-untyped] # @UnresolvedImport # pylint: disable=import-error,no-name-in-module
-    class Document(NSDocument): # type: ignore[misc,no-any-unimported] # ty:ignore[ignore] # pylint: disable= too-few-public-methods
+    from Cocoa import NSDocument # type: ignore[import-untyped, attr-defined, unused-ignore] # @UnresolvedImport # pylint: disable=import-error,no-name-in-module
+    class Document(NSDocument): # type:ignore[misc,no-any-unimported] # zuban: ignore # pylint: disable= too-few-public-methods
 #        def windowNibName(self):
 #            return None #"Document"
         def makeWindowControllers(self) -> None:
@@ -27815,9 +28018,9 @@ def initialize_locale(my_app:Artisan) -> str:
 #        'qtwebengine' # we do not use any UI
     ]
 
-    # NOTE: on updates, need to update util.py:locale2full_local() as well
     supported_languages:list[str] = [
         'ar',
+        'bg',
         'cs',
         'da',
         'de',
@@ -27853,7 +28056,7 @@ def initialize_locale(my_app:Artisan) -> str:
 
     if locale == '':
         if platform.system() == 'Darwin':
-            from Cocoa import NSUserDefaults # type:ignore[import-not-found,unused-ignore]  # @UnresolvedImport # pylint: disable=import-error,no-name-in-module
+            from Cocoa import NSUserDefaults # type:ignore[import-not-found,attr-defined,unused-ignore]  # @UnresolvedImport # pylint: disable=import-error,no-name-in-module
             defs = NSUserDefaults.standardUserDefaults()
             langs = defs.objectForKey_('AppleLanguages') # pyright:ignore[reportUnknownArgumentType]
             if langs.objectAtIndex_(0)[:7] == 'zh_Hans': # pyright:ignore[reportUnknownArgumentType]
@@ -27948,7 +28151,7 @@ def main() -> None:
 
     # only here deactivating the app napping seems to have an effect
     if sys.platform.startswith('darwin'):
-        import appnope # pyright: ignore # @UnresolvedImport # type: ignore # ty:ignore[ignore] # pylint: disable=import-error,redefined-outer-name
+        import appnope # pyright:ignore # @UnresolvedImport # type:ignore[import-not-found, unused-ignore] # pylint: disable=import-error,redefined-outer-name
         appnope.nope()
 
     if locale_str in {'ar', 'he', 'fa'}:
