@@ -22,14 +22,17 @@ environment:
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
   PYUPGRADE_WIN_VER: 3.14.3
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
+  
+  ARTISAN_KEY:
+    secure: xqoahZ+xpEJOClcLTL5yIa3gdoql/Vzs8uTEWYFX2QV0P1gLe5WS3/3WIQB9dQ/UClC1FE/5EC2yawYjwAQ1tJdHyawh7uL7+zgtTZxRqWo=
 
   matrix:
   - job_name: windows
     appveyor_build_worker_image: Visual Studio 2022
   - job_name: macos
     appveyor_build_worker_image: macos-ventura
-  - job_name: linux
-    appveyor_build_worker_image: Ubuntu2204
+#  - job_name: linux
+#    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -128,9 +131,12 @@ for:
     - ps: $GIT_VERSION=git rev-parse --verify --short HEAD
     - ps: gc artisanlib/__init__.py | %{ $_ -replace "__revision__ = '.*'", "__revision__ = '$GIT_VERSION'" } | out-file newfile -encoding ascii
     - ps: move -force newfile artisanlib/__init__.py
+        
+    # Generate signature
+    - python generate_signature.py
 
     # run the build script
-    - cmd: build-win3-pi.bat
+#dave    - cmd: build-win3-pi.bat
 
 #  test_script:
 #    - cmd: python -m unittest discover
@@ -199,9 +205,13 @@ for:
     - chmod +x src/*.sh
     - chmod +x src/pylupdate6pro.py
 
-    # run the build script
     - cd src
-    - ./build-macos3.sh
+
+    # Generate signature
+    - python generate_signature.py
+
+    # run the build script
+#dave    - ./build-macos3.sh
 
 # unit test fails as it runs on Py3.9 while the build installs under brew installed Py3.10 (see build-mac3.py)
 #  test_script:
