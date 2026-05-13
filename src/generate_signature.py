@@ -1,5 +1,6 @@
 # ABOUT
 # Appends a signature based on the version and revision to __init.py__
+# Runs on Appveyor or locally
 
 # LICENSE
 # This program or module is free software: you can redistribute it and/or
@@ -15,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # AUTHOR
-# Dave Baxter, 2026
+# Dave Baxter, Marko Luther 2026
 
 import os
 import sys
@@ -57,10 +58,7 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
         key_bytes: bytes = base64.b64decode(key_env)
         
         # Load DER-formatted key
-        private_key = serialization.load_der_private_key(
-            key_bytes,
-            password=None  # No passphrase
-        )
+        private_key = serialization.load_der_private_key(key_bytes, password=None )
         
         # Verify it's an Ed25519 key
         if not isinstance(private_key, ed25519.Ed25519PrivateKey):
@@ -80,9 +78,9 @@ def generate_signature(
         revision: str,
         version: str,
         operating_system: str) -> str:
-    print(f'{revision}:{version}:{operating_system}')  #TODO remove
+    print(f'{revision}, {version}, {operating_system}')  #TODO remove
     # Generate the ed25519 signature
-    message: bytes = bytes(f'{revision}:{version}:{operating_system}', encoding='ascii')
+    message: bytes = bytes(f'{version}{revision}{operating_system}', encoding='ascii')
     signature_bytes: bytes = private_key.sign(message)
     # Convert to hex string
     signature_hex: str = signature_bytes.hex()
@@ -115,52 +113,31 @@ def write_signature_to_file(filepath: str, signature_hex: str) -> None:
         sys.exit(1)
         
 def get_operating_system(content: str) -> str:
-    """
-    Determine the operating system either from Appveyor or from file content.
-    
-    If running on Appveyor (APPVEYOR env var set to true/True/TRUE):
-        - Maps APPVEYOR_JOB_NAME: "windows" -> "Windows", "macos" -> "Darwin", "linux" -> "Linux"
-        - Returns unmapped values verbatim with a warning
-        - Returns empty string if APPVEYOR_JOB_NAME doesn't exist (with warning)
-    
-    If not on Appveyor:
-        - Extracts operating_system from file content via extract_field()
-        - Exits with error if not found in content
-    
-    Args:
-        content: The content of the __init__.py file
-    
-    Returns:
-        str: The operating system name
-    """
     appveyor_env: str | None = os.environ.get("APPVEYOR", "").lower()
-    is_appveyor: bool = appveyor_env in ["true", "1", "yes"]
+    is_appveyor = os.getenv("APPVEYOR", "").lower() == "true"
     
     if is_appveyor:
-        #TODO this is a test, delete this bit
-        test_name: str | None = os.environ.get("APPVEYOR_XXX")
-        if not test_name:
-            print("Warning: APPVEYOR_XXX environment variable not found")
-
-
+        # This script is running on Appveyor
         job_name: str | None = os.environ.get("APPVEYOR_JOB_NAME")
         
         if not job_name:
-            print("Warning: APPVEYOR_JOB_NAME environment variable not found")  #TODO this might ought to be a fatal error
-            return ""
+            print("ERROR: APPVEYOR_JOB_NAME environment variable not found")
+            sys.exit(1)
         
+        # Map values returned by platform.system()
         mapping: dict[str, str] = {
             "windows": "Windows",
             "macos": "Darwin",
             "linux": "Linux"
         }
         
-        if job_name.lower() in mapping:  #TODO no need for lower() here)
-            return mapping[job_name.lower()]
+        if job_name in mapping:
+            return mapping[job_name]
         else:
             print(f"Warning: Unknown APPVEYOR_JOB_NAME value: {job_name}")
             return job_name
     else:
+        # This script is not running on Appveyor, get the operating_system from __init__.py
         operating_system: str | None = extract_field(content, 'operating_system')
         
         if operating_system is None:
@@ -168,8 +145,6 @@ def get_operating_system(content: str) -> str:
             sys.exit(1)
         
         return operating_system
-
-
 
 def main() -> None:
     # Set the file path
@@ -182,7 +157,7 @@ def main() -> None:
     version: str | None = extract_field(content, 'version')
     revision: str | None = extract_field(content, 'revision')
     operating_system: str = get_operating_system(content)
-    print(f"Operating System: {operating_system}")  #dave #TODO
+    print(f'Operating System: {operating_system}')  #dave #TODO
     
     # Warn if fields are missing but continue
     if not version:
