@@ -17999,7 +17999,7 @@ class ApplicationWindow(QMainWindow):
                 settings = QSettings(filename, QSettings.Format.IniFormat)
 
                 # a proper artisan-settings.aset file needs at least to contain a Mode tag
-                if not (theme or machine) and settings.contains('Mode'):
+                if not (theme or machine) and not settings.contains('Mode'):
                     self.qmc.adderror(QApplication.translate('Error Message','Exception: {} not a valid settings file').format(str(filename)))
                     return False
 
