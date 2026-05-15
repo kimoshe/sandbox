@@ -1,4 +1,4 @@
-__version__ = '4.99.7'
+__version__ = '4.99.8'
 __revision__ = ''
 __build__ = '0'
 __signature__ = ''

@@ -77,10 +77,10 @@ def generate_signature(
         private_key: ed25519.Ed25519PrivateKey,
         revision: str,
         version: str,
-        operating_system: str) -> str:
-    print(f'{revision}, {version}, {operating_system}')  #TODO remove
+        artisan_os: str) -> str:
+    print(f'{revision}, {version}, {artisan_os}')  #TODO remove
     # Generate the ed25519 signature
-    message: bytes = bytes(f'{version}{revision}{operating_system}', encoding='ascii')
+    message: bytes = bytes(f'{version}{revision}{artisan_os}', encoding='ascii')
     signature_bytes: bytes = private_key.sign(message)
     # Convert to hex string
     signature_hex: str = signature_bytes.hex()
@@ -112,7 +112,7 @@ def write_signature_to_file(filepath: str, signature_hex: str) -> None:
         print(f'ERROR: Failed to write signature to file: {e}')
         sys.exit(1)
         
-def get_operating_system(content: str) -> str:
+def get_artisan_os(content: str) -> str:
     appveyor_env: str | None = os.environ.get("APPVEYOR", "").lower()
     is_appveyor = os.getenv("APPVEYOR", "").lower() == "true"
     
@@ -124,11 +124,12 @@ def get_operating_system(content: str) -> str:
             print("ERROR: APPVEYOR_JOB_NAME environment variable not found")
             sys.exit(1)
         
-        # Map values returned by platform.system()
+        # Map values returned by platform.system(), RPi not on Appveyor
         mapping: dict[str, str] = {
             "windows": "Windows",
-            "macos": "Darwin",
-            "linux": "Linux"
+            "macos": "macOS",
+            "linux": "Linux",
+            "rpi": "RPi"
         }
         
         if job_name in mapping:
@@ -137,14 +138,14 @@ def get_operating_system(content: str) -> str:
             print(f"Warning: Unknown APPVEYOR_JOB_NAME value: {job_name}")
             return job_name
     else:
-        # This script is not running on Appveyor, get the operating_system from __init__.py
-        operating_system: str | None = extract_field(content, 'operating_system')
+        # This script is not running on Appveyor, get the artisan_os from __init__.py
+        artisan_os: str | None = extract_field(content, 'artisan_os')
         
-        if operating_system is None:
-            print("ERROR: operating_system not found in file content")
+        if artisan_os is None:
+            print("ERROR: artisan_os not found in file content")
             sys.exit(1)
         
-        return operating_system
+        return artisan_os
 
 def main() -> None:
     # Set the file path
@@ -156,8 +157,8 @@ def main() -> None:
     # Extract version and revision
     version: str | None = extract_field(content, 'version')
     revision: str | None = extract_field(content, 'revision')
-    operating_system: str = get_operating_system(content)
-    print(f'Operating System: {operating_system}')  #dave #TODO
+    artisan_os: str = get_artisan_os(content)
+    print(f'Artisan OS: {artisan_os}')  #dave #TODO
     
     # Warn if fields are missing but continue
     if not version:
@@ -169,7 +170,7 @@ def main() -> None:
     private_key: ed25519.Ed25519PrivateKey = load_private_key()
     
     # Generate the signature
-    signature_hex: str = generate_signature(private_key, revision or '', version or '', operating_system or '')
+    signature_hex: str = generate_signature(private_key, revision or '', version or '', artisan_os or '')
     
     # Write the signature to the file (replaces if it exists)
     write_signature_to_file(init_filepath, signature_hex)
