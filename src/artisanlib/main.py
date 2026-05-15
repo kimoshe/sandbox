@@ -18004,7 +18004,7 @@ class ApplicationWindow(QMainWindow):
                     return False
 
                 # check signature if official build and settings 'artisan_version' is >= 4.1
-                _log.info(f"{self.official_build=}, {debugLogLevelActive()}, {settings.contains('artisan_version')},"  #dave #TODO
+                _log.info(f"{self.official_build=}, {debugLogLevelActive()}, {settings.contains('artisan_version')},")  #dave #TODO
                 _log.info(f"{QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,1,0)}") #dave #TODO
 
                 if (self.official_build and not debugLogLevelActive() and
