@@ -18004,8 +18004,10 @@ class ApplicationWindow(QMainWindow):
                     return False
 
                 # check signature if official build and settings 'artisan_version' is >= 4.1
-                if (self.official_build and not debugLogLevelActive() and
-                        settings.contains('artisan_version') and QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,1,0)):
+#dave #TODO
+#dave #TODO                if (self.official_build and not debugLogLevelActive() and
+#dave #TODO                        settings.contains('artisan_version') and QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,1,0)):
+                if True:
 #                # testing:
 #                if (self.official_build and not debugLogLevelActive() and
 #                        settings.contains('System/artisan_version') and settings.contains('System/artisan_signature')):
@@ -18016,12 +18018,14 @@ class ApplicationWindow(QMainWindow):
                             version = settings.value('System/artisan_version','')
                             revision = settings.value('System/artisan_revision','')
                             artisan_os = settings.value('System/artisan_os','')
+                            _log.info(f'*** {version=}, {revision=}, {artisan_os=}')  #dave #TODO
                             message:bytes = signature_message(version, revision, artisan_os)
                             signature:bytes = bytes.fromhex(settings.value('System/artisan_signature','')) # pyright: ignore[reportTypedDictNotRequiredAccess]
+                            _log.info(f'*** {signature=}')  #dave #TODO
                             public_key.verify(signature, message)
                     except Exception: # pylint: disable=broad-except
                         _log.error('settings signature invalid')
-                        self.qmc.adderror(QApplication.translate('Error Message','Exception: {} not a valid settings file').format(str(filename)))
+                        self.qmc.adderror(QApplication.translate('Error Message','Exception: {} not a valididated settings file').format(str(filename)))  #dave #TODO
                         return False
 
 
