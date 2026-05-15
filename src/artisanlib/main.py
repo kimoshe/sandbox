@@ -18013,7 +18013,10 @@ class ApplicationWindow(QMainWindow):
                 _log.info(f"*** {QVersionNumber(4,2,0)=}")  #dave #TODO
 
                 if (self.official_build and not debugLogLevelActive() and
-                        settings.contains('System/artisan_version') and QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,2,0)):
+                        settings.contains('System/artisan_version') and 
+                        QVersionNumber.fromString(settings.value('System/artisan_version')) >= QVersionNumber(4,2,0) and
+                        QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,2,0)):
+:
                     _log.info('*** Inside') #dave #TODO
 #                # testing:
 #                if (self.official_build and not debugLogLevelActive() and
