@@ -4361,6 +4361,8 @@ class ApplicationWindow(QMainWindow):
             with open(getResourcePath() + 'artisan_public_key.pem', 'rb') as f:
                 public_key:ed25519.Ed25519PublicKey = cast(ed25519.Ed25519PublicKey, serialization.load_pem_public_key(f.read()))
                 os_name,_,_ = self.get_os()
+                _log.info(f'** {os_name=}, {__version__=}, {__revision__=}')  #dave #TODO
+                _log.info(f'** {__signature__=}')  #dave #TODO
                 message:bytes = signature_message(__version__, __revision__, os_name)
                 signature:bytes = bytes.fromhex(__signature__)
                 public_key.verify(signature, message)
@@ -18034,7 +18036,7 @@ class ApplicationWindow(QMainWindow):
                             public_key.verify(signature, message)
                     except Exception: # pylint: disable=broad-except
                         _log.error('settings signature invalid')
-                        self.qmc.adderror(QApplication.translate('Error Message','Exception: {} not a valididated settings file').format(str(filename)))  #dave #TODO
+                        self.qmc.adderror(QApplication.translate('Error Message','Exception: {} not a Genuine Artisan settings file').format(str(filename)))  #dave #TODO
                         return False
 
 
