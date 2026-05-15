@@ -18016,7 +18016,7 @@ class ApplicationWindow(QMainWindow):
 #                        settings.contains('System/artisan_version') and 
                         QVersionNumber.fromString(settings.value('System/artisan_version'))[0] >= QVersionNumber(4,2,0) and
                         QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,2,0)):
-:
+
                     _log.info('*** Inside') #dave #TODO
 #                # testing:
 #                if (self.official_build and not debugLogLevelActive() and
