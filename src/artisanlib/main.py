@@ -4361,8 +4361,6 @@ class ApplicationWindow(QMainWindow):
             with open(getResourcePath() + 'artisan_public_key.pem', 'rb') as f:
                 public_key:ed25519.Ed25519PublicKey = cast(ed25519.Ed25519PublicKey, serialization.load_pem_public_key(f.read()))
                 os_name,_,_ = self.get_os()
-                _log.info(f'** {os_name=}, {__version__=}, {__revision__=}')  #dave #TODO
-                _log.info(f'** {__signature__=}')  #dave #TODO
                 message:bytes = signature_message(__version__, __revision__, os_name)
                 signature:bytes = bytes.fromhex(__signature__)
                 public_key.verify(signature, message)
@@ -18006,20 +18004,10 @@ class ApplicationWindow(QMainWindow):
                     return False
 
                 # check signature if official build and settings 'artisan_version' is >= 4.1
-                _log.info(f"*** {self.official_build=}")  #dave #TODO
-                _log.info(f"*** {debugLogLevelActive()=}, {settings.contains('System/artisan_version')=},")  #dave #TODO
-                _log.info(f"*** {QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,2,0)=}") #dave #TODO
-                _log.info(f"*** {settings.value('System/artisan_version')=}")  #dave #TODO
-                _log.info(f"*** {settings.value('artisan_version')=}, {__version__=}")  #dave #TODO
-                _log.info(f"*** {(QVersionNumber.fromString(settings.value('artisan_version',__version__))[0])=}")  #dave #TODO
-                _log.info(f"*** {QVersionNumber(4,2,0)=}")  #dave #TODO
-
                 if (self.official_build and not debugLogLevelActive() and
-#                        settings.contains('System/artisan_version') and 
+                        settings.contains('System/artisan_version') and 
                         QVersionNumber.fromString(settings.value('System/artisan_version'))[0] >= QVersionNumber(4,2,0) and
                         QVersionNumber.fromString(settings.value('artisan_version',__version__))[0] >= QVersionNumber(4,2,0)):
-
-                    _log.info('*** Inside') #dave #TODO
 #                # testing:
 #                if (self.official_build and not debugLogLevelActive() and
 #                        settings.contains('System/artisan_version') and settings.contains('System/artisan_signature')):
@@ -18030,13 +18018,12 @@ class ApplicationWindow(QMainWindow):
                             version = settings.value('System/artisan_version','')
                             revision = settings.value('System/artisan_revision','')
                             artisan_os = settings.value('System/artisan_os','')
-                            _log.info(f'*** {version=}, {revision=}, {artisan_os=}')  #dave #TODO
                             message:bytes = signature_message(version, revision, artisan_os)
                             signature:bytes = bytes.fromhex(settings.value('System/artisan_signature','')) # pyright: ignore[reportTypedDictNotRequiredAccess]
                             public_key.verify(signature, message)
                     except Exception: # pylint: disable=broad-except
                         _log.error('settings signature invalid')
-                        self.qmc.adderror(QApplication.translate('Error Message','Exception: {} not a Genuine Artisan settings file').format(str(filename)))  #dave #TODO
+                        self.qmc.adderror(QApplication.translate('Error Message','Exception: {} not a Genuine Artisan settings file').format(str(filename)))
                         return False
 
 

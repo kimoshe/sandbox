@@ -34,11 +34,10 @@ python -V
 :: get pip up to date
 ::
 :: pip update to 24.1 breaks CI
-::python -m pip install --upgrade pip
-REM python -m pip install pip==24.0
+python -m pip install --upgrade pip
 
 :: install wheel
-REM python -m pip install wheel
+python -m pip install wheel
 
 ::
 :: install Artisan required libraries from pip

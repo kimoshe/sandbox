@@ -35,7 +35,7 @@ def read_init_file(filepath: str) -> str:
     except OSError as e:
         print(f'ERROR: Failed to read file {filepath}: {e}')
         sys.exit(1)
-    
+
     return content
 
 def extract_field(content: str, field_name: str) -> str | None:
@@ -52,19 +52,19 @@ def load_private_key() -> ed25519.Ed25519PrivateKey:
     if not key_env:
         print('ERROR: ARTISAN_KEY environment variable not set.')
         sys.exit(1)
-    
+
     try:
         # Decode base64 to get DER bytes
         key_bytes: bytes = base64.b64decode(key_env)
-        
+
         # Load DER-formatted key
         private_key = serialization.load_der_private_key(key_bytes, password=None )
-        
+
         # Verify it's an Ed25519 key
         if not isinstance(private_key, ed25519.Ed25519PrivateKey):
             print('ERROR: Private key is not an Ed25519 key.')
             sys.exit(1)
-        
+
         return private_key
     except ValueError as e:
         print(f'ERROR: Failed to load private key: {e}')
@@ -78,7 +78,6 @@ def generate_signature(
         revision: str,
         version: str,
         artisan_os: str) -> str:
-    print(f'{revision}, {version}, {artisan_os}')  #TODO remove
     # Generate the ed25519 signature
     message: bytes = bytes(f'{version}{revision}{artisan_os}', encoding='ascii')
     signature_bytes: bytes = private_key.sign(message)
@@ -100,10 +99,10 @@ def write_signature_to_file(filepath: str, signature_hex: str) -> None:
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content: str = f.read()
-        
+
         # Remove existing __signature__ line if it exists
         content = remove_existing_signature(content)
-        
+
         # Append the new signature
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -111,70 +110,69 @@ def write_signature_to_file(filepath: str, signature_hex: str) -> None:
     except OSError as e:
         print(f'ERROR: Failed to write signature to file: {e}')
         sys.exit(1)
-        
+
 def get_artisan_os(content: str) -> str:
-    appveyor_env: str | None = os.environ.get("APPVEYOR", "").lower()
+    # Is this script running on Appveyor?
     is_appveyor = os.getenv("APPVEYOR", "").lower() == "true"
-    
+
     if is_appveyor:
         # This script is running on Appveyor
         job_name: str | None = os.environ.get("APPVEYOR_JOB_NAME")
-        
+
         if not job_name:
             print("ERROR: APPVEYOR_JOB_NAME environment variable not found")
             sys.exit(1)
-        
+
         # Map values returned by platform.system(), RPi not on Appveyor
         mapping: dict[str, str] = {
             "windows": "Windows",
             "macos": "macOS",
-            "linux": "Linux",
-            "rpi": "RPi"
+            "linux": "Linux"
         }
-        
+
         if job_name in mapping:
             return mapping[job_name]
-        else:
-            print(f"Warning: Unknown APPVEYOR_JOB_NAME value: {job_name}")
-            return job_name
-    else:
-        # This script is not running on Appveyor, get the artisan_os from __init__.py
-        artisan_os: str | None = extract_field(content, 'artisan_os')
-        
-        if artisan_os is None:
-            print("ERROR: artisan_os not found in file content")
-            sys.exit(1)
-        
-        return artisan_os
+
+        print(f"Warning: Unknown APPVEYOR_JOB_NAME value: {job_name}")
+        return job_name
+
+    # This script is not running on Appveyor, get artisan_os from __init__.py
+    artisan_os: str | None = extract_field(content, 'artisan_os')
+
+    if artisan_os is None:
+        print("ERROR: artisan_os not found in file content")
+        sys.exit(1)
+
+    return artisan_os
 
 def main() -> None:
     # Set the file path
     init_filepath: str = os.path.join('artisanlib', '__init__.py')
-    
+
     # Read the file
     content = read_init_file(init_filepath)
-    
+
     # Extract version and revision
     version: str | None = extract_field(content, 'version')
     revision: str | None = extract_field(content, 'revision')
     artisan_os: str = get_artisan_os(content)
-    print(f'Artisan OS: {artisan_os}')  #dave #TODO
-    
+    print(f'{version=}, {revision=}, {artisan_os=}')
+
     # Warn if fields are missing but continue
     if not version:
         print('WARNING: __version__ not found in __init__.py')
     if not revision:
         print('WARNING: __revision__ not found in __init__.py')
-    
+
     # Load the private key
     private_key: ed25519.Ed25519PrivateKey = load_private_key()
-    
+
     # Generate the signature
     signature_hex: str = generate_signature(private_key, revision or '', version or '', artisan_os or '')
-    
+
     # Write the signature to the file (replaces if it exists)
     write_signature_to_file(init_filepath, signature_hex)
-    
+
     print('Signature written successfully.')
     print(f'Signature: {signature_hex}')
 
