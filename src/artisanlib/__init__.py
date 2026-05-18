@@ -1,8 +1,8 @@
-__version__ = '4.0.3x'
+__version__ = '4.0.3'
 __revision__ = ''
 __build__ = '0'
 __artisan_os__ = 'Linux'
-__signature__ = ''
+__signature__ = 'x'
 
 __release_sponsor_name__ = 'artisan.plus'
 __release_sponsor_domain__ = 'artisan.plus'
