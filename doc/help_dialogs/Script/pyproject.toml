@@ -1,6 +1,6 @@
 # Copied from artisan/src/pyporject.toml
-# Modified 
-#  [tool.mypy] 
+# Modified
+#  [tool.mypy]
 #  files = ["xlsx_to_artisan_help.py"]
 # and
 #  [tool.pyright]

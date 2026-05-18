@@ -5,7 +5,7 @@
 # Attribution
 # This script was rewriten, simplified and adapted for Artisan Appveyor CI based on https://github.com/probonopd/uploadtool
 # uploadtool.sh is published under the MIT license, Copyright (c) 2016 Simon Peter
-# 
+#
 # LICENSE
 # This program or module is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as published

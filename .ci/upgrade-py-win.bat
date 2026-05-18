@@ -16,9 +16,9 @@
 :: Dave Baxter 2025
 ::
 :: Upgrade the Python version to PYUPGRADE_WIN_VER whenever the environment variable exists
-::   and the upgrade version is greater than current Python version. 
+::   and the upgrade version is greater than current Python version.
 ::
-:: Requires environment variables set in .appveyor.yml: 
+:: Requires environment variables set in .appveyor.yml:
 ::      PYUPGRADE_WIN_VER set to the full version number for target upgrade, or blank, or non-existent.
 ::      PREV_PYTHON_PATH set to the python.exe path corresponding to the original environment: PYTHON_V variable.
 :: Creates local scope environment variables: PREV_PYTHON_VER, INSTALLED_PYTHON_VER not available outside this script.
@@ -41,7 +41,7 @@ if exist "%PREV_PYTHON_PATH%\python.exe" (
 :: Log an informational message
 echo *** Current Python Version: !PREV_PYTHON_VER!  Upgrade to: !PYUPGRADE_WIN_VER! requested
 
-:: Check if both current and upgrade full versions match 
+:: Check if both current and upgrade full versions match
 if "!PREV_PYTHON_VER!"=="!PYUPGRADE_WIN_VER!" (
     echo *** Versions are the same.  No need to upgrade.
     goto End
@@ -67,7 +67,7 @@ if !major_py! lss !major_up! (
     goto NoUpgrade
 )
 if !minor_py! lss !minor_up! (
-    echo PYTHON_PATH !PYTHON_PATH! 
+    echo PYTHON_PATH !PYTHON_PATH!
     if exist "!PYTHON_PATH!\python.exe" (
         echo !PYTHON_PATH!\python.exe EXISTS
         for /f "tokens=2 delims= " %%a in ('!PYTHON_PATH!\python -V 2^>^&1') do (

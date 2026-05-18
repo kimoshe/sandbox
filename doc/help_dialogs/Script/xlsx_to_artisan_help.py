@@ -96,7 +96,7 @@ nlind = '\n' + ind   #new line plus indent
 def translateStr(in_str:str, group:str='HelpDlg') -> str:
     return "QApplication.translate('" + group + "','" + str(in_str) + "')"
 
-def generateRows(ws:Worksheet) -> List[List[str]]:
+def generateRows(ws:Worksheet) -> list[list[str]]:
     all_rows = []
     for row in ws.iter_rows():
         this_row = []
@@ -128,7 +128,7 @@ def generateRows(ws:Worksheet) -> List[List[str]]:
         all_rows.append(this_row)
     return all_rows
 
-def getTitle(all_rows:List[List[str]],_:Worksheet,nsheet:int) -> str:
+def getTitle(all_rows:list[list[str]],_:Worksheet,nsheet:int) -> str:
     del _
     if nsheet == 0:
         title = nlind + "strlist.append('<b>')"
@@ -138,7 +138,7 @@ def getTitle(all_rows:List[List[str]],_:Worksheet,nsheet:int) -> str:
     title +=  nlind + "strlist.append('</b>')"
     return title
 
-def getNotes(all_rows:List[List[str]],nrows:int,tbl_name:str,notetype:str='top') -> Tuple[str,int]:
+def getNotes(all_rows:list[list[str]],nrows:int,tbl_name:str,notetype:str='top') -> tuple[str,int]:
     tbl_name = tbl_name + notetype
     tbl_notes = ''
     notes = []
@@ -157,11 +157,11 @@ def getNotes(all_rows:List[List[str]],nrows:int,tbl_name:str,notetype:str='top')
 
     return tbl_notes, notes_len
 
-def getFieldnames(rows:List[str],tbl_name:str) -> str:
+def getFieldnames(rows:list[str],tbl_name:str) -> str:
     this_row = ','.join(rows)
     return str(tbl_name) + '.field_names = [' + str(this_row) + ']'
 
-def getAddrows(all_rows:List[List[str]],tbl_name:str) -> str:
+def getAddrows(all_rows:list[list[str]],tbl_name:str) -> str:
     addrows = ''
     for idx, row in enumerate(all_rows):
         this_row = ','.join(row)
