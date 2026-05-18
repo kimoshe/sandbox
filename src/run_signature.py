@@ -3,12 +3,6 @@ import subprocess
 import sys
 import os
 
-# Redirect print to stderr
-_print = print
-def print(*args, **kwargs):
-    kwargs['file'] = sys.stderr
-    _print(*args, **kwargs)
-
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 project_root_src = os.path.dirname(os.path.abspath(__file__))
 
@@ -20,7 +14,7 @@ elif sys.platform.startswith('darwin'):
 elif sys.platform.startswith('linux'):
     venv_python = os.path.join(project_root, '.venv', 'bin', 'python')
 else:
-    print(f"INFO: Skipping signature update on {sys.platform}")
+    print(f"INFO: Skipping signature update on {sys.platform}", file=sys.stderr)
     sys.exit(0)
 
 try:
@@ -30,7 +24,17 @@ try:
         check=True
     )
 except (FileNotFoundError, NameError) as e:
-    print(f'EXCEPTION: subprocess() {e}')
+    print(f'EXCEPTION: subprocess() {e}', file=sys.stderr)
     sys.exit(1)
 
-sys.exit(result.returncode)
+
+try:
+    result = subprocess.check_call(
+        ['git', 'add', 'src/artisanlib/__init__.py']
+    )
+except (FileNotFoundError, NameError) as e:
+    print(f'EXCEPTION: subprocess() {e}', file=sys.stderr)
+    sys.exit(1)
+
+
+sys.exit(0)
