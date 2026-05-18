@@ -26,3 +26,4 @@ repos:
         files: ^src/artisanlib/__init__.py$
         stages: [pre-commit]
         pass_filenames: false
+        allow_dirty_checkout: true
