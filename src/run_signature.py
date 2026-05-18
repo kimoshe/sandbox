@@ -27,17 +27,15 @@ except (FileNotFoundError, NameError) as e:
     print(f'EXCEPTION: subprocess() {e}', file=sys.stderr)
     sys.exit(1)
 
-#
-try:
-    result = subprocess.check_call(
-        ['git', 'add', 'src/artisanlib/__init__.py']
-    )
-    result = subprocess.check_call(
-        ['git', 'commit', '--amend', '--no-edit']
-    )
-except (FileNotFoundError, NameError) as e:
-    print(f'EXCEPTION: subprocess() {e}', file=sys.stderr)
-    sys.exit(1)
+
+#try:
+#    result = subprocess.check_call(
+#        ['git', 'add', 'src/artisanlib/__init__.py']
+#    )
+#    result = subprocess.check_call(['git', 'commit', '--amend', '--no-edit'])
+#except (FileNotFoundError, NameError) as e:
+#    print(f'EXCEPTION: subprocess() {e}', file=sys.stderr)
+#    sys.exit(1)
 
 
 sys.exit(0)
