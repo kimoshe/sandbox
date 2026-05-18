@@ -17,13 +17,3 @@ repos:
     -   id: pyupgrade
         args: [--py312-plus]
         exclude: ^(src/uic/|src/translations/|src/includes/)
--   repo: local
-    hooks:
-      - id: update-artisan-signature
-        name: Update Artisan Signature
-        entry: python src/run_signature.py
-        language: system
-        files: ^src/artisanlib/__init__.py$
-        stages: [pre-commit]
-        pass_filenames: false
-        allow_dirty_checkout: true
