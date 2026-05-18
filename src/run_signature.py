@@ -28,7 +28,7 @@ except (FileNotFoundError, NameError) as e:
     sys.exit(1)
 
 
-#try: #
+#try:
 #    result = subprocess.check_call(
 #        ['git', 'add', 'src/artisanlib/__init__.py']
 #    )
