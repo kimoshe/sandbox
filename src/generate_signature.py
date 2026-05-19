@@ -195,6 +195,8 @@ def get_build_environment() -> tuple[str,str]:
 
 
 def main() -> None:
+    # Announce who is running
+    print('Now running: src/generate_signature.py')
     # Set the file path
     init_filepath: str = os.path.join('artisanlib', '__init__.py')
 
@@ -241,11 +243,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
-
-#import __init__
-#
-#if __init__.__target_os__ == 'Linux':
-#    # Run hook
-#else:
-#    sys.exit(0)
