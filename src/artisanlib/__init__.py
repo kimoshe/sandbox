@@ -1,5 +1,5 @@
 __version__ = '4.0.3'
-__revision__ = '3'
+__revision__ = '2'
 __build__ = '0'
 __artisan_os__ = 'Linux'
 
