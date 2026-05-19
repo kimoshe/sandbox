@@ -1,9 +1,9 @@
 __version__ = '4.0.3'
-__revision__ = '5'
+__revision__ = '4'
 __build__ = '0'
 __artisan_os__ = 'Linux'
 
 __release_sponsor_name__ = 'artisan.plus'
 __release_sponsor_domain__ = 'artisan.plus'
 __release_sponsor_url__ = 'https://artisan.plus/'
-__signature__ = 'f4304002f80ce401855785e384ec2afe43104534d5f02ff483e94e3451c5469a05280ba8de79c33cdd4205b716f0ec62941771511e1514217c05e68ccb22b404'
+__signature__ = 'dfdc9531c024a3705a351f430737d510c4e2c5e8d8d1b0426899541dbff454c448556ccf6e58b674f3a04fb5ebf36b2b6c668f295fc21df490c1847a621f4a09'
