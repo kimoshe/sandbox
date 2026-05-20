@@ -31,11 +31,11 @@ def read_init_file(filepath: str) -> str:
         with open(filepath, encoding='utf-8') as f:
             content: str = f.read()
     except FileNotFoundError:
-        print(f'ERROR: File not found: {filepath}', file=sys.stderr)
-        print(f'CWD: {os.getcwd()}', file=sys.stderr)
+        print(f'ERROR: File not found: {filepath}')
+        print(f'CWD: {os.getcwd()}')
         sys.exit(1)
     except OSError as e:
-        print(f'ERROR: Failed to read file {filepath}: {e}', file=sys.stderr)
+        print(f'ERROR: Failed to read file {filepath}: {e}')
         sys.exit(1)
 
     return content
@@ -56,7 +56,7 @@ def load_private_key(build_service: str) -> ed25519.Ed25519PrivateKey | None:
             with open(path_abs, encoding='utf-8') as f:
                 lines = f.readlines()
         except FileNotFoundError:
-            print('INFO: No key found', file=sys.stderr)
+            print('INFO: No key found')
             return None
 
         key_env = lines[1].strip()
@@ -65,10 +65,10 @@ def load_private_key(build_service: str) -> ed25519.Ed25519PrivateKey | None:
     elif build_service in {'APPVEYOR','GITHUB_ACTIONS'}:
         key_env = os.environ.get('ARTISAN_KEY', 'False')
         if not key_env:
-            print('ERROR: ARTISAN_KEY environment variable not set.', file=sys.stderr)
+            print('ERROR: ARTISAN_KEY environment variable not set.')
             sys.exit(1)
     else:
-        print(f'ERROR: Unexpected build_service {build_service}', file=sys.stderr)
+        print(f'ERROR: Unexpected build_service {build_service}')
         sys.exit(1)
 
     try:
@@ -80,15 +80,15 @@ def load_private_key(build_service: str) -> ed25519.Ed25519PrivateKey | None:
 
         # Verify it's an Ed25519 key
         if not isinstance(private_key, ed25519.Ed25519PrivateKey):
-            print('ERROR: Private key is not an Ed25519 key.', file=sys.stderr)
+            print('ERROR: Private key is not an Ed25519 key.')
             sys.exit(1)
 
         return private_key
     except ValueError as e:
-        print(f'ERROR: Failed to load private key: {e}', file=sys.stderr)
+        print(f'ERROR: Failed to load private key: {e}')
         sys.exit(1)
     except OSError as e:
-        print(f'ERROR: Failed to load private key: {e}', file=sys.stderr)
+        print(f'ERROR: Failed to load private key: {e}')
         sys.exit(1)
 
 def generate_signature(
@@ -126,7 +126,7 @@ def write_signature_to_file(filepath: str, signature_hex: str) -> None:
             f.write(content)
             f.write(f'__signature__ = \'{signature_hex}\'\n')
     except OSError as e:
-        print(f'ERROR: Failed to write signature to file: {e}', file=sys.stderr)
+        print(f'ERROR: Failed to write signature to file: {e}')
         sys.exit(1)
 
 def get_artisan_os(content: str) -> str:
@@ -138,7 +138,7 @@ def get_artisan_os(content: str) -> str:
         job_name = os.environ.get('APPVEYOR_JOB_NAME', 'False')
 
         if not job_name:
-            print('ERROR: APPVEYOR_JOB_NAME environment variable not found', file=sys.stderr)
+            print('ERROR: APPVEYOR_JOB_NAME environment variable not found')
             sys.exit(1)
 
         # Map values returned by platform.system(), RPi not on Appveyor
@@ -151,14 +151,14 @@ def get_artisan_os(content: str) -> str:
         if job_name in mapping:
             return mapping[job_name]
 
-        print(f'Warning: Unknown APPVEYOR_JOB_NAME value: {job_name}', file=sys.stderr)
+        print(f'Warning: Unknown APPVEYOR_JOB_NAME value: {job_name}')
         return job_name
 
     # This script is not running on Appveyor, get artisan_os from __init__.py
     artisan_os: str | None = extract_field(content, 'artisan_os')
 
     if artisan_os is None:
-        print('ERROR: artisan_os not found in file content', file=sys.stderr)
+        print('ERROR: artisan_os not found in file content')
         sys.exit(1)
 
     return artisan_os
@@ -187,10 +187,10 @@ def get_build_environment() -> tuple[str,str]:
             break
 
     if build_platform == 'UNKNOWN':
-        print(f'ERROR: Cannot determine the platform on {build_service}', file=sys.stderr)
+        print(f'ERROR: Cannot determine the platform on {build_service}')
         sys.exit(1)
 
-    print(f'INFO: Environment is {build_platform} on {build_service}', file=sys.stderr)
+    print(f'INFO: Environment is {build_platform} on {build_service}')
     return build_service, build_platform
 
 
@@ -206,7 +206,7 @@ def main() -> None:
     # Is this a PR?
     if (build_service == 'APPVEYOR' and os.environ.get('APPVEYOR_PULL_REQUEST_NUMBER')) or \
         (build_service == 'GITHUB_ACTIONS' and os.environ.get('GITHUB_EVENT_NAME') == 'pull_request'):
-        print('INFO: Pull Request - signature set to the empty string', file=sys.stderr)
+        print('INFO: Pull Request - signature set to the empty string')
         write_signature_to_file(init_filepath, '')
         return
 
@@ -217,13 +217,13 @@ def main() -> None:
     version: str | None = extract_field(content, 'version')
     revision: str | None = extract_field(content, 'revision')
     artisan_os: str = get_artisan_os(content)
-    print(f'INFO: {version=}, {revision=}, {artisan_os=}', file=sys.stderr)
+    print(f'INFO: {version=}, {revision=}, {artisan_os=}')
 
     # Warn if fields are missing but continue
     if not version:
-        print('WARNING: __version__ value not found in __init__.py', file=sys.stderr)
+        print('WARNING: __version__ value not found in __init__.py')
     if not revision:
-        print('WARNING: __revision__ value not found in __init__.py', file=sys.stderr)
+        print('WARNING: __revision__ value not found in __init__.py')
 
     # Load the private key
     private_key: ed25519.Ed25519PrivateKey | None = load_private_key(build_service)
@@ -238,8 +238,8 @@ def main() -> None:
     # Write the signature to the file (replaces if it exists)
     write_signature_to_file(init_filepath, signature_hex)
 
-    print('INFO: Signature written successfully.', file=sys.stderr)
-    print(f'INFO: Signature: {signature_hex}', file=sys.stderr)
+    print('INFO: Signature written successfully.')
+    print(f'INFO: Signature: {signature_hex}')
 
 if __name__ == '__main__':
     main()
