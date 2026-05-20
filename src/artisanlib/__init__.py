@@ -1,6 +1,6 @@
 __version__ = '4.0.3'
 __revision__ = '12'
-__build__ = ''
+__build__ = '0'
 __artisan_os__ = 'Linux'
 
 __release_sponsor_name__ = 'artisan.plus'
