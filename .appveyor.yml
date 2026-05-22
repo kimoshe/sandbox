@@ -244,7 +244,7 @@ for:
     fast_finish: false
 
   environment:
-    PYTHON_UPGRADE_V: 3.14  # Upgrade to the latest dot release of this version
+    PYTHON_UPGRADE_V: 3.14  # Upgrade to the latest maintenance release of this version
     # PYTHON_V: 3.13  # Override the stack key
     ARTISAN_OS: linux
     PYTHONSITEPKGS: /home/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
