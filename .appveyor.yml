@@ -261,7 +261,7 @@ for:
     - sudo add-apt-repository -y ppa:deadsnakes/ppa
     - sudo apt update
     - sh: FULL_VERSION=$(apt-cache policy python${PYTHON_UPGRADE_V} | grep Candidate | awk '{print $2}')
-    - echo "Starting Install of Python version: $FULL_VERSION"
+    - sh: echo "Starting Install of Python version $FULL_VERSION"
     - sudo apt install -y python${PYTHON_UPGRADE_V} python${PYTHON_UPGRADE_V}-venv libpython${PYTHON_UPGRADE_V}
     # Create and activate virtual environment
     - echo "Creating and activating virtual environment"
