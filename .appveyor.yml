@@ -27,10 +27,10 @@ environment:
     secure: 4BswEsF7OdFwgn3gMbnjkmCyAfJtmnak+3rmXzggbpitK0txN22SERo/sIh3wxse1L3rFDIPc+NDEEagMTFsODcmM8/gsclDbeJA4S5UTIY=
 
   matrix:
-  - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2022
-  - job_name: macos
-    appveyor_build_worker_image: macos-ventura
+#  - job_name: windows
+#    appveyor_build_worker_image: Visual Studio 2022
+#  - job_name: macos
+#    appveyor_build_worker_image: macos-ventura
   - job_name: linux
     appveyor_build_worker_image: Ubuntu2204
 
@@ -260,6 +260,8 @@ for:
     - sudo apt install -y software-properties-common
     - sudo add-apt-repository -y ppa:deadsnakes/ppa
     - sudo apt update
+    - FULL_VERSION=$(apt-cache policy python${PYTHON_UPGRADE_V} | grep Candidate | awk '{print $2}')
+    - echo "Starting Install of Python version: $FULL_VERSION"
     - sudo apt install -y python${PYTHON_UPGRADE_V} python${PYTHON_UPGRADE_V}-venv libpython${PYTHON_UPGRADE_V}
     # Create and activate virtual environment
     - echo "Creating and activating virtual environment"
