@@ -31,8 +31,8 @@ environment:
 #    appveyor_build_worker_image: Visual Studio 2022
   - job_name: macos
     appveyor_build_worker_image: macos-ventura
-  - job_name: linux
-    appveyor_build_worker_image: Ubuntu2204
+#  - job_name: linux
+#    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -232,7 +232,9 @@ for:
     - ../.ci/upload.sh artisan-*.dmg
 
 #  # uncomment this section for ssh connection to the build image
-#  on_finish:
+  on_finish:
+    - echo "Using Python"
+    - python3 -V
 #    - sh: export APPVEYOR_SSH_BLOCK=true
 #    - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
