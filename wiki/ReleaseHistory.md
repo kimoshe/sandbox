@@ -11,6 +11,7 @@ v4.0.4 (Jun XX, 2026)
   - adds support for [Pratter](https://artisan-scope.org/machines/pratter/) roasting machines
   - adds support for [Probat G/UG 2026 models](https://artisan-scope.org/machines/probat/) communicating via WebSockets
   - adds support for [Neuhaus Neotec RFB Junior, RFB-S and Neoroast](https://artisan-scope.org/machines/neuhaus/) machines
+  - adds support for [North Roasters](https://artisan-scope.org/machines/north/)
   - adds [MQTT support](https://artisan-scope.org/devices/s7/)
   - adds IO Command `publish(<topic>, <data>)` to publish payloads to the connected MQTT broker
   - adds Artisan Command `pidSVbuttons(<bool>)` ([Issue #2121](../../../issues/2121))
@@ -18,8 +19,9 @@ v4.0.4 (Jun XX, 2026)
   - adds initial Bulgarian localization ([Issue #2175](../../../issues/2175))
   - adds validation of profiles and settings
   - adds PID derivative filter size setting
+  - adds option to disable UNDO actions on main event buttons
 * CHANGES
-  - added a popup explaining the reason the Roast Properties dialog is opened on START if plus is connected and disabled the OK button until beans are specified  ([Issue #2133](../../../issues/2133))
+  - added a popup explaining the reason the Roast Properties dialog is opened on START if plus is connected until beans are specified  ([Issue #2133](../../../issues/2133))
   - adds hack to prevent dtr/rts signaling on connecting serial ports
   - preserves weight/volume unit setup on loading/importing profiles
   - enables extra device curve fills on recording
@@ -42,10 +44,6 @@ v4.0.4 (Jun XX, 2026)
   - enables keypad number keys to update event slider values (thanks Balázs for the hint!)
 * REMOVALS
   - removes RoastTime, RoastPath and Probat Pilot import/exports
-
-
-
-
 
 ----
 v4.0.2 (Feb 7, 2026)

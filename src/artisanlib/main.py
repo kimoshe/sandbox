@@ -1638,7 +1638,7 @@ class ApplicationWindow(QMainWindow):
         self.scheduler_auto_open:bool = True # if set the scheduler is activated (window opened) automatically if there are scheduled items
 
         # initialize the BBP metrics
-        self.resetBBPMetrics()
+#dave #TODO        self.resetBBPMetrics()
 
         # large LCDs
         self.largeLCDs_dialog:LargeMainLCDs|None = None
@@ -1684,6 +1684,9 @@ class ApplicationWindow(QMainWindow):
         self.scale2_name:str|None = None  # the display/local name of the device (like "ACAIA162FC")
         self.scale2_id:str|None = None    # the device id, eg. the BT address (like "24:71:89:cc:09:05")
         self.container2_idx:int = -1 # -1: no container set; otherwise index into selected qmc.container_names/qmc.container_weights
+
+        # perdod after which roasted batches are automatically registered in seconds
+        self.automatic_registration_period:int = 0
 
         # active tab
         self.EventsDlg_activeTab:int = 0
@@ -3720,7 +3723,7 @@ class ApplicationWindow(QMainWindow):
                              self.qmc.mark2Cstart,self.qmc.mark2Cend,self.qmc.markDrop,self.qmc.markCoolEnd,self.qmc.EventRecord]
         # list of buttons that can be controlled via the keyboard
         # RESET -> ON/OFF -> .. -> EVENT (RESET at index 0 is never used)
-        self.keyboardButtonList = [ # this list corresponds to the self.qmc.buttonvisibility, but has additionally the entry for the EVENT button
+        self.keyboardButtonList:list[EventPushButton] = [ # this list corresponds to the self.qmc.buttonvisibility, but has additionally the entry for the EVENT button
             self.buttonCHARGE,  # 0 CHARGE
             self.buttonDRY, # 1 DRY END
             self.buttonFCs,  # 2 FC START
@@ -6342,7 +6345,7 @@ class ApplicationWindow(QMainWindow):
 
 
     def colorDifference(self, color1:str|None, color2:str|None) -> float:
-        cDiff = 100
+        cDiff:float = 100
         try:
             from colorspacious import deltaE # type: ignore[import-untyped]
             if color1 is None or color1 == 'None':
@@ -6363,7 +6366,7 @@ class ApplicationWindow(QMainWindow):
             c2 = QColor(color2[:7]).name()
             c1_rgb = tuple(int(c1[i:i+2], 16) for i in (1, 3 ,5))
             c2_rgb = tuple(int(c2[i:i+2], 16) for i in (1, 3 ,5))
-            cDiff = deltaE(c1_rgb, c2_rgb, input_space='sRGB255', uniform_space='CIELab')
+            cDiff = float(deltaE(c1_rgb, c2_rgb, input_space='sRGB255', uniform_space='CIELab'))
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
             _, _, exc_tb = sys.exc_info()
@@ -6416,7 +6419,7 @@ class ApplicationWindow(QMainWindow):
             nc_greyscale_JCh[..., 1] = 0
             nc_greyscale_sRGB:numpy.ndarray[tuple[Literal[1]],numpy.dtype[numpy.double]] = cspace_convert(nc_greyscale_JCh, 'JCh', 'sRGB255')
             nc_greyscale_sRGB = numpy.clip(nc_greyscale_sRGB, 0, 255) # pyright:ignore[reportUnknownArgumentType]
-            nc_greyscale = f'#{int(nc_greyscale_sRGB[0]):2x}{int(nc_greyscale_sRGB[1]):2x}{int(nc_greyscale_sRGB[2]):2x}'
+            nc_greyscale = f'#{int(nc_greyscale_sRGB[0]):2x}{int(nc_greyscale_sRGB[1]):2x}{int(nc_greyscale_sRGB[2]):2x}' # pyright:ignore[reportUnknownArgumentType]
             nc = str(QColor(nc_greyscale).name())
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
@@ -7129,10 +7132,11 @@ class ApplicationWindow(QMainWindow):
             self.largePhasesLCDs_dialog.updatePhasesLabels([None,None,None,label])
         self.updateAUCLCD()
 
+    # color dialogs without buttons (noButtons=True) only supported on macOS for now
     def colordialog(self, c:QColor, noButtons:bool=False, parent:QWidget|None = None, alphasupport:bool=False) -> QColor:
         if parent is None:
             parent = self
-        if platform.system() == 'Darwin' and noButtons:
+        if platform.system() == 'Darwin' and noButtons: # used to specify extra device colors in devices.py
             cd = QColorDialog(parent)
             cd.setModal(True)
             cd.setWindowModality(Qt.WindowModality.ApplicationModal)
@@ -7143,7 +7147,6 @@ class ApplicationWindow(QMainWindow):
             cd.setCurrentColor(c)
             cd.exec()
             return cd.currentColor()
-#        return QColorDialog.getColor(c)
         return QColorDialog.getColor(c, parent, '',
             (QColorDialog.ColorDialogOption.ShowAlphaChannel if alphasupport else
                 QColorDialog.ColorDialogOption(0)))
@@ -7635,7 +7638,7 @@ class ApplicationWindow(QMainWindow):
                 try:
                     # we masked the -1 error values
                     np_etb_masked = numpy.ma.masked_equal(np_etb, -1)
-                    np_timeB_etb_masked = numpy.ma.masked_array(np_timeB, np_etb_masked.mask) # pylint:disable=no-member
+                    np_timeB_etb_masked = numpy.ma.masked_array(np_timeB, np_etb_masked.mask) # type:ignore[operator,unused-ignore] # ty:ignore[call-non-callable] # pylint:disable=no-member
                     # ignore the masked error values on computing the interpolation and fill (especially on the left) with -1 values
                     interp_np_etb = numpy.interp(np_timex,np_timeB_etb_masked.compressed(),np_etb_masked.compressed(),left=-1,right=-1) # pyright:ignore[reportUnknownArgumentType]  # pylint:disable=no-member
 
@@ -7660,7 +7663,7 @@ class ApplicationWindow(QMainWindow):
                 try:
                     # we masked the -1 error values
                     np_btb_masked = numpy.ma.masked_equal(np_btb, -1)
-                    np_timeB_btb_masked = numpy.ma.masked_array(np_timeB, np_btb_masked.mask) # pylint:disable=no-member
+                    np_timeB_btb_masked = numpy.ma.masked_array(np_timeB, np_btb_masked.mask) # type:ignore[operator,unused-ignore] # ty:ignore[call-non-callable] # pylint:disable=no-member
                     # ignore the masked error values on computing the interpolation and fill (especially on the left) with -1 values
                     interp_np_btb = numpy.interp(np_timex,np_timeB_btb_masked.compressed(),np_btb_masked.compressed(),left=-1,right=-1) # pyright:ignore[reportUnknownArgumentType]  # pylint:disable=no-member
 
@@ -9646,15 +9649,12 @@ class ApplicationWindow(QMainWindow):
                                             try:
                                                 if len(parts) > 0:
                                                     orbiter_cmd:bytes = bytes.fromhex(parts[0])
-                                                    orbiter_data:bytes
-                                                    if len(parts) > 2:
-                                                        orbiter_param = min(255, max(0, int(round(float(parts[2]))))).to_bytes(1, 'little')
-                                                    else:
-                                                        orbiter_param = b'\x00'
+                                                    orbiter_data:bytes = b'\x00\x00'
+                                                    orbiter_param:bytes = b'\x00'
                                                     if len(parts) > 1:
                                                         orbiter_data = min(65535, max(0, int(round(float(parts[1]))))).to_bytes(2, 'little')
-                                                    else:
-                                                        orbiter_data = b'\x00\x00'
+                                                    if len(parts) > 2:
+                                                        orbiter_param = min(255, max(0, int(round(float(parts[2]))))).to_bytes(1, 'little')
                                                     self.orbiterSendMessageSignal.emit(orbiter_cmd, orbiter_data, orbiter_param, self.qmc.current_time())
                                             except Exception as e: # pylint: disable=broad-except
                                                 _log.error(e)
@@ -12969,12 +12969,21 @@ class ApplicationWindow(QMainWindow):
                         # if we found our button, move one more to the right
                         if this_index == self.keyboardmoveindex:
                             self.moveKbutton('right') # now to the next
+                    # if undo is disabled, we also disable the button at this_index
+                    if not self.qmc.main_event_buttons_undo_enabled:
+                        self.keyboardButtonList[this_index].setEnabled(False)
                     # disable all buttons before this_index until the previous registered event
                     for i in range(this_index-1,-1,-1):
                         self.keyboardButtonList[i].setEnabled(False)
                         if self.qmc.timeindex[i]>0:
                             # stop if already marked
                             break
+
+                    visible_and_enabled_buttons = [idx for idx, key in enumerate(self.keyboardButtonList) if key.isEnabled() and (self.qmc.buttonvisibility + [bool(self.eventsbuttonflag)])[idx]]
+                    if len(visible_and_enabled_buttons) == 0:
+                        # if no more button is visible and enabled we reset all button marks
+                        self.resetKeyboardButtonMarks()
+
                 else:
                     # an undo action
                     # enable all buttons before this_index until the previous registered event
@@ -13017,16 +13026,22 @@ class ApplicationWindow(QMainWindow):
                 else: # we ignore this event
                     return
             else:
-                if kcommand == 'left':
-                    nextcmd = self.previousActiveButton(self.keyboardmoveindex)
+                visible_and_enabled_buttons = [idx for idx, key in enumerate(self.keyboardButtonList) if key.isEnabled() and (self.qmc.buttonvisibility + [bool(self.eventsbuttonflag)])[idx]]
+                if len(visible_and_enabled_buttons)>1:
+                    # only if there is more than one visible enabled button we move
+                    if kcommand == 'left':
+                        nextcmd = self.previousActiveButton(self.keyboardmoveindex)
+                    else:
+                        nextcmd = self.nextActiveButton(self.keyboardmoveindex)
+                    # activate the button at index nextcmd
+                    self.keyboardButtonList[nextcmd].setSelected(True)
+                    self.keyboardButtonList[self.keyboardmoveindex].setSelected(False)
+                    # update self.keyboardmoveindex
+                    self.keyboardmoveindex = nextcmd
                 else:
-                    nextcmd = self.nextActiveButton(self.keyboardmoveindex)
-                # activate the button at index nextcmd
-                self.keyboardButtonList[nextcmd].setSelected(True)
-                self.keyboardButtonList[self.keyboardmoveindex].setSelected(False)
-                # update self.keyboardmoveindex
-                self.keyboardmoveindex = nextcmd
-        # we enable keyboard event processing again
+                    # last visible enabled button pressed
+                    self.keyboardmoveindex += 1
+                    self.keyboardButtonList[self.keyboardmoveindex].setSelected(True)
 
     #sound feedback when pressing a push button
     @pyqtSlot()
@@ -13709,8 +13724,7 @@ class ApplicationWindow(QMainWindow):
         f:QFile|None = None
         try:
             f = QFile(filename)
-            if self.qmc.clearBgbeforeprofileload:
-                self.deleteBackground()
+            firstChar:str = ''
             if not f.open(QFile.OpenModeFlag.ReadOnly):
                 raise OSError(f.errorString())
             stream = QTextStream(f)
@@ -13719,6 +13733,8 @@ class ApplicationWindow(QMainWindow):
             if firstChar != '{':
                 self.sendmessage(QApplication.translate('Message','Invalid artisan format'))
                 return
+            if self.qmc.clearBgbeforeprofileload:
+                self.deleteBackground()
             res = self.qmc.reset(redraw=False,soundOn=False)
             obj_dict = deserialize(filename)
             self.plusAddPath(obj_dict, filename)
@@ -16584,6 +16600,10 @@ class ApplicationWindow(QMainWindow):
         return output
 
     def resetBBPMetrics(self) -> None:
+        _log.debug('** resetBBPMetrics()')  #dave #TODO
+        import inspect #dave #TODO
+        import os      #dave #TODO
+        _log.info('\n      %s:%s called by %s:%s, line %s',os.path.basename(inspect.getframeinfo(inspect.stack()[0][0]).filename), inspect.stack()[0][3], os.path.basename(inspect.getframeinfo(inspect.stack()[1][0]).filename), inspect.stack()[1][3], inspect.getframeinfo(inspect.stack()[1][0]).lineno)  #dave99 #TODO
         self.bbp_dropbt = 0
         self.bbp_dropet = 0
         self.bbp_total_time = -1
@@ -16599,53 +16619,81 @@ class ApplicationWindow(QMainWindow):
         self.bbp_dropevents = []
         self.bbp_drop_to_end = 0
 
+        # clear bbpPrevRoast
+        _log.debug('** clear bbpPrevRoast')  #dave #TODO
+        self.qmc.bbpPrevRoast = {}
+
 
     #TODO Decide where else to display BBP metrics # pylint: disable=fixme
     # bbpCache holds data from the previous roast.  Set in cacheforBbp() which is called from OffRecorder()
-    # Needs to be called from somewhere betw CHARGE and OFF
-    def calcBBPMetrics(self,checkCache:bool=False) -> None:
+    # At CHARGE+5 the bbpCache data is copied to bbpPrevRoast
+    def calcBBPMetrics(self) -> None:  #dave #TODO remove checkCache
+        #_log.debug(f'** calcBBPMetrics({checkCache=})')  #dave #TODO
+        import inspect #dave #TODO
+        import os      #dave #TODO
+        #_log.info("\n      %s:%s called by %s:%s, line %s",os.path.basename(inspect.getframeinfo(inspect.stack()[0][0]).filename), inspect.stack()[0][3], os.path.basename(inspect.getframeinfo(inspect.stack()[1][0]).filename), inspect.stack()[1][3], inspect.getframeinfo(inspect.stack()[1][0]).lineno)  #dave99 #TODO
+        _ncallers = 2
+        _newline = '\n'  # noqa: E702,E401 # pylint: disable=reimported,redefined-outer-name #dave #TODO
+        _log.info(f"Debug Traceback {''.join(f'{_newline}-{i-1}    {os.path.basename(inspect.getframeinfo(inspect.stack()[i-1][0]).filename)}:{inspect.stack()[i-1][3]} called by {os.path.basename(inspect.getframeinfo(inspect.stack()[i][0]).filename)}:{inspect.stack()[i][3]}, line {inspect.getframeinfo(inspect.stack()[i][0]).lineno}' for i in range(_ncallers + 1, 1, -1) if i < len(inspect.stack()))}") # pylint: disable=logging-fstring-interpolation  #dave #TODO
         try:
             #TODO revisit these preset times  # pylint: disable=fixme
             maxAllowedTime_fromPrevEnd_toStart = 60 #seconds, max gap time between roast recordings
             minBbpTime = 90 #seconds, the minimum amount of time recorded in the current roast before CHARGE
             # is there data from a prev roast?
-            if (self.qmc.bbpCache and checkCache and
-                    'end_roastepoch_msec' in self.qmc.bbpCache and
-                    'drop_to_end' in self.qmc.bbpCache and
-                    'drop_bt' in self.qmc.bbpCache and
-                    'drop_et' in self.qmc.bbpCache and
-                    'end_events' in self.qmc.bbpCache and
-                    'drop_events' in self.qmc.bbpCache and
-                    'drop_to_end' in self.qmc.bbpCache):
-                #_log.debug('bbpCache exists')
-                bbpGap = self.qmc.roastepoch - (self.qmc.bbpCache['end_roastepoch_msec']/1000)
-                # did the prev roast end shortly before this roast began?  If not clear bbpCache
+            _log.debug(f'** {self.qmc.bbpPrevRoast=}')  #dave #TODO
+            if (self.qmc.bbpPrevRoast and
+                    'end_roastepoch_msec' in self.qmc.bbpPrevRoast and
+                    'drop_to_end' in self.qmc.bbpPrevRoast and
+                    'drop_bt' in self.qmc.bbpPrevRoast and
+                    'drop_et' in self.qmc.bbpPrevRoast and
+                    'end_events' in self.qmc.bbpPrevRoast and
+                    'drop_events' in self.qmc.bbpPrevRoast and
+                    'drop_to_end' in self.qmc.bbpPrevRoast):
+                #_log.debug('qmc.bbpPrevRoast exists')
+                #dave #TODO should bbp_gap be a part of the profile data?
+                bbpGap = self.qmc.roastepoch - (self.qmc.bbpPrevRoast['end_roastepoch_msec']/1000)
+                # did the prev roast end shortly before this roast began?  If not clear qmc.bbpPrevRoast
+                _log.debug(f'** {bbpGap=}')  #dave #TODO
                 if bbpGap < maxAllowedTime_fromPrevEnd_toStart:
-                    self.bbp_time_added_from_prev = bbpGap + self.qmc.bbpCache['drop_to_end']
+                    _log.debug('** Set prev roast BBP data from qmc.bbpPrevRoast')  #dave #TODO
+                    self.bbp_time_added_from_prev = bbpGap + self.qmc.bbpPrevRoast['drop_to_end']
                     self.bbp_begin = 'DROP'
-                    self.bbp_dropbt = self.qmc.bbpCache['drop_bt']
-                    self.bbp_dropet = self.qmc.bbpCache['drop_et']
-                    self.bbp_endroast_epoch_msec = self.qmc.bbpCache['end_roastepoch_msec']
-                    self.bbp_endevents = self.qmc.bbpCache['end_events']
-                    self.bbp_dropevents = self.qmc.bbpCache['drop_events']
-                    self.bbp_drop_to_end = self.qmc.bbpCache['drop_to_end']
+                    self.bbp_dropbt = self.qmc.bbpPrevRoast['drop_bt']
+                    self.bbp_dropet = self.qmc.bbpPrevRoast['drop_et']
+                    self.bbp_endroast_epoch_msec = self.qmc.bbpPrevRoast['end_roastepoch_msec']
+                    self.bbp_endevents = self.qmc.bbpPrevRoast['end_events']
+                    self.bbp_dropevents = self.qmc.bbpPrevRoast['drop_events']
+                    self.bbp_drop_to_end = self.qmc.bbpPrevRoast['drop_to_end']
+                    _log.debug(f'** {self.bbp_dropbt=}')  #dave #TODO
                 else:
-                    self.qmc.bbpCache = {}  # make empty to use as easy test later, "if self.qmc.bbpCache:"
-                    _log.debug('clearing bbpCache')
+                    self.qmc.bbpPrevRoast = {}  # make empty to use as easy test later, "if self.qmc.bbpPrevRoast:"
+                    _log.debug('** clearing self.qmc.bbpPrevRoast')
+
             # now calculate all the bbp data
             # does the current profile have the minimum time for bbp?
-            if (len(self.qmc.timeindex) > 0 and len(self.qmc.timex) > self.qmc.timeindex[0] > -1 and (self.qmc.timex[self.qmc.timeindex[0]] > 0) and
-                (self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[0] >= minBbpTime)):
+            if (len(self.qmc.timeindex) > 0 and
+                len(self.qmc.timex) > self.qmc.timeindex[0] > -1 and
+                (self.qmc.timex[self.qmc.timeindex[0]] > 0)):
+
+#dave #TODO                (self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[0] >= minBbpTime)):
+                # calculate the total BBP time
                 self.bbp_total_time = self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[0] + self.bbp_time_added_from_prev
-                # fake the events to use with findTPint
-                bbp_timeindex = [0, 0, self.qmc.timeindex[0], 0, 0, 0, self.qmc.timeindex[0], 0]
-                bbp_tpidx = findTPint(bbp_timeindex, self.qmc.timex, self.qmc.temp2)
-                if bbp_tpidx > 0:
-                    self.bbp_bottom_temp = self.qmc.temp2[bbp_tpidx]
-                    self.bbp_begin_to_bottom_time = self.qmc.timex[bbp_tpidx] - self.qmc.timex[0] + self.bbp_time_added_from_prev
-                    self.bbp_bottom_to_charge_time = self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[bbp_tpidx]
-                    self.bbp_begin_to_bottom_ror = 60 * (self.bbp_bottom_temp - self.qmc.temp2[0]) / (self.qmc.timex[bbp_tpidx] - self.qmc.timex[0] + self.bbp_time_added_from_prev)
-                    self.bbp_bottom_to_charge_ror = 60 * (self.qmc.temp2[self.qmc.timeindex[0]] - self.bbp_bottom_temp) / (self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[bbp_tpidx])
+                _log.debug(f'** {self.bbp_total_time=}, {self.bbp_time_added_from_prev=}')  #dave #TODO
+
+                # calculate current roast metrics
+                if self.bbp_total_time >= minBbpTime:
+                    _log.debug('** calculate the current roast bbp data')  #dave #TODO
+
+                    # fake the events to use with findTPint
+                    bbp_timeindex = [0, 0, self.qmc.timeindex[0], 0, 0, 0, self.qmc.timeindex[0], 0]
+                    bbp_tpidx = findTPint(bbp_timeindex, self.qmc.timex, self.qmc.temp2)
+                    _log.debug(f'** {bbp_timeindex=},  {bbp_tpidx=}')  #dave #TODO
+                    if bbp_tpidx > 0:
+                        self.bbp_bottom_temp = self.qmc.temp2[bbp_tpidx]
+                        self.bbp_begin_to_bottom_time = self.qmc.timex[bbp_tpidx] - self.qmc.timex[0] + self.bbp_time_added_from_prev
+                        self.bbp_bottom_to_charge_time = self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[bbp_tpidx]
+                        self.bbp_begin_to_bottom_ror = 60 * (self.bbp_bottom_temp - self.qmc.temp2[0]) / (self.qmc.timex[bbp_tpidx] - self.qmc.timex[0] + self.bbp_time_added_from_prev)
+                        self.bbp_bottom_to_charge_ror = 60 * (self.qmc.temp2[self.qmc.timeindex[0]] - self.bbp_bottom_temp) / (self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[bbp_tpidx])
             #TODO now deal with the special events from the previous roast  # pylint: disable=fixme
 
         except Exception as e: # pylint: disable=broad-except
@@ -16950,7 +16998,7 @@ class ApplicationWindow(QMainWindow):
             self.qmc.adderror((QApplication.translate('Error Message', 'Exception:') + ' computedProfileInformation() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
         ######### BBP Metrics #########
         try:
-            self.calcBBPMetrics()
+            self.calcBBPMetrics()  #dave #TODO removed checkCache
             computedProfile['bbp_total_time'] = float2float(self.bbp_total_time,1)
             computedProfile['bbp_bottom_temp'] = float2float(self.bbp_bottom_temp,2)
             computedProfile['bbp_begin_to_bottom_time'] = float2float(self.bbp_begin_to_bottom_time,1)
@@ -17237,6 +17285,7 @@ class ApplicationWindow(QMainWindow):
                 profile['bbp_dropbt'] = float2float(self.bbp_dropbt,2)
                 profile['bbp_dropet'] = float2float(self.bbp_dropet,2)
                 profile['bbp_drop_to_end'] = float2float(self.bbp_drop_to_end)
+                _log.debug(f"** getProfile() {self.bbp_dropbt=}, {profile['bbp_dropbt']=}")  #dave #TODO
             except Exception as ex: # pylint: disable=broad-except
                 _log.exception(ex)
                 _, _, exc_tb = sys.exc_info()
@@ -18070,7 +18119,33 @@ class ApplicationWindow(QMainWindow):
 
             if self.resetqsettings or (filename is None and QApplication.queryKeyboardModifiers() == (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier)):
                 self.resetqsettings = 0
-                settings.clear() # this allows to get rid of old Artisan settings via "Save Settings >> Factory Reset >> Load Settings"
+
+                # the call to settings.clear() below
+                # ensures to get rid of old Artisan settings that have been retired via "Save Settings >> Factory Reset >> Load Settings"
+                # however, settings.clear() has the consequence that recent files/settings, the starts counter and lastdonationpopup
+                # are cleared as well such that the donation popup is shown always after a Factory Reset and recent files/settings menu entries are lost
+                # thus we have to take care to preserve those over this FactoryReset here
+                lastdonationpopup:int|None = None
+                if settings.contains('lastdonationpopup'):
+                    lastdonationpopup = toInt(settings.value('lastdonationpopup'))
+                starts:int|None = None
+                if settings.contains('starts'):
+                    starts = toInt(settings.value('starts'))
+                # keep recent file list
+                recentFiles = toStringList(settings.value('recentFileList'))
+                # keep recentSettings
+                recentSettings = toStringList(settings.value('recentSettingList'))
+                settings.clear()
+                if lastdonationpopup is not None:
+                    settings.setValue('lastdonationpopup',lastdonationpopup)
+                if starts is not None:
+                    settings.setValue('starts',starts)
+                # reset recent file list
+                settings.setValue('recentFileList', recentFiles)
+                # reset recent settings
+                settings.setValue('recentSettingList', recentSettings)
+
+
                 if 'canvas' in self.qmc.palette:
                     self.updateCanvasColors(checkColors=False)
                 # remove window geometry and splitter settings
@@ -18083,6 +18158,7 @@ class ApplicationWindow(QMainWindow):
                     pass
                 _log.info('Factory reset')
                 return True  #don't load any more settings. They could be bad (corrupted). Stop here.
+
 
             # we remember from which location we loaded the last settings file
             # to be able to update the batch counter in this file from qmc.incBatchCounter()/qmc.decBatchCounter()
@@ -18894,6 +18970,7 @@ class ApplicationWindow(QMainWindow):
             self.qmc.extrabuttonactionstrings = list(map(str,list(toStringList(settings.value('extrabuttonactionstrings',self.qmc.extrabuttonactionstrings)))))
             self.qmc.xextrabuttonactions = [toInt(x) for x in toList(settings.value('xextrabuttonactions', self.qmc.xextrabuttonactions))]
             self.qmc.xextrabuttonactionstrings = list(map(str,list(toStringList(settings.value('xextrabuttonactionstrings',self.qmc.xextrabuttonactionstrings)))))
+            self.qmc.main_event_buttons_undo_enabled = toBool(settings.value('buttons_undo',self.qmc.main_event_buttons_undo_enabled))
             settings.endGroup()
 #--- END GROUP DefaultButtons
 
@@ -19425,6 +19502,7 @@ class ApplicationWindow(QMainWindow):
                 except Exception: # pylint: disable=broad-except
                     self.scale2_id = None
             self.container2_idx = toInt(settings.value('container2_idx',int(self.container2_idx)))
+            self.automatic_registration_period = toInt(settings.value('automatic_registration_period',int(self.automatic_registration_period)))
             settings.endGroup()
 
             # configure the two scales according to the settings just loaded
@@ -20743,6 +20821,7 @@ class ApplicationWindow(QMainWindow):
             self.settingsSetValue(settings, default_settings, 'extrabuttonactionstrings',self.qmc.extrabuttonactionstrings, read_defaults)
             self.settingsSetValue(settings, default_settings, 'xextrabuttonactions',self.qmc.xextrabuttonactions, read_defaults)
             self.settingsSetValue(settings, default_settings, 'xextrabuttonactionstrings',self.qmc.xextrabuttonactionstrings, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'buttons_undo',self.qmc.main_event_buttons_undo_enabled, read_defaults)
             settings.endGroup()
 #--- END GROUP DefaultButtons
 
@@ -21090,6 +21169,7 @@ class ApplicationWindow(QMainWindow):
             self.settingsSetValue(settings, default_settings, 'scale2_name',self.scale2_name, read_defaults)
             self.settingsSetValue(settings, default_settings, 'scale2_id',self.scale2_id, read_defaults)
             self.settingsSetValue(settings, default_settings, 'container2_idx',self.container2_idx, read_defaults)
+            self.settingsSetValue(settings, default_settings, 'automatic_registration_period',self.automatic_registration_period, read_defaults)
             settings.endGroup()
 #--- END GROUP Scales
 

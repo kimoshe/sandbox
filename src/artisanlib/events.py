@@ -1501,8 +1501,24 @@ class EventsDlg(ArtisanResizeablDialog):
         defaultButtonsLayout.setHorizontalSpacing(10)
         defaultButtonsLayout.setVerticalSpacing(5)
         defaultButtonsLayout.setColumnMinimumWidth(3,20)
+
+        self.eventUndo = QCheckBox(QApplication.translate('CheckBox','UNDO'))
+        self.eventUndo.setToolTip(QApplication.translate('Tooltip', 'Undoing of event markers by pressing the corresponding main event button again'))
+        self.eventUndo.setChecked(bool(self.aw.qmc.main_event_buttons_undo_enabled))
+
+        defaultButtonsOptionsQHBoxLayout = QHBoxLayout()
+        defaultButtonsOptionsQHBoxLayout.addStretch()
+        defaultButtonsOptionsQHBoxLayout.addWidget(self.eventUndo)
+        defaultButtonsOptionsQHBoxLayout.addStretch()
+
+        defaultButtonsQVBoxLayout = QVBoxLayout()
+        defaultButtonsQVBoxLayout.addLayout(defaultButtonsLayout)
+        defaultButtonsQVBoxLayout.addLayout(defaultButtonsOptionsQHBoxLayout)
+
         ButtonGroupLayout = QGroupBox(QApplication.translate('GroupBox','Default Buttons'))
-        ButtonGroupLayout.setLayout(defaultButtonsLayout)
+#        ButtonGroupLayout.setLayout(defaultButtonsLayout)
+        ButtonGroupLayout.setLayout(defaultButtonsQVBoxLayout)
+
         if self.app.artisanviewerMode:
             ButtonGroupLayout.setEnabled(False)
 
@@ -2708,7 +2724,7 @@ class EventsDlg(ArtisanResizeablDialog):
         self.setcoloreventline(3)
 
     def setcoloreventline(self, b:int) -> None:
-        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueColor[b]))
+        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueColor[b]), parent=self)
         if colorf.isValid():
             colorname = str(colorf.name())
             self.aw.qmc.EvalueColor[b] = colorname
@@ -2730,7 +2746,7 @@ class EventsDlg(ArtisanResizeablDialog):
         self.setcoloreventtext(3)
 
     def setcoloreventtext(self, b:int) -> None:
-        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueTextColor[b]))
+        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueTextColor[b]), parent=self)
         if colorf.isValid():
             colorname = str(colorf.name())
             self.aw.qmc.EvalueTextColor[b] = colorname
@@ -3136,7 +3152,7 @@ class EventsDlg(ArtisanResizeablDialog):
     def setbuttoncolor(self, _:bool = False) -> None:
         i = self.aw.findWidgetsRow(self.eventbuttontable,self.sender(),7)
         if i is not None and i < len(self.extraeventbuttoncolor):
-            colorf = self.aw.colordialog(QColor(self.extraeventbuttoncolor[i]))
+            colorf = self.aw.colordialog(QColor(self.extraeventbuttoncolor[i]), parent=self)
             if colorf.isValid():
                 self.extraeventbuttoncolor[i] = str(colorf.name())
                 textColor = self.extraeventbuttontextcolor[i]
@@ -3155,7 +3171,7 @@ class EventsDlg(ArtisanResizeablDialog):
     def setbuttontextcolor(self, _:bool = False) -> None:
         i = self.aw.findWidgetsRow(self.eventbuttontable,self.sender(),8)
         if i is not None and i < len(self.extraeventbuttontextcolor):
-            colorf = self.aw.colordialog(QColor(self.extraeventbuttontextcolor[i]))
+            colorf = self.aw.colordialog(QColor(self.extraeventbuttontextcolor[i]), parent=self)
             if colorf.isValid():
                 self.extraeventbuttontextcolor[i] = str(colorf.name())
                 textColor = self.extraeventbuttontextcolor[i]
@@ -3640,6 +3656,7 @@ class EventsDlg(ArtisanResizeablDialog):
                 # save column widths
                 self.aw.eventbuttontablecolumnwidths = [self.eventbuttontable.columnWidth(c) for c in range(self.eventbuttontable.columnCount())]
                 #save default buttons
+                self.aw.qmc.main_event_buttons_undo_enabled = self.eventUndo.isChecked()
                 self.aw.qmc.buttonvisibility[0] = self.CHARGEbutton.isChecked()
                 self.aw.buttonCHARGE.setVisible(bool(self.aw.qmc.buttonvisibility[0]))
                 if bool(self.aw.qmc.buttonvisibility[0]) and not self.aw.buttonCHARGE.isFlat() and not self.aw.buttonCHARGE.animating:

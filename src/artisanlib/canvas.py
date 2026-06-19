@@ -370,7 +370,7 @@ class tgraphcanvas(QObject):
         'segmentpickflag', 'segmentdeltathreshold', 'segmentsamplesthreshold', 'stats_summary_rect', 'title_text', 'title_artist', 'title_width',
         'background_title_width', 'xlabel_text', 'xlabel_artist', 'xlabel_width', 'mathdictionary_base',
         'ambient_pressure_sampled', 'ambient_humidity_sampled', 'ambientTemp_sampled', 'backgroundmovespeed', 'chargeTimerPeriod', 'flavors_default_value',
-        'fmt_data_ON', 'l_subtitle', 'projectDeltaFlag', 'btbreak_params','bbpCache', 'glow',
+        'fmt_data_ON', 'l_subtitle', 'projectDeltaFlag', 'btbreak_params','bbpCache', 'bbpPrevRoast', 'glow',
         'custom_event_dlg_default_type', 'custom_event_dlg_default_type', 'foreground_event_ind', 'foreground_event_pick_position', 'foreground_event_last_picked_ind',
         'foreground_event_last_picked_pos', 'background_event_ind', 'background_event_pos', 'background_event_pick_position',
         'background_event_last_picked_ind', 'background_event_last_picked_pos', 'event_selected',
@@ -1702,15 +1702,16 @@ class tgraphcanvas(QObject):
 
         #variables to configure the 8 default buttons
         # button = 0:CHARGE, 1:DRY_END, 2:FC_START, 3:FC_END, 4:SC_START, 5:SC_END, 6:DROP, 7:COOL_END;
-        self.buttonvisibility = [True,True,True,True,True,False,True,False]
-        self.buttonactions = [0]*8
-        self.buttonactionstrings = ['']*8
+        self.buttonvisibility:list[bool] = [True,True,True,True,True,False,True,False]
+        self.buttonactions:list[int] = [0]*8
+        self.buttonactionstrings:list[str] = ['']*8
         #variables to configure the 0: ON, 1: OFF, 2: SAMPLE, 3:RESET, 4:START
-        self.extrabuttonactions = [0]*3
-        self.extrabuttonactionstrings = ['']*3
+        self.extrabuttonactions:list[int] = [0]*3
+        self.extrabuttonactionstrings:list[str] = ['']*3
         #variables to configure the 0:RESET, 1:START
-        self.xextrabuttonactions = [0]*2
-        self.xextrabuttonactionstrings = ['']*2
+        self.xextrabuttonactions:list[int] = [0]*2
+        self.xextrabuttonactionstrings:list[str] = ['']*2
+        self.main_event_buttons_undo_enabled:bool = True
 
         #flag to activate the automatic marking of the CHARGE and DROP events
         self.chargeTimerFlag: bool = False
@@ -2410,6 +2411,7 @@ class tgraphcanvas(QObject):
 
         # Cache for BBP calculations
         self.bbpCache: BbpCache = {}
+        self.bbpPrevRoast: BbpCache = {}
 
         #EnergyUse
         # Energy conversion canstants
@@ -4227,6 +4229,7 @@ class tgraphcanvas(QObject):
 
     @pyqtSlot('QAction*')
     def event_popup_action(self, action:QAction) -> None:
+        _log.debug('*** YUP WE ARE HERE - PROBABLY BECAUSE CHARGE WAS MOVED')  #dave #TODO
         if action.key[0] >= 0:  # type: ignore[attr-defined] # "QAction" has no attribute "key"
             # we check if this is the first DROP mark on this roast
             firstDROP = (action.key[0] == 6 and self.timeindex[6] == 0)  # type: ignore[attr-defined] # "QAction" has no attribute "key"
@@ -5195,7 +5198,8 @@ class tgraphcanvas(QObject):
                     if local_flagstart: # only during recording
                         try:
                             if self.timeindex[0] > -1 and len(sample_timex) == self.timeindex[0] + 5:
-                                self.aw.calcBBPMetrics(checkCache=True)
+                                #dave #TODO self.aw.calcBBPMetrics(checkCache=True)
+                                self.cacheforBbp(copyPrevRoast=True)
                         except Exception as e: # pylint: disable=broad-except
                             _log.exception(e)
 
@@ -6690,7 +6694,14 @@ class tgraphcanvas(QObject):
                     #calculate the temperature endpoint at endofx according to the latest rate of change
                     if self.l_BTprojection is not None:
                         # only draw if BT RoR is not exactly 0 (as on start)
-                        if self.unfiltereddelta2_pure[-1] != 0 and self.BTcurve and len(self.unfiltereddelta2_pure) > 0 and len(self.ctemp2) > 0 and self.ctemp2[-1] is not None and self.ctemp2[-1] != -1 and not math.isnan(self.ctemp2[-1]):
+                        if (len(self.unfiltereddelta2_pure) > 0 and
+                                self.unfiltereddelta2_pure[-1] != 0 and
+                                self.BTcurve and
+                                len(self.unfiltereddelta2_pure) > 0 and
+                                len(self.ctemp2) > 0 and
+                                self.ctemp2[-1] is not None and
+                                self.ctemp2[-1] != -1 and
+                                not math.isnan(self.ctemp2[-1])):
                             # projection extended to the plots current endofx
                             left = now
                             right = max(left, xlim_right + charge) # never have the right point be left of left;)
@@ -6704,7 +6715,14 @@ class tgraphcanvas(QObject):
                         self.l_BTprojection.set_data(self.BTprojection_tx, self.BTprojection_temp)
                     if self.l_ETprojection is not None:
                         # only draw if ET RoR is not exactly 0 (as on start)
-                        if self.unfiltereddelta1_pure[-1] != 0 and self.ETcurve and len(self.unfiltereddelta1_pure) > 0 and len(self.ctemp1) > 0 and self.ctemp1[-1] is not None and self.ctemp1[-1] != -1 and not math.isnan(self.ctemp1[-1]):
+                        if (len(self.unfiltereddelta1_pure) > 0 and
+                                self.unfiltereddelta1_pure[-1] != 0 and
+                                self.ETcurve and
+                                len(self.unfiltereddelta1_pure) > 0 and
+                                len(self.ctemp1) > 0 and
+                                self.ctemp1[-1] is not None and
+                                self.ctemp1[-1] != -1 and
+                                not math.isnan(self.ctemp1[-1])):
                             # projection extended to the plots current endofx
                             left = now
                             right = max(left,xlim_right + charge) # never have the right point be left of left;)
@@ -13615,16 +13633,29 @@ class tgraphcanvas(QObject):
 
     # OffMonitorCloseDown is called after the sampling loop stopped
     @pyqtSlot()
+    def OffMonitorCloseDownIgnoreAlwaysONwasRecording(self) -> None:
+        self.OffMonitorCloseDown(False, True)
+    @pyqtSlot()
+    def OffMonitorCloseDownRespectAlwaysONwasRecording(self) -> None:
+        self.OffMonitorCloseDown(True, True)
+    @pyqtSlot()
     def OffMonitorCloseDownIgnoreAlwaysON(self) -> None:
-        self.OffMonitorCloseDown(False)
+        self.OffMonitorCloseDown(False, False)
+    @pyqtSlot()
     def OffMonitorCloseDownRespectAlwaysON(self) -> None:
-        self.OffMonitorCloseDown(True)
+        self.OffMonitorCloseDown(True, False)
 
-    def OffMonitorCloseDown(self, respectAlwaysON:bool) -> None:
+
+    def OffMonitorCloseDown(self, respectAlwaysON:bool, wasRecording:bool) -> None:
         _log.debug('MODE: OffMonitorCloseDown')
         try:
 
-            if respectAlwaysON:
+            if wasRecording:
+                if respectAlwaysON:
+                    self.threadserver.terminatingSignal.disconnect(self.OffMonitorCloseDownRespectAlwaysONwasRecording)
+                else:
+                    self.threadserver.terminatingSignal.disconnect(self.OffMonitorCloseDownIgnoreAlwaysONwasRecording)
+            elif respectAlwaysON:
                 self.threadserver.terminatingSignal.disconnect(self.OffMonitorCloseDownRespectAlwaysON)
             else:
                 self.threadserver.terminatingSignal.disconnect(self.OffMonitorCloseDownIgnoreAlwaysON)
@@ -13692,7 +13723,8 @@ class tgraphcanvas(QObject):
 
                 # disconnect Orbiter
                 if not bool(self.aw.simulator) and self.device == 196 and self.aw.orbiter is not None:
-                    self.aw.orbiter.stop()
+#                    self.aw.orbiter.stop()
+                    self.aw.orbiter.disconnect(wasRecording, self.timeindex[6] != 0)
                     self.aw.orbiter = None
 
                 # disconnect MQTT
@@ -13806,6 +13838,7 @@ class tgraphcanvas(QObject):
     def OffMonitor(self, respectAlwaysON:bool = True) -> None:
         _log.info('MODE: OFF MONITOR')
         if self.flagon:
+            was_recording:bool = self.flagstart
             try:
                 # reset
                 self.plus_beans_reminder_on_start = True # ensure that for the next recording the corresponding warning is shown if beans are not specified for plus
@@ -13839,7 +13872,12 @@ class tgraphcanvas(QObject):
                 except Exception as e: # pylint: disable=broad-except
                     _log.exception(e)
 
-                if respectAlwaysON:
+                if was_recording:
+                    if respectAlwaysON:
+                        self.threadserver.terminatingSignal.connect(self.OffMonitorCloseDownRespectAlwaysONwasRecording)
+                    else:
+                        self.threadserver.terminatingSignal.connect(self.OffMonitorCloseDownIgnoreAlwaysONwasRecording)
+                elif respectAlwaysON:
                     self.threadserver.terminatingSignal.connect(self.OffMonitorCloseDownRespectAlwaysON)
                 else:
                     self.threadserver.terminatingSignal.connect(self.OffMonitorCloseDownIgnoreAlwaysON)
@@ -14061,7 +14099,7 @@ class tgraphcanvas(QObject):
 
     # close serial port, Phidgets and Yocto ports
     def disconnectProbesFromSerialDevice(self, ser:'serialport') -> None:
-        _log.debug('disconnectProbesFromSerialDevice(%s)',ser)
+#dave #TODO        _log.debug('disconnectProbesFromSerialDevice(%s)',ser)
         try:
             self.samplingSemaphore.acquire(1)
 
@@ -14561,6 +14599,7 @@ class tgraphcanvas(QObject):
                     #prevents accidentally deleting a modified profile.
                     self.fileDirtySignal.emit()
                     if self.aw.buttonCHARGE.isFlat() and self.timeindex[0] > -1:
+                        _log.debug('EVENT: undo CHARGE')
                         self.autoChargeIdx = -1 # disable autoCharge to allow manual re-CHARGE
                         # undo wrongly set CHARGE
                         ## deactivate autoCHARGE
@@ -14583,6 +14622,7 @@ class tgraphcanvas(QObject):
                                 del self.l_annotations_dict[0]
                         self.xaxistosm(redraw=False, set_xlim=not zoomed_in) # need to fix uneven x-axis labels like -0:13
                     elif not self.aw.buttonCHARGE.isFlat():
+                        _log.debug('EVENT: CHARGE')
                         if self.device == 18 and self.aw.simulator is None: #manual mode
                             tx,et,bt = self.aw.ser.NONE()
                             if bt != 1 and et != -1:  #cancel
@@ -14753,6 +14793,7 @@ class tgraphcanvas(QObject):
                     else:
                         start = 0
                     if self.aw.buttonDRY.isFlat() and self.timeindex[1] > 0:
+                        _log.debug('EVENT: undo DRY')
                         # undo wrongly set DRY
                         # deactivate autoDRY
                         self.autoDRYenabled = False
@@ -14773,6 +14814,7 @@ class tgraphcanvas(QObject):
                             if 1 in self.l_annotations_dict:
                                 del self.l_annotations_dict[1]
                     elif not self.aw.buttonDRY.isFlat():
+                        _log.debug('EVENT: DRY')
                         if self.device != 18 or self.aw.simulator is not None:
                             self.timeindex[1] = max(0,len(self.timex)-1)
                         else:
@@ -14868,6 +14910,7 @@ class tgraphcanvas(QObject):
                     else:
                         start = 0
                     if self.aw.buttonFCs.isFlat() and self.timeindex[2] > 0:
+                        _log.debug('EVENT: undo FCs')
                         # undo wrongly set FCs
                         # deactivate autoFCs
                         self.autoFCsenabled = False
@@ -14888,6 +14931,7 @@ class tgraphcanvas(QObject):
                             if 2 in self.l_annotations_dict:
                                 del self.l_annotations_dict[2]
                     elif not self.aw.buttonFCs.isFlat():
+                        _log.debug('EVENT: FCs')
                         # record 1Cs only if Charge mark has been done
                         if self.device != 18 or self.aw.simulator is not None:
                             self.timeindex[2] = max(0,len(self.timex)-1)
@@ -14981,6 +15025,7 @@ class tgraphcanvas(QObject):
                     else:
                         start = 0
                     if self.aw.buttonFCe.isFlat() and self.timeindex[3] > 0:
+                        _log.debug('EVENT: undo FCe')
                         # undo wrongly set FCe
                         self.timeindex[3] = 0
                         removed = True
@@ -14999,6 +15044,7 @@ class tgraphcanvas(QObject):
                             if 3 in self.l_annotations_dict:
                                 del self.l_annotations_dict[3]
                     elif not self.aw.buttonFCe.isFlat():
+                        _log.debug('EVENT: FCe')
                         if self.device != 18 or self.aw.simulator is not None:
                             self.timeindex[3] = max(0,len(self.timex)-1)
                         else:
@@ -15092,6 +15138,7 @@ class tgraphcanvas(QObject):
                     else:
                         start = 0
                     if self.aw.buttonSCs.isFlat() and self.timeindex[4] > 0:
+                        _log.debug('EVENT: undo SCs')
                         # undo wrongly set SCs
                         self.timeindex[4] = 0
                         removed = True
@@ -15110,6 +15157,7 @@ class tgraphcanvas(QObject):
                             if 4 in self.l_annotations_dict:
                                 del self.l_annotations_dict[4]
                     elif not self.aw.buttonSCs.isFlat():
+                        _log.debug('EVENT: SCs')
                         if self.device != 18 or self.aw.simulator is not None:
                             self.timeindex[4] = max(0,len(self.timex)-1)
                         else:
@@ -15208,6 +15256,7 @@ class tgraphcanvas(QObject):
                     else:
                         start = 0
                     if self.aw.buttonSCe.isFlat() and self.timeindex[5] > 0:
+                        _log.debug('EVENT: undo SCe')
                         # undo wrongly set SCe
                         self.timeindex[5] = 0
                         removed = True
@@ -15226,6 +15275,7 @@ class tgraphcanvas(QObject):
                             if 5 in self.l_annotations_dict:
                                 del self.l_annotations_dict[5]
                     elif not self.aw.buttonSCe.isFlat():
+                        _log.debug('EVENT: SCe')
                         if self.device != 18 or self.aw.simulator is not None:
                             self.timeindex[5] = max(0,len(self.timex)-1)
                         else:
@@ -15323,6 +15373,7 @@ class tgraphcanvas(QObject):
                     # we check if this is the first DROP mark on this roast
                     firstDROP = self.timeindex[6] == 0 # on UNDO DROP we do not send the record to plus
                     if self.aw.buttonDROP.isFlat() and self.timeindex[6] > 0:
+                        _log.debug('EVENT: undo DROP')
                         self.aw.setTimerColorSignal.emit('timer')  # reset cooling timer color back to the default
                         self.autoDropIdx = -1 # disable autoDROP to allow manual re-DROP
                         # undo wrongly set FCs
@@ -15347,6 +15398,7 @@ class tgraphcanvas(QObject):
                             if 6 in self.l_annotations_dict:
                                 del self.l_annotations_dict[6]
                     elif not self.aw.buttonDROP.isFlat():
+                        _log.debug('EVENT: DROP')
                         self.aw.setTimerColorSignal.emit('rstimer') # cooling timer color
                         self.incBatchCounter()
                         # generate UUID
@@ -15522,6 +15574,7 @@ class tgraphcanvas(QObject):
                     else:
                         start = 0
                     if self.aw.buttonCOOL.isFlat() and self.timeindex[7] > 0:
+                        _log.debug('EVENT: undo COOL')
                         # undo wrongly set COOL
                         self.timeindex[7] = 0
                         removed = True
@@ -15541,6 +15594,7 @@ class tgraphcanvas(QObject):
                                 del self.l_annotations_dict[7]
 
                     elif not self.aw.buttonCOOL.isFlat():
+                        _log.debug('EVENT: COOL')
                         if self.device != 18 or self.aw.simulator is not None:
                             self.timeindex[7] = max(0,len(self.timex)-1)
                         else:
@@ -16635,22 +16689,35 @@ class tgraphcanvas(QObject):
             _, _, exc_tb = sys.exc_info()
             self.adderror((QApplication.translate('Error Message','Exception:') + ' writestatistics() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
 
-    def cacheforBbp(self) -> None:
+    def cacheforBbp(self, copyPrevRoast:bool=False) -> None:
+        _log.debug(f'** cacheforBbp({copyPrevRoast=})')  #dave #TODO
+        import inspect #dave #TODO
+        import os      #dave #TODO
+        _log.info('\n      %s:%s called by %s:%s, line %s',os.path.basename(inspect.getframeinfo(inspect.stack()[0][0]).filename), inspect.stack()[0][3], os.path.basename(inspect.getframeinfo(inspect.stack()[1][0]).filename), inspect.stack()[1][3], inspect.getframeinfo(inspect.stack()[1][0]).lineno)  #dave99 #TODO
         try:
-            # mode
-            self.bbpCache['mode'] = self.mode
-            # drop temps
-            self.bbpCache['drop_bt'] = self.temp2[self.timeindex[6]]
-            self.bbpCache['drop_et'] = self.temp1[self.timeindex[6]]
-            # ending time epoch in mSec
-            self.bbpCache['end_roastepoch_msec'] = QDateTime.currentDateTime().toMSecsSinceEpoch()
-            # get the special events values at OFF and time of previous change relative to end
-            self.bbpCache['end_events'] = self.get_specialevents_at_timeindex(len(self.timex)-1)
-            # get the special events values at DROP and time of previous change relative to end
-            self.bbpCache['drop_events'] = self.get_specialevents_at_timeindex(self.timeindex[6])
-            self.bbpCache['drop_to_end'] = self.timex[-1] - self.timex[self.timeindex[6]]
+            if copyPrevRoast:
+                # copy the previous roast cache for use by this roast's bbp metric calculations
+                self.bbpPrevRoast = self.bbpCache.copy()
+                _log.debug('** Copied - self.bbpPrevRoast = self.bbpCache.copy()')  #dave #TODO
+            else:
+                # update the cache with current roast data ready to be used by the subsequent roast
+                # mode
+                self.bbpCache['mode'] = self.mode
+                # drop temps
+                self.bbpCache['drop_bt'] = self.temp2[self.timeindex[6]]
+                self.bbpCache['drop_et'] = self.temp1[self.timeindex[6]]
+                # ending time epoch in mSec
+                self.bbpCache['end_roastepoch_msec'] = QDateTime.currentDateTime().toMSecsSinceEpoch()
+                # get the special events values at OFF and time of previous change relative to end
+                self.bbpCache['end_events'] = self.get_specialevents_at_timeindex(len(self.timex)-1)
+                # get the special events values at DROP and time of previous change relative to end
+                self.bbpCache['drop_events'] = self.get_specialevents_at_timeindex(self.timeindex[6])
+                self.bbpCache['drop_to_end'] = self.timex[-1] - self.timex[self.timeindex[6]]
         except Exception: # pylint: disable=broad-except
             self.bbpCache = {}
+            _log.debug('** Exception, clearing bbpCache')  #dave #TODO
+        _log.debug(f'** {self.bbpPrevRoast=}')  #dave #TODO
+        _log.debug(f'** {self.bbpCache=}')  #dave #TODO
 
     def get_specialevents_at_timeindex(self, timeindex:int) -> list[list[float|None]]:
         # note: event values are returned as actual_value+1

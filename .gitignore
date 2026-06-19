@@ -10,7 +10,6 @@ venv/
 .venv/
 env/
 .env/
-# Windows sym link
 .venv
 
 # uv
