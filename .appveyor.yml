@@ -135,6 +135,8 @@ for:
     # Generate signature
     - python generate_signature.py
 
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
     # run the build script
     - cmd: build-win3-pi.bat
 
