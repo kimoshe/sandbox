@@ -51,6 +51,7 @@ init:
       if ([bool]$env:APPVEYOR_PULL_REQUEST_NUMBER -eq $true) {
         $env:artifact_prefix = 'artisan'
       }
+  - ps: $env:APPVEYOR_RDP_BLOCK = $true
 
 branches:
   only:
