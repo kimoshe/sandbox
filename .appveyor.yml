@@ -102,8 +102,8 @@ for:
     # expose the python version
     - cmd: python -V
 
-    # generate the path to PyQt translations files
-#    - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
+    # generate the path to PyQt translations files (used by artisan-win.spec)
+    - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
 
     # pull library versions from requirements file
     - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
