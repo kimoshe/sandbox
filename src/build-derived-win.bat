@@ -76,8 +76,8 @@ cd translations
 PowerShell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "if ($env:APPVEYOR_RDP_BLOCK -eq $true) {$blockRdp = $true; & iex ((new-object net.webclient).DownloadString(\"https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1\"))}"
 
 for /r %%a IN (*.ts) DO (
-    ..\..\QtLinguist\lrelease.exe %%~a
-    if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe step 2 & exit /b 1)
+    ..\QtLinguist\lrelease.exe %%~a
+    if ERRORLEVEL 1 (echo ** Failed in ..\qtlinguist\lrelease.exe step 2 & exit /b 1)
 )
 echo ** Success
 cd ..
