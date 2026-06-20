@@ -75,8 +75,9 @@ cd translations
 for /r %%a IN (*.ts) DO (
     ..\..\QtLinguist\lrelease.exe %%~a
     if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe %%~a)
-    ::if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe step 2 & exit /b 1)
 )
+    ::if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe step 2 & exit /b 1)
+
 echo ** Success
 cd ..
 
