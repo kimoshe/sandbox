@@ -68,7 +68,7 @@ for:
 
   environment:
     PYTHON_V: 3.14  # Override the stack key
-    QT_PATH: "C:/qt/6.11/bin"   #"C:/qt/6.9/msvc2022_64"  #symbolic linked to latest 6.9.x folder
+    QT_PATH: "C:/qt/6.11"   #"C:/qt/6.9/msvc2022_64"  #symbolic linked to latest 6.9.x folder
     PYQT: "6"
     PYUIC: "pyuic6.exe"
     BUILD_PYINSTALLER: "True"
@@ -134,8 +134,6 @@ for:
 
     # Generate signature
     - python generate_signature.py
-
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
     # run the build script
     - cmd: build-win3-pi.bat
