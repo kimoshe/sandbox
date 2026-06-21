@@ -28,11 +28,11 @@ environment:
 
   matrix:
   - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2022
-  - job_name: macos
-    appveyor_build_worker_image: macos-ventura
-  - job_name: linux
-    appveyor_build_worker_image: Ubuntu2204
+    appveyor_build_worker_image: Visual Studio 2026
+#  - job_name: macos
+#    appveyor_build_worker_image: macos-ventura
+#  - job_name: linux
+#    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -71,8 +71,9 @@ for:
     PYQT: "6"
     PYUIC: "pyuic6.exe"
     BUILD_PYINSTALLER: "True"
-    VC_REDIST: "https://aka.ms/vs/17/release/vc_redist.x64.exe"  #redistributable for VS 2015-2022
-    VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
+#    VC_REDIST: "https://aka.ms/vs/17/release/vc_redist.x64.exe"  #redistributable for VS 2015-2022
+    VC_REDIST: "https://aka.ms/vc14/vc_redist.x64.exe"  #redistributable for VS 2017-2026
+#    VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
 
   install:
     - cmd: echo Windows Install
@@ -109,6 +110,9 @@ for:
     # run the install script
     - cmd: .ci/install-win.bat
 
+#
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    - exit 1
 
   build_script:
     - cmd: echo Windows Build
