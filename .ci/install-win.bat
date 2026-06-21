@@ -52,18 +52,14 @@ if not exist %PYTHON_PATH%\Lib\site-packages\libusb_package\libusb-1.0.dll (
 ::
 :: appveyor_build_worker_image: Visual Studio 2026 does not supply a working lrelease.exe in Qt/6.11
 :: until that is fixed install lrelease from https://github.com/thurask/Qt-Linguist.
-:: this version is more current than the one supplied by qt6-applications on pypi
-:: as of this writing QtLinguist version 6.10, qt6-application version 6.5
+:: this version (6.10) is more current than the one supplied by qt6-applications on pypi (v6.5)
+:: as of this writing
 echo ***** Start Install QTLinguist/lrelease.exe
 curl -L -O https://github.com/thurask/Qt-Linguist/releases/download/20260425/linguist_6.11.0.zip
 if not exist linguist_6.11.0.zip (exit /b 98)
 7z x linguist_6.11.0.zip -o.\QtLinguist\
-:: Pause Build Here For Remote Desktop Access
-:: PowerShell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "if ($env:APPVEYOR_RDP_BLOCK -eq $true) {$blockRdp = $true; & iex ((new-object net.webclient).DownloadString(\"https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1\"))}"
-
 if not exist QtLinguist/lrelease.exe (exit /b 99)
 echo ***** Finished install QTLinguist/lrelease
-
 
 ::
 :: custom build the pyinstaller bootloader or install a prebuilt

@@ -20,19 +20,19 @@ environment:
   # Set the default Appveyor Python version here. Can be overridden in platform environment.
   PYTHON_V: 3.14
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  #PYUPGRADE_WIN_VER: 3.14.3
+  PYUPGRADE_WIN_VER: 3.14.3
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   ARTISAN_KEY:
-    secure: xqoahZ+xpEJOClcLTL5yIa3gdoql/Vzs8uTEWYFX2QV0P1gLe5WS3/3WIQB9dQ/UClC1FE/5EC2yawYjwAQ1tJdHyawh7uL7+zgtTZxRqWo=
+    secure: 4BswEsF7OdFwgn3gMbnjkmCyAfJtmnak+3rmXzggbpitK0txN22SERo/sIh3wxse1L3rFDIPc+NDEEagMTFsODcmM8/gsclDbeJA4S5UTIY=
 
   matrix:
   - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2026
-#  - job_name: macos
-#    appveyor_build_worker_image: macos-ventura
-#  - job_name: linux
-#    appveyor_build_worker_image: Ubuntu2204
+    appveyor_build_worker_image: Visual Studio 2022
+  - job_name: macos
+    appveyor_build_worker_image: macos-ventura
+  - job_name: linux
+    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -51,7 +51,6 @@ init:
       if ([bool]$env:APPVEYOR_PULL_REQUEST_NUMBER -eq $true) {
         $env:artifact_prefix = 'artisan'
       }
-  - ps: $env:APPVEYOR_RDP_BLOCK = $true
 
 branches:
   only:
@@ -69,11 +68,9 @@ for:
 
   environment:
     PYTHON_V: 3.14  # Override the stack key
-#    QT_PATH: "C:/qt/6.9/msvc2022_64"  #symbolic linked to latest 6.9.x folder
     PYQT: "6"
     PYUIC: "pyuic6.exe"
-#    BUILD_PYINSTALLER: "True"
-    BUILD_PYINSTALLER: "False"
+    BUILD_PYINSTALLER: "True"
     VC_REDIST: "https://aka.ms/vs/17/release/vc_redist.x64.exe"  #redistributable for VS 2015-2022
     VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
 
@@ -88,7 +85,6 @@ for:
             $env:PREV_PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
             $env:PYTHON_V = ($env:PYUPGRADE_WIN_VER -split '\.')[0..1] -join '.'
         }
-
 
     # derive the path to python.exe from the version number
     - ps: $env:PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
@@ -110,18 +106,9 @@ for:
     - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
     - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
 
-    # patch for libusb_package until a Python 3.14 version is available on pypi.org
-# Using libusb_package-1.0.26.4 from pypi now works
-#    - cmd: if "%PYTHON_V%"=="3.14" (echo *** PATCH install version of libusb_package modified for Python 3.14)
-#    - cmd: if "%PYTHON_V%"=="3.14" (pip install .ci\patches\libusb_package-1.0.26.3-py314-none-win_amd64.whl)
-
     # run the install script
     - cmd: .ci/install-win.bat
 
-    # patch for pylupdate6 until this is fixed on pypi.org
-# Fixed now, can remove
-#    - cmd: if "%PYTHON_V%"=="3.14" (echo *** PATCH pylupdate6 for Python 3.14)
-#    - cmd: if "%PYTHON_V%"=="3.14" (copy /Y .ci\patches\python_source.py C:\Python314-x64\Lib\site-packages\PyQt6\lupdate\python_source.py)
 
   build_script:
     - cmd: echo Windows Build
@@ -139,8 +126,6 @@ for:
 
     # Generate signature
     - python generate_signature.py
-
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
     # run the build script
     - cmd: build-win3-pi.bat

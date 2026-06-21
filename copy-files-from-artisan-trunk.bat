@@ -10,5 +10,5 @@ copy /Y \users\dave\documents\github\artisan\src\requirements.txt \users\dave\do
 copy /Y \users\dave\documents\github\artisan\src\requirements-dev.txt \users\dave\documents\github\sandbox\src
 
 :: Changes for BBP
-copy /Y \users\dave\documents\github\artisan\src\artisanlib\main.py \users\dave\documents\github\sandbox\src\artisanlib
-copy /Y \users\dave\documents\github\artisan\src\artisanlib\canvas.py \users\dave\documents\github\sandbox\src\artisanlib
+rem copy /Y \users\dave\documents\github\artisan\src\artisanlib\main.py \users\dave\documents\github\sandbox\src\artisanlib
+rem copy /Y \users\dave\documents\github\artisan\src\artisanlib\canvas.py \users\dave\documents\github\sandbox\src\artisanlib
