@@ -13,10 +13,10 @@ def get_latest_python_release(major_minor):
         if match:
             return match.group(1)
     except Exception as e:
-        print(f"ERROR: Failed to retrieve latest release: {e}", file=sys.stderr)
+        print(f'ERROR: Failed to retrieve latest release: {e}', file=sys.stderr)
         return '0.0.0'
 
-    print(f"ERROR: Could not find Python {major_minor}", file=sys.stderr)
+    print(f'ERROR: Could not find Python {major_minor}', file=sys.stderr)
     return '0.0.0'
 
 if __name__ == '__main__':
