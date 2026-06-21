@@ -1637,9 +1637,6 @@ class ApplicationWindow(QMainWindow):
         self.scheduler_filters_visible:bool = False # scheduler filter pane visible?
         self.scheduler_auto_open:bool = True # if set the scheduler is activated (window opened) automatically if there are scheduled items
 
-        # initialize the BBP metrics
-#dave #TODO        self.resetBBPMetrics()
-
         # large LCDs
         self.largeLCDs_dialog:LargeMainLCDs|None = None
         self.LargeLCDsFlag:bool = False
@@ -16600,10 +16597,6 @@ class ApplicationWindow(QMainWindow):
         return output
 
     def resetBBPMetrics(self) -> None:
-        _log.debug('** resetBBPMetrics()')  #dave #TODO
-        import inspect #dave #TODO
-        import os      #dave #TODO
-        _log.info('\n      %s:%s called by %s:%s, line %s',os.path.basename(inspect.getframeinfo(inspect.stack()[0][0]).filename), inspect.stack()[0][3], os.path.basename(inspect.getframeinfo(inspect.stack()[1][0]).filename), inspect.stack()[1][3], inspect.getframeinfo(inspect.stack()[1][0]).lineno)  #dave99 #TODO
         self.bbp_dropbt = 0
         self.bbp_dropet = 0
         self.bbp_total_time = -1
@@ -16620,27 +16613,18 @@ class ApplicationWindow(QMainWindow):
         self.bbp_drop_to_end = 0
 
         # clear bbpPrevRoast
-        _log.debug('** clear bbpPrevRoast')  #dave #TODO
         self.qmc.bbpPrevRoast = {}
 
 
     #TODO Decide where else to display BBP metrics # pylint: disable=fixme
     # bbpCache holds data from the previous roast.  Set in cacheforBbp() which is called from OffRecorder()
     # At CHARGE+5 the bbpCache data is copied to bbpPrevRoast
-    def calcBBPMetrics(self) -> None:  #dave #TODO remove checkCache
-        #_log.debug(f'** calcBBPMetrics({checkCache=})')  #dave #TODO
-        import inspect #dave #TODO
-        import os      #dave #TODO
-        #_log.info("\n      %s:%s called by %s:%s, line %s",os.path.basename(inspect.getframeinfo(inspect.stack()[0][0]).filename), inspect.stack()[0][3], os.path.basename(inspect.getframeinfo(inspect.stack()[1][0]).filename), inspect.stack()[1][3], inspect.getframeinfo(inspect.stack()[1][0]).lineno)  #dave99 #TODO
-        _ncallers = 2
-        _newline = '\n'  # noqa: E702,E401 # pylint: disable=reimported,redefined-outer-name #dave #TODO
-        _log.info(f"Debug Traceback {''.join(f'{_newline}-{i-1}    {os.path.basename(inspect.getframeinfo(inspect.stack()[i-1][0]).filename)}:{inspect.stack()[i-1][3]} called by {os.path.basename(inspect.getframeinfo(inspect.stack()[i][0]).filename)}:{inspect.stack()[i][3]}, line {inspect.getframeinfo(inspect.stack()[i][0]).lineno}' for i in range(_ncallers + 1, 1, -1) if i < len(inspect.stack()))}") # pylint: disable=logging-fstring-interpolation  #dave #TODO
+    def calcBBPMetrics(self) -> None:
         try:
             #TODO revisit these preset times  # pylint: disable=fixme
             maxAllowedTime_fromPrevEnd_toStart = 60 #seconds, max gap time between roast recordings
             minBbpTime = 90 #seconds, the minimum amount of time recorded in the current roast before CHARGE
             # is there data from a prev roast?
-            _log.debug(f'** {self.qmc.bbpPrevRoast=}')  #dave #TODO
             if (self.qmc.bbpPrevRoast and
                     'end_roastepoch_msec' in self.qmc.bbpPrevRoast and
                     'drop_to_end' in self.qmc.bbpPrevRoast and
@@ -16649,13 +16633,10 @@ class ApplicationWindow(QMainWindow):
                     'end_events' in self.qmc.bbpPrevRoast and
                     'drop_events' in self.qmc.bbpPrevRoast and
                     'drop_to_end' in self.qmc.bbpPrevRoast):
-                #_log.debug('qmc.bbpPrevRoast exists')
-                #dave #TODO should bbp_gap be a part of the profile data?
+
                 bbpGap = self.qmc.roastepoch - (self.qmc.bbpPrevRoast['end_roastepoch_msec']/1000)
                 # did the prev roast end shortly before this roast began?  If not clear qmc.bbpPrevRoast
-                _log.debug(f'** {bbpGap=}')  #dave #TODO
                 if bbpGap < maxAllowedTime_fromPrevEnd_toStart:
-                    _log.debug('** Set prev roast BBP data from qmc.bbpPrevRoast')  #dave #TODO
                     self.bbp_time_added_from_prev = bbpGap + self.qmc.bbpPrevRoast['drop_to_end']
                     self.bbp_begin = 'DROP'
                     self.bbp_dropbt = self.qmc.bbpPrevRoast['drop_bt']
@@ -16664,7 +16645,6 @@ class ApplicationWindow(QMainWindow):
                     self.bbp_endevents = self.qmc.bbpPrevRoast['end_events']
                     self.bbp_dropevents = self.qmc.bbpPrevRoast['drop_events']
                     self.bbp_drop_to_end = self.qmc.bbpPrevRoast['drop_to_end']
-                    _log.debug(f'** {self.bbp_dropbt=}')  #dave #TODO
                 else:
                     self.qmc.bbpPrevRoast = {}  # make empty to use as easy test later, "if self.qmc.bbpPrevRoast:"
                     _log.debug('** clearing self.qmc.bbpPrevRoast')
@@ -16675,19 +16655,14 @@ class ApplicationWindow(QMainWindow):
                 len(self.qmc.timex) > self.qmc.timeindex[0] > -1 and
                 (self.qmc.timex[self.qmc.timeindex[0]] > 0)):
 
-#dave #TODO                (self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[0] >= minBbpTime)):
                 # calculate the total BBP time
                 self.bbp_total_time = self.qmc.timex[self.qmc.timeindex[0]] - self.qmc.timex[0] + self.bbp_time_added_from_prev
-                _log.debug(f'** {self.bbp_total_time=}, {self.bbp_time_added_from_prev=}')  #dave #TODO
 
                 # calculate current roast metrics
                 if self.bbp_total_time >= minBbpTime:
-                    _log.debug('** calculate the current roast bbp data')  #dave #TODO
-
                     # fake the events to use with findTPint
                     bbp_timeindex = [0, 0, self.qmc.timeindex[0], 0, 0, 0, self.qmc.timeindex[0], 0]
                     bbp_tpidx = findTPint(bbp_timeindex, self.qmc.timex, self.qmc.temp2)
-                    _log.debug(f'** {bbp_timeindex=},  {bbp_tpidx=}')  #dave #TODO
                     if bbp_tpidx > 0:
                         self.bbp_bottom_temp = self.qmc.temp2[bbp_tpidx]
                         self.bbp_begin_to_bottom_time = self.qmc.timex[bbp_tpidx] - self.qmc.timex[0] + self.bbp_time_added_from_prev
@@ -16998,7 +16973,7 @@ class ApplicationWindow(QMainWindow):
             self.qmc.adderror((QApplication.translate('Error Message', 'Exception:') + ' computedProfileInformation() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
         ######### BBP Metrics #########
         try:
-            self.calcBBPMetrics()  #dave #TODO removed checkCache
+            self.calcBBPMetrics()
             computedProfile['bbp_total_time'] = float2float(self.bbp_total_time,1)
             computedProfile['bbp_bottom_temp'] = float2float(self.bbp_bottom_temp,2)
             computedProfile['bbp_begin_to_bottom_time'] = float2float(self.bbp_begin_to_bottom_time,1)
@@ -17285,7 +17260,6 @@ class ApplicationWindow(QMainWindow):
                 profile['bbp_dropbt'] = float2float(self.bbp_dropbt,2)
                 profile['bbp_dropet'] = float2float(self.bbp_dropet,2)
                 profile['bbp_drop_to_end'] = float2float(self.bbp_drop_to_end)
-                _log.debug(f"** getProfile() {self.bbp_dropbt=}, {profile['bbp_dropbt']=}")  #dave #TODO
             except Exception as ex: # pylint: disable=broad-except
                 _log.exception(ex)
                 _, _, exc_tb = sys.exc_info()

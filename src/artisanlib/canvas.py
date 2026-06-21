@@ -4229,7 +4229,6 @@ class tgraphcanvas(QObject):
 
     @pyqtSlot('QAction*')
     def event_popup_action(self, action:QAction) -> None:
-        _log.debug('*** YUP WE ARE HERE - PROBABLY BECAUSE CHARGE WAS MOVED')  #dave #TODO
         if action.key[0] >= 0:  # type: ignore[attr-defined] # "QAction" has no attribute "key"
             # we check if this is the first DROP mark on this roast
             firstDROP = (action.key[0] == 6 and self.timeindex[6] == 0)  # type: ignore[attr-defined] # "QAction" has no attribute "key"
@@ -5198,7 +5197,6 @@ class tgraphcanvas(QObject):
                     if local_flagstart: # only during recording
                         try:
                             if self.timeindex[0] > -1 and len(sample_timex) == self.timeindex[0] + 5:
-                                #dave #TODO self.aw.calcBBPMetrics(checkCache=True)
                                 self.cacheforBbp(copyPrevRoast=True)
                         except Exception as e: # pylint: disable=broad-except
                             _log.exception(e)
@@ -14099,7 +14097,6 @@ class tgraphcanvas(QObject):
 
     # close serial port, Phidgets and Yocto ports
     def disconnectProbesFromSerialDevice(self, ser:'serialport') -> None:
-#dave #TODO        _log.debug('disconnectProbesFromSerialDevice(%s)',ser)
         try:
             self.samplingSemaphore.acquire(1)
 
@@ -16690,15 +16687,10 @@ class tgraphcanvas(QObject):
             self.adderror((QApplication.translate('Error Message','Exception:') + ' writestatistics() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
 
     def cacheforBbp(self, copyPrevRoast:bool=False) -> None:
-        _log.debug(f'** cacheforBbp({copyPrevRoast=})')  #dave #TODO
-        import inspect #dave #TODO
-        import os      #dave #TODO
-        _log.info('\n      %s:%s called by %s:%s, line %s',os.path.basename(inspect.getframeinfo(inspect.stack()[0][0]).filename), inspect.stack()[0][3], os.path.basename(inspect.getframeinfo(inspect.stack()[1][0]).filename), inspect.stack()[1][3], inspect.getframeinfo(inspect.stack()[1][0]).lineno)  #dave99 #TODO
         try:
             if copyPrevRoast:
                 # copy the previous roast cache for use by this roast's bbp metric calculations
                 self.bbpPrevRoast = self.bbpCache.copy()
-                _log.debug('** Copied - self.bbpPrevRoast = self.bbpCache.copy()')  #dave #TODO
             else:
                 # update the cache with current roast data ready to be used by the subsequent roast
                 # mode
@@ -16715,9 +16707,6 @@ class tgraphcanvas(QObject):
                 self.bbpCache['drop_to_end'] = self.timex[-1] - self.timex[self.timeindex[6]]
         except Exception: # pylint: disable=broad-except
             self.bbpCache = {}
-            _log.debug('** Exception, clearing bbpCache')  #dave #TODO
-        _log.debug(f'** {self.bbpPrevRoast=}')  #dave #TODO
-        _log.debug(f'** {self.bbpCache=}')  #dave #TODO
 
     def get_specialevents_at_timeindex(self, timeindex:int) -> list[list[float|None]]:
         # note: event values are returned as actual_value+1

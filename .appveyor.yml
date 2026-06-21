@@ -89,6 +89,7 @@ for:
             $env:PYTHON_V = ($env:PYUPGRADE_WIN_VER -split '\.')[0..1] -join '.'
         }
 
+
     # derive the path to python.exe from the version number
     - ps: $env:PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
     - ps: Write-Host $env:PYTHON_PATH
