@@ -20,7 +20,7 @@ environment:
   # Set the default Appveyor Python version here. Can be overridden in platform environment.
   PYTHON_V: 3.14
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  PYUPGRADE_WIN_VER: 3.14.15
+  PYUPGRADE_WIN_VER: 3.14.6
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   ARTISAN_KEY:
@@ -109,10 +109,6 @@ for:
 
     # run the install script
     - cmd: .ci/install-win.bat
-
-#
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-    - exit 1
 
   build_script:
     - cmd: echo Windows Build
