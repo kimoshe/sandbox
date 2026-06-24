@@ -55,9 +55,9 @@ if not exist %PYTHON_PATH%\Lib\site-packages\libusb_package\libusb-1.0.dll (
 :: this version (6.10) is more current than the one supplied by qt6-applications on pypi (v6.5)
 :: as of this writing
 echo ***** Start Install QTLinguist/lrelease.exe
-curl -L -O https://github.com/thurask/Qt-Linguist/releases/download/20260425/linguist_6.11.0.zip
-if not exist linguist_6.11.0.zip (exit /b 98)
-7z x linguist_6.11.0.zip -o.\QtLinguist\
+curl -L -O https://github.com/thurask/Qt-Linguist/releases/download/20260425/linguist_%QT_LINGUIST_VER%.zip
+if not exist linguist_%QT_LINGUIST_VER%.zip (exit /b 98)
+7z x linguist_%QT_LINGUIST_VER%.zip -o.\QtLinguist\
 if not exist QtLinguist/lrelease.exe (exit /b 99)
 echo ***** Finished install QTLinguist/lrelease
 

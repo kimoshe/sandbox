@@ -104,6 +104,8 @@ for:
     # pull library versions from requirements file
     - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
     - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
+    - ps: $env:QT_LINGUIST_VER = Select-String -Path ./src/requirements.txt "qt-linguist==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
+    - ps: Write-Host "QT_LINGUIST_VER= $env:PYINSTALLER_VER"
 
     # run the install script
     - cmd: .ci/install-win.bat

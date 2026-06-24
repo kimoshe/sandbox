@@ -17,11 +17,12 @@
 # for RPi, ensure that the selected version is on https://www.piwheels.org/ as binary package
 #
 ######
-# the following commented package versions are read by appveyor.yml and downloaded outside of pip.
+# the following commented package versions are read by .appveyor.yml and downloaded outside of pip.
 #
 # pyinstaller==6.21.0; platform_system='Windows'
 # libusb==1.0.26;  platform_system='Linux'
 # dotenv==2.8.1;   platform_system='Linux'  # v3.0.0 not compatible with fpm  # gem installed, not pip
+# qt-linguist=6.11.0; platform_system='Windows'  # not available to pip
 #
 ######
 # packages that are required on all platforms
@@ -104,4 +105,3 @@ pywin32==312; platform_system=='Windows'
 pyinstaller-versionfile==3.1.0; platform_system=='Windows'
 libusb-package==1.0.26.4; platform_system=='Windows'
 tzdata==2026.2; platform_system=='Windows' # to prevent pyinstaller WARNING: Hidden import "tzdata" not found!
-qt6-applications==6.5.0.2.3
