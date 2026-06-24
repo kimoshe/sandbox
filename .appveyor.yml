@@ -29,10 +29,10 @@ environment:
   matrix:
   - job_name: windows
     appveyor_build_worker_image: Visual Studio 2026
-  - job_name: macos
-    appveyor_build_worker_image: macos-ventura
-  - job_name: linux
-    appveyor_build_worker_image: Ubuntu2204
+#  - job_name: macos
+#    appveyor_build_worker_image: macos-ventura
+#  - job_name: linux
+#    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -75,8 +75,6 @@ for:
 
   install:
     - cmd: echo Windows Install
-
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
     # Update the Python version when PYUPGRADE_WIN_VER is set.  The upgrade happens in upgrade-py-win.bat
     # Note that the paths set below may not exist yet.
