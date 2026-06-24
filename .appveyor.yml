@@ -28,7 +28,7 @@ environment:
 
   matrix:
   - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2022
+    appveyor_build_worker_image: Visual Studio 2026
   - job_name: macos
     appveyor_build_worker_image: macos-ventura
   - job_name: linux
