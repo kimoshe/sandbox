@@ -72,11 +72,17 @@ if ERRORLEVEL 1 (echo ** Failed in pylupdate6pro.py & exit /b 1) else (echo ** S
 
 echo ************* lrelease **************
 cd translations
+path
+
 for /r %%a IN (*.ts) DO (
-    ..\..\QtLinguist\lrelease.exe %%~a
-    if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe %%~a)
+    %PYTHONPATH%\Lib\site-packages\qt6_applications\Qt\bin\lrelease.exe %%~a
+    if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe %%~a step 2 & exit /b 1)
 )
-    ::if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe step 2 & exit /b 1)
+
+rem for /r %%a IN (*.ts) DO (
+rem     ..\..\QtLinguist\lrelease.exe %%~a
+rem     if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe %%~a)
+rem )
 
 echo ** Success
 cd ..

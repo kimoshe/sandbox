@@ -20,5 +20,5 @@ def get_latest_python_release(major_minor):
     return '0.0.0'
 
 if __name__ == '__main__':
-    version = get_latest_python_release(sys.argv[1] if len(sys.argv) > 1 else '3.13')
+    version = get_latest_python_release(sys.argv[1] if len(sys.argv) > 1 else '3.14')
     print(version)
