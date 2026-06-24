@@ -75,8 +75,8 @@ cd translations
 path
 
 for /r %%a IN (*.ts) DO (
-    %PYTHONPATH%\Lib\site-packages\qt6_applications\Qt\bin\lrelease.exe %%~a
-    if ERRORLEVEL 1 (echo ** Failed in ..\..\qtlinguist\lrelease.exe %%~a step 2 & exit /b 1)
+    %PYTHON_PATH%\Lib\site-packages\qt6_applications\Qt\bin\lrelease.exe %%~a
+    if ERRORLEVEL 1 (echo ** Failed in lrelease.exe %%~a step 2 & exit /b 1)
 )
 
 rem for /r %%a IN (*.ts) DO (
