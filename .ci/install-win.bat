@@ -2,15 +2,25 @@
 :: ABOUT
 :: Install script for Artisan Windows CI builds
 ::
+:: COPYRIGHT (C) 2010-2026 The Artisan team represented by
+::   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
+::
 :: LICENSE
-:: This program or module is free software: you can redistribute it and/or
-:: modify it under the terms of the GNU General Public License as published
-:: by the Free Software Foundation, either version 2 of the License, or
-:: version 3 of the License, or (at your option) any later versison. It is
-:: provided for educational purposes and is distributed in the hope that
-:: it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-:: warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
-:: the GNU General Public License for more details.
+:: This program or module is free software: you can redistribute it and/or modify
+:: it under the terms of the GNU Affero General Public License as
+:: published by the Free Software Foundation, either version 3 of the
+:: License, or (at your option) any later version.
+::
+:: This program is distributed in the hope that it will be useful,
+:: but WITHOUT ANY WARRANTY; without even the implied warranty of
+:: MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+:: GNU Affero General Public License for more details.
+::
+:: You should have received a copy of the GNU Affero General Public License
+:: along with this program.  If not, see <https://www.gnu.org/licenses/>.
+::
+:: MAINTAINER
+:: Marko Luther, 2026
 ::
 :: AUTHOR
 :: Dave Baxter, Marko Luther 2023
@@ -51,16 +61,11 @@ if not exist %PYTHON_PATH%\Lib\site-packages\libusb_package\libusb-1.0.dll (
 
 ::
 :: appveyor_build_worker_image: Visual Studio 2026 does not supply a working lrelease.exe in Qt/6.11
-:: until that is fixed install lrelease from https://github.com/thurask/Qt-Linguist.
-:: this version (6.10) is more current than the one supplied by qt6-applications on pypi (v6.5)
-:: as of this writing
+::
 echo ***** Start Install QTLinguist/lrelease.exe
-curl -L -O https://github.com/thurask/Qt-Linguist/releases/download/latest/linguist_%QT_LINGUIST_VER%.zip
-if not exist linguist_%QT_LINGUIST_VER%.zip (echo ** Download failed.  Probably need to update the qt-linguist version in requirements.txt & exit /b 98)
-
-dir
-
-7z x linguist_%QT_LINGUIST_VER%.zip -o.\QtLinguist\
+curl -L -O https://github.com/thurask/Qt-Linguist/releases/download/20260425/linguist_6.11.0.zip
+if not exist linguist_6.11.0.zip (exit /b 98)
+7z x linguist_6.11.0.zip -o.\QtLinguist\
 if not exist QtLinguist/lrelease.exe (exit /b 99)
 echo ***** Finished install QTLinguist/lrelease
 
@@ -106,114 +111,6 @@ echo curl vc_redist.x64.exe
 curl -L -O %VC_REDIST%
 if not exist vc_redist.x64.exe (exit /b 140)
 
-
-rem ----------------remove this-------------------------------
-REM ============================================================================
-REM Qt-Linguist Downloader
-REM Downloads linguist_X.X.X.zip from the correct GitHub release
-REM Uses GitHub API and curl to find and download the file
-REM ============================================================================
-
-REM Configuration
-set GITHUB_API=https://api.github.com/repos/thurask/Qt-Linguist/releases
-
-:: Move this to the top
-REM Check if QT_LINGUIST_VER environment variable is set
-if not defined QT_LINGUIST_VER (
-    echo Error: QT_LINGUIST_VER environment variable is not set
-    exit /b 1
-)
-
-set VERSION=%QT_LINGUIST_VER%
-set FILENAME=linguist_%VERSION%.zip
-set TEMP_JSON=%TEMP%\qt_linguist_releases.json
-set DOWNLOAD_URL=
-
-echo Searching for release containing %FILENAME%...
-
-REM Query GitHub API to get all releases
-curl -s "%GITHUB_API%" > "%TEMP_JSON%"
-
-if errorlevel 1 (
-    echo Error: Failed to access GitHub API. Please check your internet connection.
-    del "%TEMP_JSON%" 2>nul
-    exit /b 1
-)
-
-REM Check if JSON file was created and is not empty
-if not exist "%TEMP_JSON%" (
-    echo Error: GitHub API response file not created
-    exit /b 1
-)
-
-for /f %%A in ('type "%TEMP_JSON%" ^| find /c "browser_download_url"') do (
-    if %%A equ 0 (
-        echo Error: Could not parse GitHub API response
-        del "%TEMP_JSON%" 2>nul
-        exit /b 1
-    )
-)
-
-REM Create a temporary PowerShell script to properly parse JSON
-set PS_SCRIPT=%TEMP%\parse_url.ps1
-
-(
-    echo $json = Get-Content '%TEMP_JSON%' -Raw
-    echo $version = '%VERSION%'
-    echo $filename = 'linguist_' + $version + '.zip'
-    echo $data = ConvertFrom-Json $json
-    echo foreach ($release in $data^) {
-    echo     foreach ($asset in $release.assets^) {
-    echo         if ($asset.name -eq $filename^) {
-    echo             Write-Host $asset.browser_download_url
-    echo             exit 0
-    echo         }
-    echo     }
-    echo }
-    echo Write-Host 'NOT_FOUND'
-) > "%PS_SCRIPT%"
-
-REM Execute PowerShell to parse JSON and get download URL
-for /f "delims=" %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"') do (
-    set DOWNLOAD_URL=%%A
-)
-
-REM Clean up temporary files
-del "%TEMP_JSON%" 2>nul
-del "%PS_SCRIPT%" 2>nul
-
-REM Check if download URL was found
-if "%DOWNLOAD_URL%"=="NOT_FOUND" (
-    echo Error: Could not find %FILENAME% in any GitHub release
-    exit /b 1
-)
-
-if "%DOWNLOAD_URL%"=="" (
-    echo Error: Could not parse GitHub API response
-    exit /b 1
-)
-
-REM Download the file
-echo Found release. Downloading from:
-echo %DOWNLOAD_URL%
-echo.
-echo Downloading %FILENAME%...
-
-curl -L -o "%FILENAME%" "%DOWNLOAD_URL%"
-
-if errorlevel 1 (
-    echo Error: Download failed
-    exit /b 1
-)
-
-if not exist "%FILENAME%" (
-    echo Error: Download completed but file was not created
-    exit /b 1
-)
-
-echo Download completed successfully: %FILENAME%
-exit /b 0
-rem ----------------remove this-------------------------------
 
 ::
 :: show set of libraries are installed

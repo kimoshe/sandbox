@@ -27,12 +27,12 @@ environment:
     secure: xqoahZ+xpEJOClcLTL5yIa3gdoql/Vzs8uTEWYFX2QV0P1gLe5WS3/3WIQB9dQ/UClC1FE/5EC2yawYjwAQ1tJdHyawh7uL7+zgtTZxRqWo=
 
   matrix:
-#  - job_name: windows
-#    appveyor_build_worker_image: Visual Studio 2026
+  - job_name: windows
+    appveyor_build_worker_image: Visual Studio 2026
   - job_name: macos
     appveyor_build_worker_image: macos-ventura
-#  - job_name: linux
-#    appveyor_build_worker_image: Ubuntu2204
+  - job_name: linux
+    appveyor_build_worker_image: Ubuntu2204
 
 
 # Generic build number, later set to commit hash by init
@@ -67,7 +67,7 @@ for:
     fast_finish: false
 
   environment:
-    #PYTHON_V: 3.14  # Override the stack key (when necessary)
+    #PYTHON_V: 3.14  # Override the stack key
     PYQT: "6"
     PYUIC: "pyuic6.exe"
     BUILD_PYINSTALLER: "True"
@@ -104,11 +104,10 @@ for:
     # pull library versions from requirements file
     - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
     - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
-    - ps: $env:QT_LINGUIST_VER = Select-String -Path ./src/requirements.txt "qt-linguist==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
-    - ps: Write-Host "QT_LINGUIST_VER= $env:PYINSTALLER_VER"
 
     # run the install script
     - cmd: .ci/install-win.bat
+
 
   build_script:
     - cmd: echo Windows Build
@@ -152,7 +151,7 @@ for:
     fast_finish: false
 
   environment:
-    PYTHON_UPGRADE_V: 3.14.3  # Upgrade to this version
+    PYTHON_UPGRADE_V: 3.14.6 # Upgrade to this version
     PYTHON_V: 3.12  # Override the stack key with latest Appveyor version
     ARTISAN_OS: macos
     MACOSX_DEPLOYMENT_TARGET: 13.0

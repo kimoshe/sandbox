@@ -1,4 +1,23 @@
 # -*- mode: python -*-
+# COPYRIGHT (C) 2010-2026 The Artisan team represented by
+#   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
+#
+# LICENSE
+# This program or module is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# MAINTAINER
+# Marko Luther, 2026
 
 import os
 from PyInstaller.utils.hooks import get_package_paths, collect_submodules
@@ -28,6 +47,10 @@ hiddenimports_list=[
 ] + collect_submodules('dbus_fast')
 
 EXCLUDES = [
+    'tkinter',
+    'mypy',
+    'hypothesis',
+    'tornado',
     'pkg_resources',
     'PyQt5',
     'PyQt6.Multimedia',
@@ -53,7 +76,7 @@ EXCLUDES = [
 
 
 DATA_FILES = [
-    (os.path.join(get_package_paths('PyQt6')[1], 'Qt6/translations/qtwebengine_locales/en-US.pak'), 'PyQt6/Qt6/translations/qtwebengine_locales')
+#    (os.path.join(get_package_paths('PyQt6')[1], 'Qt6/translations/qtwebengine_locales/en-US.pak'), 'PyQt6/Qt6/translations/qtwebengine_locales')
 ]
 
 a = Analysis(['artisan.py'],

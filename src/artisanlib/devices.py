@@ -1,17 +1,27 @@
 #
 # ABOUT
 # Artisan Device Configuration Dialog
-
+#
+# COPYRIGHT (C) 2010-2026 The Artisan team represented by
+#   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
+#
 # LICENSE
-# This program or module is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as published
-# by the Free Software Foundation, either version 2 of the License, or
-# version 3 of the License, or (at your option) any later version. It is
-# provided for educational purposes and is distributed in the hope that
-# it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
-# the GNU General Public License for more details.
-
+# This program or module is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# MAINTAINER
+# Marko Luther, 2026
+#
 # AUTHOR
 # Marko Luther, 2023
 
@@ -44,7 +54,7 @@ from PyQt6.QtCore import (Qt, pyqtSlot, QSettings, QTimer, QRegularExpression, Q
 from PyQt6.QtGui import (QStandardItemModel, QStandardItem, QColor, QIntValidator, QRegularExpressionValidator, QPixmap, QIcon)
 from PyQt6.QtWidgets import (QApplication, QWidget, QCheckBox, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                              QPushButton, QSpinBox, QTabWidget, QComboBox, QDialogButtonBox, QGridLayout,
-                             QGroupBox, QRadioButton, QButtonGroup, QInputDialog, QToolButton,
+                             QGroupBox, QRadioButton, QButtonGroup, QInputDialog, QToolButton, QSpacerItem,
                              QTableWidget, QMessageBox, QHeaderView, QTableWidgetItem, QSizePolicy)
 
 
@@ -1228,6 +1238,26 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
             if len(self.aw.kaleidoEventFlags) > i:
                 cb.setChecked(self.aw.kaleidoEventFlags[i])
 
+        roasthubsOrgIdLabel = QLabel(QApplication.translate('Label','Organization ID'))
+        self.roasthubsOrgId = QLineEdit(self.aw.roasthubs_org_id)
+#        self.roasthubsOrgId.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.roasthubsOrgId.setFixedWidth(110)
+
+        roasthubsMachineIdLabel = QLabel(QApplication.translate('Label','Machine ID'))
+        self.roasthubsMachineId = QLineEdit(self.aw.roasthubs_machine_id)
+#        self.roasthubsMachineId.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.roasthubsMachineId.setFixedWidth(110)
+
+        roasthubsTokenLabel = QLabel(QApplication.translate('Label','Token'))
+        self.roasthubsToken = QLineEdit(self.aw.roasthubs_token)
+        self.roasthubsToken.setEchoMode(QLineEdit.EchoMode.Password)
+#        self.roasthubsToken.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.roasthubsToken.setFixedWidth(180)
+
+        roasthubsUploadButton =  QPushButton(QApplication.translate('Button','Upload'))
+        roasthubsUploadButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        roasthubsUploadButton.clicked.connect(self.aw.qmc.uploadRoastHubs)
+
         mugmaHostLabel = QLabel(QApplication.translate('Label','Host'))
         self.mugmaHost = QLineEdit(self.aw.mugmaHost)
         self.mugmaHost.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -1334,6 +1364,27 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
 
         kaleidoNetworkGroupBox = QGroupBox('Kaleido')
         kaleidoNetworkGroupBox.setLayout(kaleidoVBox)
+
+# roasthubs
+
+        roasthubsUploadHBox = QHBoxLayout()
+        roasthubsUploadHBox.addStretch()
+        roasthubsUploadHBox.addWidget(roasthubsUploadButton)
+        roasthubsGrid = QGridLayout()
+        roasthubsGrid.addWidget(roasthubsOrgIdLabel,0,0)
+        roasthubsGrid.addWidget(self.roasthubsOrgId,0,1)
+        roasthubsGrid.addItem(QSpacerItem(15, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding),0,2)
+        roasthubsGrid.addWidget(roasthubsMachineIdLabel,0,3)
+        roasthubsGrid.addWidget(self.roasthubsMachineId,0,4)
+        roasthubsGrid.addWidget(roasthubsTokenLabel,1,0)
+        roasthubsGrid.addWidget(self.roasthubsToken,1,1,1,3) # rowSpan=1, columnSpan=4
+        roasthubsGrid.addLayout(roasthubsUploadHBox,1,4)
+        roasthubsHBox = QHBoxLayout()
+        roasthubsHBox.addLayout(roasthubsGrid)
+        roasthubsHBox.addStretch()
+
+        roasthubsGroupBox = QGroupBox('RoastHubs')
+        roasthubsGroupBox.setLayout(roasthubsHBox)
 
         mugmaNetworkGrid = QGridLayout()
         mugmaNetworkGrid.addWidget(mugmaHostLabel,0,1)
@@ -1543,6 +1594,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
         tab7VLayout = QVBoxLayout()
         tab7VLayout.addWidget(santokerNetworkGroupBox)
         tab7VLayout.addWidget(kaleidoNetworkGroupBox)
+        tab7VLayout.addWidget(roasthubsGroupBox)
         tab7VLayout.addStretch()
         tab7V2Layout = QVBoxLayout()
         tab7V2Layout.addLayout(mugmaVBox)
@@ -1587,6 +1639,9 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
             self.scale1ModelComboBox.setToolTip(QApplication.translate('Tooltip','Choose the model of your scale'))
             self.scale1ModelComboBox.setMinimumWidth(150)
             self.scale1ModelComboBox.addItems([''] + [m for (m,_) in SUPPORTED_SCALES])
+            self.scale1GreenOnlyCheckBox = QCheckBox(QApplication.translate('Label','Greens only'))
+            self.scale1GreenOnlyCheckBox.setChecked(self.aw.scale1_dedicated_for_green_only)
+            self.scale1GreenOnlyCheckBox.setToolTip(QApplication.translate('Tooltip','Reserve scale 1 for green beans'))
             self.scale1NameLabel = QLabel(QApplication.translate('Label','Name'))
             self.scale1NameComboBox = QComboBox()
             self.scale1NameComboBox.setToolTip(QApplication.translate('Tooltip','Choose your scale'))
@@ -1633,6 +1688,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
             scale1Grid = QGridLayout()
             scale1Grid.addWidget(scale1ModelLabel,0,0)
             scale1Grid.addWidget(self.scale1ModelComboBox,0,1)
+            scale1Grid.addWidget(self.scale1GreenOnlyCheckBox,0,2,1,4,Qt.AlignmentFlag.AlignRight)
             scale1Grid.addWidget(self.scale1NameLabel,1,0)
             scale1Grid.addWidget(self.scale1NameComboBox,1,1)
             scale1Grid.addWidget(self.scale1EditButton,1,2)
@@ -1660,6 +1716,9 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
             self.scale2ModelComboBox.setToolTip(QApplication.translate('Tooltip','Choose the model of your scale'))
             self.scale2ModelComboBox.setMinimumWidth(150)
             self.scale2ModelComboBox.addItems([''] + [m for (m,_) in SUPPORTED_SCALES])
+            self.scale2RoastedOnlyCheckBox = QCheckBox(QApplication.translate('Label','Roasted only'))
+            self.scale2RoastedOnlyCheckBox.setChecked(self.aw.scale2_dedicated_for_roasted_only)
+            self.scale2RoastedOnlyCheckBox.setToolTip(QApplication.translate('Tooltip','Reserve scale 2 for roasted coffee'))
             self.scale2NameLabel = QLabel(QApplication.translate('Label','Name'))
             self.scale2NameComboBox = QComboBox()
             self.scale2NameComboBox.setToolTip(QApplication.translate('Tooltip','Choose your scale'))
@@ -1708,6 +1767,7 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
             scale2Grid = QGridLayout()
             scale2Grid.addWidget(scale2ModelLabel,0,0)
             scale2Grid.addWidget(self.scale2ModelComboBox,0,1)
+            scale2Grid.addWidget(self.scale2RoastedOnlyCheckBox,0,2,1,4,Qt.AlignmentFlag.AlignRight)
             scale2Grid.addWidget(self.scale2NameLabel,1,0)
             scale2Grid.addWidget(self.scale2NameComboBox,1,1)
             scale2Grid.addWidget(self.scale2EditButton,1,2)
@@ -2113,15 +2173,18 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
         self.scale1NameComboBox.setEnabled(False)
         self.scale1EditButton.setEnabled(False)
         if i > 0 and len(SUPPORTED_SCALES) > i-1 and len(SUPPORTED_SCALES[i-1]) > 0:
+            self.aw.scale1_name = None
+            self.scale1NameComboBox.clear()
+            self.update_scale1_weight(None)
             self.aw.scale1_model = i-1
             self.scale1ScanButton.setEnabled(True)
             self.updateScale1NameLabel(SUPPORTED_SCALES[i-1][1])
         else:
             self.aw.scale1_name = None
-            self.aw.scale1_model = None
             self.scale1NameComboBox.clear()
-            self.scale1ScanButton.setEnabled(False)
             self.update_scale1_weight(None)
+            self.aw.scale1_model = None
+            self.scale1ScanButton.setEnabled(False)
             self.updateScale1NameLabel(0)
 
     @pyqtSlot(int)
@@ -2251,15 +2314,18 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
         self.scale2NameComboBox.setEnabled(False)
         self.scale2EditButton.setEnabled(False)
         if i > 0 and len(SUPPORTED_SCALES) > i-1 and len(SUPPORTED_SCALES[i-1]) > 0:
+            self.aw.scale2_name = None
+            self.scale2NameComboBox.clear()
+            self.update_scale2_weight(None)
             self.aw.scale2_model = i-1
             self.scale2ScanButton.setEnabled(True)
             self.updateScale2NameLabel(SUPPORTED_SCALES[i-1][1])
         else:
             self.aw.scale2_name = None
-            self.aw.scale2_model = None
             self.scale2NameComboBox.clear()
-            self.scale2ScanButton.setEnabled(False)
             self.update_scale2_weight(None)
+            self.aw.scale2_model = None
+            self.scale2ScanButton.setEnabled(False)
             self.updateScale1NameLabel(0)
 
     @pyqtSlot(int)
@@ -2455,13 +2521,6 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
             self.aw.container2_idx = i - 3
             # update displayed scale weight
             self.updateRoastedContainerWeight()
-#        # we need to update availability, as roasted scale is only available if roasted container weight is set
-#        self.aw.scale_manager.update_availability(force=True)
-#        # if green display is ON, roasted display can only be turned ON if roasted container is selected
-#        if self.aw.taskWebDisplayGreenActive and self.aw.container2_idx == -1:
-#            self.taskWebDisplayRoasted(False)
-#        self.taskWebDisplayRoastedFlag.setDisabled(self.aw.taskWebDisplayGreenActive)# and self.aw.container2_idx == -1)
-#        self.taskWebDisplayRoastedPort.setDisabled(self.aw.taskWebDisplayGreenActive)# and self.aw.container2_idx == -1)
 
     def updateRoastedContainerWeight(self) -> None:
         weight = self.aw.qmc.get_container_weight(self.aw.container2_idx)
@@ -3532,6 +3591,10 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
 
             self.aw.two_bucket_mode = self.dual_bucket_mode.isChecked()
             self.aw.green_task_precision = self.greenTaskPrecision.value()
+
+            self.aw.scale1_dedicated_for_green_only = self.scale1GreenOnlyCheckBox.isChecked()
+            self.aw.scale2_dedicated_for_roasted_only = self.scale2RoastedOnlyCheckBox.isChecked()
+            self.aw.scale_manager.update_availability() # availability might have changed based on the update of the scaleN_dedicated flags
 
             if self.pidButton.isChecked():
                 #type index[0]: 0 = PXG, 1 = PXR, 2 = DTA
@@ -4924,6 +4987,16 @@ class DeviceAssignmentDlg(ArtisanResizeablDialog):
             except Exception: # pylint: disable=broad-except
                 pass
 #            self.aw.kaleidoPID = self.kaleidoPIDFlag.isChecked()
+            #
+            if self.roasthubsOrgId.text() != '' or self.roasthubsMachineId.text() != '' or self.roasthubsToken.text() != '':
+                from artisanlib.roasthubs import setRoastHubsCredentials
+                setRoastHubsCredentials(
+                    self.aw,
+                    self.roasthubsOrgId.text(),
+                    self.roasthubsMachineId.text(),
+                    self.roasthubsToken.text())
+
+            #
             self.aw.mugmaHost = self.mugmaHost.text().strip()
             try:
                 self.aw.mugmaPort = int(self.mugmaPort.text())

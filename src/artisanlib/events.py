@@ -1,17 +1,27 @@
 #
 # ABOUT
 # Artisan Events Dialog
-
+#
+# COPYRIGHT (C) 2010-2026 The Artisan team represented by
+#   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
+#
 # LICENSE
-# This program or module is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as published
-# by the Free Software Foundation, either version 2 of the License, or
-# version 3 of the License, or (at your option) any later version. It is
-# provided for educational purposes and is distributed in the hope that
-# it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
-# the GNU General Public License for more details.
-
+# This program or module is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# MAINTAINER
+# Marko Luther, 2026
+#
 # AUTHOR
 # Marko Luther, 2023
 
@@ -2724,7 +2734,7 @@ class EventsDlg(ArtisanResizeablDialog):
         self.setcoloreventline(3)
 
     def setcoloreventline(self, b:int) -> None:
-        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueColor[b]), parent=self)
+        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueColor[b]))
         if colorf.isValid():
             colorname = str(colorf.name())
             self.aw.qmc.EvalueColor[b] = colorname
@@ -2746,7 +2756,7 @@ class EventsDlg(ArtisanResizeablDialog):
         self.setcoloreventtext(3)
 
     def setcoloreventtext(self, b:int) -> None:
-        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueTextColor[b]), parent=self)
+        colorf = self.aw.colordialog(QColor(self.aw.qmc.EvalueTextColor[b]))
         if colorf.isValid():
             colorname = str(colorf.name())
             self.aw.qmc.EvalueTextColor[b] = colorname
@@ -3152,7 +3162,7 @@ class EventsDlg(ArtisanResizeablDialog):
     def setbuttoncolor(self, _:bool = False) -> None:
         i = self.aw.findWidgetsRow(self.eventbuttontable,self.sender(),7)
         if i is not None and i < len(self.extraeventbuttoncolor):
-            colorf = self.aw.colordialog(QColor(self.extraeventbuttoncolor[i]), parent=self)
+            colorf = self.aw.colordialog(QColor(self.extraeventbuttoncolor[i]))
             if colorf.isValid():
                 self.extraeventbuttoncolor[i] = str(colorf.name())
                 textColor = self.extraeventbuttontextcolor[i]
@@ -3171,7 +3181,7 @@ class EventsDlg(ArtisanResizeablDialog):
     def setbuttontextcolor(self, _:bool = False) -> None:
         i = self.aw.findWidgetsRow(self.eventbuttontable,self.sender(),8)
         if i is not None and i < len(self.extraeventbuttontextcolor):
-            colorf = self.aw.colordialog(QColor(self.extraeventbuttontextcolor[i]), parent=self)
+            colorf = self.aw.colordialog(QColor(self.extraeventbuttontextcolor[i]))
             if colorf.isValid():
                 self.extraeventbuttontextcolor[i] = str(colorf.name())
                 textColor = self.extraeventbuttontextcolor[i]

@@ -1,16 +1,25 @@
 # ABOUT
 # Artisan pyinstaller specification file
-
+#
+# COPYRIGHT (C) 2010-2026 The Artisan team represented by
+#   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
+#
 # LICENSE
-# This program or module is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as published
-# by the Free Software Foundation, either version 2 of the License, or
-# version 3 of the License, or (at your option) any later version. It is
-# provided for educational purposes and is distributed in the hope that
-# it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
-# the GNU General Public License for more details.
-
+# This program or module is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# MAINTAINER
+# Marko Luther, 2026
 # AUTHOR
 # Marko Luther, Dave Baxter 2023
 
@@ -131,8 +140,8 @@ hiddenimports_list=['charset_normalizer.md__mypyc', # part of requests 2.28.2 # 
                             'win32cred',
                             'win32timezone',
                             'babel.numbers',  # should not be needed as it got fixed in pyinstaller 6.11
-                            'PyQt6.QtWebChannel',
-                            'PyQt6.QtWebEngineCore',
+#                            'PyQt6.QtWebChannel',
+#                            'PyQt6.QtWebEngineCore',
                             'importlib_resources',
                             'winrt.windows.foundation.collections'
                             ]
@@ -149,7 +158,7 @@ a = Analysis(['artisan.py'],
              hookspath=[],
              runtime_hooks=[r'pyinstaller_hooks\rthooks\pyi_rth_mplconfig.py'], # overwrites default MPL runtime hook which keeps loading font cache from (new) temp directory
              additional_hooks_dir=[],
-             excludes=['pkg_resources'],
+             excludes=['tkinter', 'mypy', 'hypothesis', 'tornado', 'pkg_resources'],
              hiddenimports=hiddenimports_list,
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
@@ -280,8 +289,11 @@ for fn in [
     r'includes\bigtext.js',
     r'includes\sorttable.js',
     r'includes\report-template.htm',
+    r'includes\report-template-pdf.htm',
     r'includes\roast-template.htm',
+    r'includes\roast-template-pdf.htm',
     r'includes\ranking-template.htm',
+    r'includes\ranking-template-pdf.htm',
     r'includes\jquery-1.11.1.min.js',
     r'includes\android-chrome-192x192.png',
     r'includes\android-chrome-512x512.png',
@@ -352,58 +364,6 @@ for root, _, files in os.walk(rootdir + r'\babel\locale-data'):
 # remove unneeded files and folders from Windows
 logging.info(">>>>> Removing unneeded files")
 for fn in [
-    r'_internal\PyQt6\Qt6\bin\Qt6Multimedia.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6MultimediaQuick.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6PdfQuick.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6PositioningQuick.dll',
-    #r'_internal\PyQt6\Qt6\bin\Qt6QmlWorkerScript.dll',  # required for pyqt6 v6.8+
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3D.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DAssetImport.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DAssetUtils.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DEffects.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DHelpers.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DHelpersImpl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DParticles.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DPhysics.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DPhysicsHelpers.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DRuntimeRender.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DSpatialAudio.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Quick3DUtils.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2Basic.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2BasicStyleImpl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2Fusion.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2FusionStyleImpl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2Imagine.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2ImagineStyleImpl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2Impl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2Material.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2MaterialStyleImpl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2Universal.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickControls2UniversalStyleImpl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickDialogs2.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickDialogs2QuickImpl.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickDialogs2Utils.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickLayouts.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickParticles.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickShapes.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickTemplates2.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickTest.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickTimeline.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6QuickTimelineBlendTrees.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6RemoteObjects.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6RemoteObjectsQml.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Sensors.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6SensorsQuick.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6SerialPort.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6ShaderTools.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6SpatialAudio.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6Test.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6TextToSpeech.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6WebChannelQuick.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6WebEngineQuick.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6WebEngineQuickDelegatesQml.dll',
-    r'_internal\PyQt6\Qt6\bin\Qt6WebSockets.dll',
     r'_internal\PyQt6\Qt6\plugins\platforms\qminimal.dll',
     r'_internal\PyQt6\Qt6\plugins\platforms\qoffscreen.dll',
     r'_internal\PyQt6\Qt6\plugins\imageformats\qicns.dll',
@@ -424,9 +384,7 @@ logging.info(">>>>> Removing unneeded folders")
 for dp in [
     r'_internal\PyQt6\Qt6\plugins\generic',
     r'_internal\PyQt6\Qt6\plugins\networkinformation',
-    r'_internal\PyQt6\Qt6\plugins\position',
     r'_internal\PyQt6\Qt6\plugins\tls',
-    r'_internal\PyQt6\Qt6\qml',
     r'_internal\matplotlib\mpl-data\sample_data',
     ]:
     remove_dir(f'{TARGET}{dp}', True)
