@@ -574,10 +574,7 @@ try:
 
     # copy settings from legacy to new if newsettings do not exist, legacysettings do exist, and were not previously copied
     def has_legacy_settings() -> bool:
-        """
-        Check if legacy settings exist without creating them.
-        Works on Windows, macOS, and Linux.
-        """
+        # Check if legacy settings exist without creating them.
         if sys.platform == 'win32':
             # Import here to avoid import error on non-Windows platforms
             import winreg
@@ -590,13 +587,11 @@ try:
 
         elif sys.platform == 'darwin':
             # macOS: Check ~/Library/Preferences/com.yourcompany.YourQuest.plist
-            from pathlib import Path
             plist_path = Path.home() / 'Library' / 'Preferences' / 'com.yourcompany.YourQuest.plist'
             return plist_path.exists()
 
         else:
             # Linux: Check ~/.config/YourQuest/YourQuestrc
-            from pathlib import Path
             config_path = Path.home() / '.config' / 'YourQuest' / 'YourQuestrc'
             return config_path.exists()
 
