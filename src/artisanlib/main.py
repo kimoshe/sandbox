@@ -4093,18 +4093,6 @@ class ApplicationWindow(QMainWindow):
 
         self.editgraphdialog:editGraphDlg|bool|None = None
 
-#        # provide information message to user about sharing settings at start-up
-        if settingsRelocated:
-            string =  QApplication.translate('Message','Welcome to version {0} of Artisan!').format(__version__) + '\n\n'
-            string += QApplication.translate('Message','This is a one time message to inform you about a change in Artisan.') + '\n\n'
-            string += QApplication.translate('Message','If you never run older versions of Artisan you can skip this message, the change does not affect you.') + '  '
-            string += QApplication.translate('Message','Artisan preserves all your configuration settings when you exit so they will automatically be available the next time you start Artisan.') + '  '
-            string += QApplication.translate('Message','Beginning with release v2.0, settings will no longer be automatically shared at start-up with versions before v2.0.') + '\n\n'
-            string += QApplication.translate('Message','Do not worry. Since this is the first time you opened this new version Artisan has already loaded your last used settings.') + '\n\n'
-            string += QApplication.translate('Message',"To share settings between this version and Artisan versions before v2.0 use 'Help>Save Settings' and 'Help>Load Settings'.") + '\n\n'
-            string += QApplication.translate('Message','Enjoy using Artisan, The Artisan Team')
-            QMessageBox.information(self, QApplication.translate('Message','One time message about loading settings at start-up'),string)
-
         # provide information message to user about ArtisanViewer the first time it is started
         if self.artisanviewerFirstStart:
             string =  QApplication.translate('Message','Welcome to the ArtisanViewer!').format(__version__) + '\n\n'
