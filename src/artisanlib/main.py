@@ -188,8 +188,6 @@ if TYPE_CHECKING:
     from matplotlib.artist import Artist # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
     from matplotlib.lines import Line2D # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
     from xml.etree.ElementTree import Element as XMLElement
-    #dave
-    import winreg # pylint: disable=unused-import
 
 # fix socket.inet_pton on Windows (used by pymodbus TCP/UDP)
 try:
@@ -560,65 +558,6 @@ app = Artisan(app_args)
 # will be copied to the new settings location. Once settings exist under "artisan-scope" the legacy settings under "YourQuest" will
 # no longer be read or saved.  At start-up, versions of Artisan before to v2.0 will no longer share settings with versions v2.0 and after.
 # Settings can be shared among all versions of Artisan by explicitly saving and loading them using Help>Save/Load Settings.
-
-settingsRelocated:bool = False
-try:
-    app.setApplicationName(application_name)                                #needed by QSettings() to store windows geometry in operating system
-
-    app.setOrganizationName('YourQuest')                                    #needed by QSettings() to store windows geometry in operating system
-    app.setOrganizationDomain('p.code.google.com')                          #needed by QSettings() to store windows geometry in operating system
-    legacysettings = QSettings()
-    app.setOrganizationName(application_organization_name)                  #needed by QSettings() to store windows geometry in operating system
-    app.setOrganizationDomain(application_organization_domain)              #needed by QSettings() to store windows geometry in operating system
-    newsettings = QSettings()
-
-    # copy settings from legacy to new if newsettings do not exist, legacysettings do exist, and were not previously copied
-    def has_legacy_settings() -> bool:
-        # Check if legacy settings exist without creating them.
-        if sys.platform == 'win32':
-            # Import here to avoid import error on non-Windows platforms
-            import winreg
-            try:
-                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\YourQuest')
-                winreg.CloseKey(key)
-                return True
-            except FileNotFoundError:
-                return False
-
-        elif sys.platform == 'darwin':
-            # macOS: Check ~/Library/Preferences/com.yourcompany.YourQuest.plist
-            plist_path = Path.home() / 'Library' / 'Preferences' / 'com.yourcompany.YourQuest.plist'
-            return plist_path.exists()
-
-        else:
-            # Linux: Check ~/.config/YourQuest/YourQuestrc
-            config_path = Path.home() / '.config' / 'YourQuest' / 'YourQuestrc'
-            return config_path.exists()
-
-    #dave if not newsettings.contains('Mode') and legacysettings.contains('Mode') and legacysettings.contains('_settingsCopied') and legacysettings.value('_settingsCopied') != 1:
-    if not newsettings.contains('Mode') and has_legacy_settings() and legacysettings.contains('_settingsCopied') and legacysettings.value('_settingsCopied') != 1:
-
-        settingsRelocated = True
-        # copy Artisan settings
-        for key in legacysettings.allKeys():
-            newsettings.setValue(key,legacysettings.value(key))
-        legacysettings.setValue('_settingsCopied', 1)  # prevents copying again in the future, this key not cleared by a Factory Reset
-
-        # copy ArtisanViewer settings
-        app.setApplicationName(application_viewer_name)                         #needed by QSettings() to store windows geometry in operating system
-
-        app.setOrganizationName('YourQuest')                                    #needed by QSettings() to store windows geometry in operating system
-        app.setOrganizationDomain('p.code.google.com')                          #needed by QSettings() to store windows geometry in operating system
-        legacysettings = QSettings()
-        app.setOrganizationName(application_organization_name)                  #needed by QSettings() to store windows geometry in operating system
-        app.setOrganizationDomain(application_organization_domain)              #needed by QSettings() to store windows geometry in operating system
-        newsettings = QSettings()
-        for key in legacysettings.allKeys():
-            newsettings.setValue(key,legacysettings.value(key))
-    del legacysettings   #free up memory?
-    del newsettings      #free up memory?
-except Exception: # pylint: disable=broad-except
-    pass
 
 app.setApplicationName(application_name)                                #needed by QSettings() to store windows geometry in operating system
 app.setOrganizationName(application_organization_name)                  #needed by QSettings() to store windows geometry in operating system
@@ -3610,7 +3549,7 @@ class ApplicationWindow(QMainWindow):
         self.lowerbuttondialogLayout.addStretch()
         for button_widget in [self.buttonCHARGE, self.buttonDRY, self.buttonFCs, self.buttonFCe,
                 self.buttonSCs, self.buttonSCe, self.buttonDROP, self.buttonCOOL, self.buttonEVENT]:
-            self.lowerbuttondialogLayout.addWidget(cast(EventPushButton, button_widget))
+            self.lowerbuttondialogLayout.addWidget(button_widget) # pyright:ignore[reportUnknownArgumentType] # pyright fails to infer EventPushButton here
         self.lowerbuttondialogLayout.addStretch()
 
         def makeButtonbar() -> QFrame:
@@ -6527,6 +6466,7 @@ class ApplicationWindow(QMainWindow):
         if hasattr(self, 'light_background_p'):
             # reset the cached property self.light_background_p
             del self.light_background_p
+
 
 
     # called from within the sample loop thread!

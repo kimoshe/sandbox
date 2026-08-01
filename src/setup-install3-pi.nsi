@@ -1,5 +1,5 @@
 ; ABOUT
-; NSIS script file for Artisan Windows installer.
+; NSIS script file for artisan Windows installer.
 ;
 ; COPYRIGHT (C) 2010-2026 The Artisan team represented by
 ; Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
@@ -133,7 +133,7 @@ RequestExecutionLevel admin
 
 ; HM NIS Edit Wizard helper defines
 !define pyinstallerOutputDir 'dist/artisan'
-!define PRODUCT_NAME "Artisan"
+!define PRODUCT_NAME "artisan"
 !define PRODUCT_PUBLISHER "The Artisan Team"
 !define PRODUCT_WEB_SITE "https://github.com/artisan-roaster-scope/artisan/blob/master/README.md"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\artisan.exe"
@@ -158,7 +158,7 @@ Caption "${PRODUCT_NAME} Installer"
 
 VIProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 VIAddVersionKey ProductName "${PRODUCT_NAME}"
-VIAddVersionKey Comments "Installer for Artisan"
+VIAddVersionKey Comments "Installer for artisan"
 VIAddVersionKey CompanyName ""
 VIAddVersionKey LegalCopyright "Copyright 2010-${CUR_YEAR}, Artisan developers. GNU General Public License"
 VIAddVersionKey FileVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
@@ -209,7 +209,7 @@ ShowUnInstDetails show
 Function .onInit
   ${If} ${LEGACY} == "False"
   ${AndIfNot} ${AtLeastWin10}
-    MessageBox mb_iconStop "Artisan requires Windows 10 or later to install and run."
+    MessageBox mb_iconStop "artisan requires Windows 10 or later to install and run."
     Abort
   ${EndIf}
 
@@ -237,7 +237,7 @@ Function .onInit
     IDOK uninst
     Abort
   ${Else}
-    MessageBox MB_OK "You are not using a 64bit system.\nSorry, we can not install Artisan on your system."
+    MessageBox MB_OK "You are not using a 64bit system.\nSorry, we can not install artisan on your system."
     Abort
   ${EndIf}
 
@@ -271,8 +271,8 @@ Section "MainSection" SEC01
   SetOverwrite on
   File /r '${pyinstallerOutputDir}\*.*'
   CreateDirectory "$SMPROGRAMS\Artisan"
-  CreateShortCut "$SMPROGRAMS\Artisan\Artisan.lnk" "$INSTDIR\artisan.exe"
-  CreateShortCut "$DESKTOP\Artisan.lnk" "$INSTDIR\artisan.exe"
+  CreateShortCut "$SMPROGRAMS\Artisan\artisan.lnk" "$INSTDIR\artisan.exe"
+  CreateShortCut "$DESKTOP\artisan.lnk" "$INSTDIR\artisan.exe"
 SectionEnd
 
 Section "Microsoft Visual C++ Redistributable Package (x64)" SEC02
@@ -283,8 +283,8 @@ SectionEnd
 Section -AdditionalIcons
   SetShellVarContext all
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
-  CreateShortCut "$SMPROGRAMS\Artisan\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-  CreateShortCut "$SMPROGRAMS\Artisan\Uninstall.lnk" "$INSTDIR\uninst.exe"
+  CreateShortCut "$SMPROGRAMS\artisan\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\artisan\Uninstall.lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
 Section -Post
@@ -305,8 +305,8 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
 
   ; file associations
-  !insertmacro APP_ASSOCIATE "alog" "Artisan.Profile" "Artisan Roast Profile" \
-     "$INSTDIR\artisanProfile.ico" "Open with Artisan" "$INSTDIR\artisan.exe $\"%1$\""
+  !insertmacro APP_ASSOCIATE "alog" "artisan.Profile" "Artisan Roast Profile" \
+     "$INSTDIR\artisanProfile.ico" "Open with artisan" "$INSTDIR\artisan.exe $\"%1$\""
 
   !insertmacro APP_ASSOCIATE "alrm" "Artisan.Alarms" "Artisan Alarms" \
      "$INSTDIR\artisanAlarms.ico" "Open with Artisan" "$INSTDIR\artisan.exe $\"%1$\""
@@ -478,8 +478,8 @@ Section Uninstall
   SetShellVarContext all
   Delete "$SMPROGRAMS\Artisan\Uninstall.lnk"
   Delete "$SMPROGRAMS\Artisan\Website.lnk"
-  Delete "$DESKTOP\Artisan.lnk"
-  Delete "$SMPROGRAMS\Artisan\Artisan.lnk"
+  Delete "$DESKTOP\artisan.lnk"
+  Delete "$SMPROGRAMS\Artisan\artisan.lnk"
 
   RMDir "$SMPROGRAMS\Artisan"
   RMDir "$INSTDIR"
@@ -487,12 +487,12 @@ Section Uninstall
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
   DeleteRegKey HKCR ".alog"
-  DeleteRegKey HKCR "Artisan.Profile\DefaultIcon"
-  DeleteRegKey HKCR "Artisan.Profile\shell"
-  DeleteRegKey HKCR "Artisan.Profile\shell\open\command"
-  DeleteRegKey HKCR "Artisan.Profile"
+  DeleteRegKey HKCR "artisan.Profile\DefaultIcon"
+  DeleteRegKey HKCR "artisan.Profile\shell"
+  DeleteRegKey HKCR "artisan.Profile\shell\open\command"
+  DeleteRegKey HKCR "artisan.Profile"
 
-  !insertmacro APP_UNASSOCIATE "alog" "Artisan.Profile"
+  !insertmacro APP_UNASSOCIATE "alog" "artisan.Profile"
   !insertmacro APP_UNASSOCIATE "alrm" "Artisan.Alarms"
   !insertmacro APP_UNASSOCIATE "apal" "Artisan.Palettes"
   !insertmacro APP_UNASSOCIATE "athm" "Artisan.Theme"
