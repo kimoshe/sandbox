@@ -305,25 +305,25 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
 
   ; file associations
-  !insertmacro APP_ASSOCIATE "alog" "artisan.Profile" "Artisan Roast Profile" \
+  !insertmacro APP_ASSOCIATE "alog" "artisan.Profile" "artisan roast profile" \
      "$INSTDIR\artisanProfile.ico" "Open with artisan" "$INSTDIR\artisan.exe $\"%1$\""
 
-  !insertmacro APP_ASSOCIATE "alrm" "Artisan.Alarms" "Artisan Alarms" \
+  !insertmacro APP_ASSOCIATE "alrm" "Artisan.Alarms" "artisan alarms" \
      "$INSTDIR\artisanAlarms.ico" "Open with Artisan" "$INSTDIR\artisan.exe $\"%1$\""
 
-  !insertmacro APP_ASSOCIATE "apal" "Artisan.Palettes" "Artisan Palettes" \
+  !insertmacro APP_ASSOCIATE "apal" "Artisan.Palettes" "artisan palettes" \
      "$INSTDIR\artisanPalettes.ico" "Open with Artisan" "$INSTDIR\artisan.exe $\"%1$\""
 
-  !insertmacro APP_ASSOCIATE "athm" "Artisan.Theme" "Artisan Theme" \
+  !insertmacro APP_ASSOCIATE "athm" "Artisan.Theme" "artisan theme" \
      "$INSTDIR\artisanTheme.ico" "Open with Artisan" "$INSTDIR\artisan.exe $\"%1$\""
 
-  !insertmacro APP_ASSOCIATE "aset" "Artisan.Settings" "Artisan Settings" \
+  !insertmacro APP_ASSOCIATE "aset" "Artisan.Settings" "artisan settings" \
      "$INSTDIR\artisanSettings.ico" "Open with Artisan" "$INSTDIR\artisan.exe $\"%1$\""
 
-  !insertmacro APP_ASSOCIATE "wg" "Artisan.Wheel" "Artisan Wheel" \
+  !insertmacro APP_ASSOCIATE "wg" "Artisan.Wheel" "artisan wheel" \
      "$INSTDIR\artisanWheel.ico" "Open with Artisan" "$INSTDIR\artisan.exe $\"%1$\""
 
-  !insertmacro APP_ASSOCIATE_URL "artisan" "URL:artisan Protocol" \
+  !insertmacro APP_ASSOCIATE_URL "artisan" "URL:artisan protocol" \
      "Open with URL" "$INSTDIR\artisan.exe $\"%1$\""
 
 SectionEnd

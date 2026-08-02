@@ -2,7 +2,7 @@
 # ABOUT
 # Profile upload to RoastHubs platform
 #
-# COPYRIGHT (C) 2010-2026 The Artisan team represented by
+# COPYRIGHT (C) 2010-2026 The artisan team represented by
 #   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
 #
 # LICENSE
@@ -72,7 +72,7 @@ async def send_roast(roast:'artisan_roast_pb2.Roast', token:str,
         async with aiohttp.ClientSession() as session:
             headers = {
                 'Content-Type': 'application/protobuf',
-                'User-Agent': f'Artisan/{__version__}',
+                'User-Agent': f'artisan/{__version__}',
                 'Accept-Encoding': 'deflate, compress, gzip',
                 'Authorization': f'Bearer {token}',
                 'Idempotency-Key': uuid.uuid4().hex

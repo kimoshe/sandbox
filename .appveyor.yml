@@ -20,7 +20,7 @@ environment:
   # Set the default Appveyor Python version here. Can be overridden in platform environment.
   PYTHON_V: 3.14
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  PYUPGRADE_WIN_VER: 3.14.6
+  #PYUPGRADE_WIN_VER: 3.14.6
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   ARTISAN_KEY:
@@ -70,7 +70,7 @@ for:
     #PYTHON_V: 3.14  # Override the stack key
     PYQT: "6"
     PYUIC: "pyuic6.exe"
-    BUILD_PYINSTALLER: "True"
+    BUILD_PYINSTALLER: "False"
     VC_REDIST: "https://aka.ms/vc14/vc_redist.x64.exe"  #redistributable for VS 2017-2026
 
   install:

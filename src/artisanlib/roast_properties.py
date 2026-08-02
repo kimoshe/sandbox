@@ -1,8 +1,8 @@
 #
 # ABOUT
-# Artisan Roast Properties Dialog
+# artisan scope roast properties dialog
 #
-# COPYRIGHT (C) 2010-2026 The Artisan team represented by
+# COPYRIGHT (C) 2010-2026 The artisan team represented by
 #   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
 #
 # LICENSE
@@ -1695,7 +1695,7 @@ class editGraphDlg(ArtisanResizeablDialog):
 
         if start_recording_on_exit:
             from PyQt6.QtWidgets import QMessageBox
-            string = QApplication.translate('Message', 'artisan.plus needs to know the beans you are roasting')
+            string = QApplication.translate('Message', 'artisan platform needs to know the beans you are roasting')
             mbox = QMessageBox(self.aw)
             mbox.setText(string)
             plus.util.setPlusIcon(mbox)

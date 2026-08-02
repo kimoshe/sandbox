@@ -1,8 +1,8 @@
 #
 # ABOUT
-# Artisan Utilities
+# Utilities
 #
-# COPYRIGHT (C) 2010-2026 The Artisan team represented by
+# COPYRIGHT (C) 2010-2026 The artisan team represented by
 #   Marko Luther <marko.luther@gmx.net> (maintainer) and all contributors
 #
 # LICENSE
@@ -56,8 +56,9 @@ if TYPE_CHECKING:
 
 _log: Final[logging.Logger] = logging.getLogger(__name__)
 
-application_name: Final[str] = 'artisan'
-application_viewer_name: Final[str] = 'artisanViewer'
+# don't update any of those as they are used to find the app settings
+application_name: Final[str] = 'Artisan'
+application_viewer_name: Final[str] = 'ArtisanViewer'
 application_organization_name: Final[str] = 'artisan-scope'
 application_organization_domain: Final[str] = 'artisan-scope.org'
 application_desktop_file_name: Final[str] = 'org.artisan_scope.artisan'
@@ -444,7 +445,7 @@ def getDataDirectory() -> str|None:
 # internal function to return
 @functools.cache
 def _getAppDataDirectory(app:'Artisan') -> str|None:
-    # temporarily switch app name to Artisan (as it might be ArtisanViewer)
+    # temporarily switch app name to Artisan (as it might be artisanViewer)
     appName = app.applicationName()
     app.setApplicationName(application_name)
     data_dir = QStandardPaths.standardLocations(
