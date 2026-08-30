@@ -1,6 +1,6 @@
 ; TODO List
 ; Consider whether Finish_Documentation_URL and Finish_Donate_URL should be a LANG string or !define
-; Desired transaltions  German, Spanish, French, Italian, Portuguese and Chinese
+; Desired translations  German, Spanish, French, Italian, Portuguese and Chinese
 ; Where in the repo to store the translations file
 ; Review for consistent coding,
 ;       named variables versus internal $0 like one.
@@ -9,7 +9,7 @@
 ;       useful comments
 ;       order of the various sections
 ;       remove unused LANG strings
-;       remove unneccesary commented lines
+;       remove unnecessary commented lines
 ;       remove unneeded !includes
 ;       remove any unneeded !macros
 ;       all strings in the LANG list
@@ -295,7 +295,7 @@ Var IsSilentMode        ; 1 = /S mode
 ; General
 !define MUI_ABORTWARNING
 ; #dave for test only
-!define MUI_FINISHPAGE_NOAUTOCLOSE  ; Prevents auto-jump fron InstFiles page to Finish page
+!define MUI_FINISHPAGE_NOAUTOCLOSE  ; Prevents auto-jump from InstFiles page to Finish page
 !define MUI_INSTALLCOLORS "C79928 FFFFFF"   #dave
 
 ; INSTALL
@@ -315,8 +315,8 @@ Var IsSilentMode        ; 1 = /S mode
 !define MUI_HEADERIMAGE_UNBITMAP "${nsisLocalIncludes}\header-uninstall.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP "${nsisLocalIncludes}\sidebar-uninstall.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP_STRETCH "FitControl"
-!define MUI_FINISHPAGE_TITLE "$(UnFinish_Title)"  ;used only for unistall
-!define MUI_FINISHPAGE_TEXT "$(UnFinish_Text)"    ;used only for unistall
+!define MUI_FINISHPAGE_TITLE "$(UnFinish_Title)"  ;used only for uninstall
+!define MUI_FINISHPAGE_TEXT "$(UnFinish_Text)"    ;used only for uninstall
 
 
 ; ============================================================================
