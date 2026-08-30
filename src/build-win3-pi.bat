@@ -86,9 +86,9 @@ if ERRORLEVEL 1 (echo ** Failed in NSIS & exit /b 1) else (echo ** Success)
 set file=artisan-win*setup.exe
 set min_size=140000000
 for %%A in (%file%) do set size=%%~zA
-::if %size% LSS %min_size% (
-    echo *** Zip file is smaller than expected
-::    exit /b 1
-::) else (
-::    echo **** Success: %file% is larger than minimum %min_size% bytes
-::)
+if %size% LSS %min_size% (
+  echo *** Zip file is smaller than expected
+    exit /b 1
+) else (
+    echo **** Success: %file% is larger than minimum %min_size% bytes
+)
