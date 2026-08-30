@@ -370,7 +370,7 @@ UninstPage custom un.WelcomeShow un.WelcomeLeave
 ; SET VARIABLES
 ; ============================================================================
 Name "${PRODUCT_NAME}"
-OutFile "${PRODUCT_NAME}-setup.exe"
+OutFile "${PRODUCT_NAME}-win-x64-${PRODUCT_VERSION}-setup.exe"
 InstallDir "C:\Program Files\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
