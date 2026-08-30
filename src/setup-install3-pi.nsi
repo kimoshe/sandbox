@@ -708,7 +708,7 @@ Function CustomFinishPageLeave
     ${If} $CheckboxState == ${BST_CHECKED}
         ; Run the application
 ;     #dave    MessageBox MB_OK "CheckboxRunApp"
-;     #dave   ExecShell "open" "$INSTDIR\${PRODUCT_NAME}.exe"
+       ExecShell "open" "$INSTDIR\${PRODUCT_NAME}.exe"
     ${EndIf}
 
     ${NSD_GetState} $CheckboxOpenDocs $CheckboxState
