@@ -9,12 +9,18 @@ v4.2.2
   - adds support for [Dutch Master Roasters](https://artisan-scope.org/machines/dmr/)
   - adds support for [RoastHubs](https://roasthubs.com/)
   - adds autoCHARGE/DROP and drum speed control to the [Schuilenburg](https://artisan-scope.org/machines/schuilenburg/) PLC machine setup
+  - adds autoCHARGE/autoDROP recognition for [IMF](https://artisan-scope.org/machines/imf/) as 'auto' setup which picks up CHARGE and DROP events from the machine
   - adds UI scaling factor
   - adds [Catppuccin](https://github.com/catppuccin) themes by Liam
-  - adds Artisan Commands `pidDerivativeFilter(<n>)`, `pidDerivativeLimit(<n>)`, `pidILF(<n>)`, `pidIWP(<bool>)`, and `pidIRoC(<bool>)` to configure the internal PID
+  - adds two more MODBUS device channels
+  - adds Artisan Commands `pidDerivativeFilter(<n>)`, `pidDerivativeLimit(<n>)`, `pidILF(<n>)`, `pidIWP(<bool>)`, and `pidIRoC(<bool>)` to configure the internal PID (for John)
+  - adds Artisan Commands `zoom(<x>[,<y>])`, `pan(<x>[,<y>])`, `center(<x>,<y>[,<clamp>])`, `clamp(<n>)`, `followMode(<bool>)`, and `followModePanning(<x>[,<y>])` to update the canvas perspective
+  - adds Artisan Commands `home`, `back` and `forward` to operate the navigation bar
 * CHANGES
   - tightened license from [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) to [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html) to prevent commercialization as headless engine
-  - smaller builds (size reduced by ~45%) by replacing headless Chromium engine by Rust-based [fulgur lib](https://github.com/fulgur-rs/fulgur) for HTML2PDF conversion
+  - smaller builds by replacing headless Chromium engine by Rust-based [fulgur lib](https://github.com/fulgur-rs/fulgur) for HTML2PDF conversion (size reduced by ~45%)
+  - faster app start (startup time redued by ~50%)
+  - refreshed UI
 * FIXES
   - fixes faulty hash generation on files created using `Save As` causing `modified file` warnings on load ([Issue #2205](../../../issues/2205))
   - fixes regression causing canvas color not being applied correctly ([Issue #2212](../../../issues/2212))

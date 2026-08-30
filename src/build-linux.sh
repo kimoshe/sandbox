@@ -98,6 +98,8 @@ cp includes/SourceHanSansTW-Regular.otf dist
 cp includes/dijkstra.ttf dist
 cp includes/ComicNeue-Regular.ttf dist
 cp includes/xkcd-script.ttf dist
+cp includes/Nunito-Regular.ttf dist
+cp includes/NotoSansMono-Regular.ttf dist
 cp includes/alarmclock.eot dist
 cp includes/alarmclock.svg dist
 cp includes/alarmclock.ttf dist
@@ -127,7 +129,7 @@ cp includes/favicon.ico dist
 cp includes/mstile-150x150.png dist
 cp includes/safari-pinned-tab.svg dist
 cp includes/site.webmanifest dist
-cp includes/logging.yaml dist
+cp includes/logging.json dist
 cp includes/artisan_public_key.pem dist
 cp -R icons dist
 cp -R Wheels dist
@@ -151,7 +153,7 @@ cp -R includes/Icons/* dist/Icons
 
 keep_qt_modules="libQt6Concurrent libQt6Core libQt6DBus libQt6Gui libQt6Network
  libQt6PrintSupport libQt6Svg libQt6WaylandClient libQt6WaylandEglClientHwIntegration
- libQt6Widgets libQt6WlShellIntegration libQt6XcbQpa "
+ libQt6Widgets libQt6WlShellIntegration libQt6XcbQpa libQt6SvgWidgets"
 
 
 

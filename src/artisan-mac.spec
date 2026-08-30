@@ -116,11 +116,13 @@ DATA_FILES = [
         (r'includes/dijkstra.ttf', '.'),
         (r'includes/ComicNeue-Regular.ttf', '.'),
         (r'includes/xkcd-script.ttf', '.'),
+        (r'includes/Nunito-Regular.ttf', '.'),
+        (r'includes/NotoSansMono-Regular.ttf', '.'),
         (r'includes/artisan_public_key.pem', '.'),
         (r'includes/Machines', './Machines'),
         (r'includes/Themes', './Themes'),
         (r'includes/Icons', './Icons'),
-        (r'includes/logging.yaml', '.')
+        (r'includes/logging.json', '.')
 ]
 
 # add Artisan translations to DATA_FILES
@@ -275,6 +277,7 @@ Qt_modules = [
     'QtNetwork',
     'QtDBus',
     'QtPdf',
+    'QtSvgWidgets',
 ]
 Qt_frameworks = [module + '.framework' for module in Qt_modules]
 
