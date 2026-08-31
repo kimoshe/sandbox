@@ -86,7 +86,7 @@
 ; COMPILER FLAGS
 ; -----------------------------------------------------------------------------
 RequestExecutionLevel admin
-SetCompressor lzma
+SetCompressor /SOLID lzma
 ManifestDPIAware true
 
 ; -----------------------------------------------------------------------------
@@ -249,7 +249,7 @@ Var IsSilentMode        ; 1 = /S mode
 
 !define pyinstallerOutputDir "dist/artisan"
 ;# dave  !define pyinstallerOutputDir '/temp/MungeArtisanNSI'
-!DEFINE nsisLocalIncludesDir "nsis_local_includes"
+!define nsisLocalIncludesDir "nsis_local_includes"
 !define PRODUCT_NAME "artisan"
 !define PRODUCT_NAME_CAP "Artisan"
 !define PRODUCT_PUBLISHER "The Artisan Team"
@@ -1118,9 +1118,10 @@ Section Uninstall
     Delete "$INSTDIR\vc_redist.x64.exe"
     Delete "$INSTDIR\logging.yaml"
     Delete "$INSTDIR\artisan_public_key.pem"
-      Sleep 2000  ;#dave
+    Delete "$INSTDIR\uninst.exe"  ;if left around after upgrading an older version
 
     SetShellVarContext all
+
     Delete "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk"
     Delete "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk"
     Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
