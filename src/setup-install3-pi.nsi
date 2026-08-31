@@ -247,9 +247,9 @@ Var UpgradeFlow
 Var IsProgressMode      ; 1 = /SHOWPROGRESS mode
 Var IsSilentMode        ; 1 = /S mode
 
-!define pyinstallerOutputDir 'dist/artisan'
+!define pyinstallerOutputDir "dist/artisan"
 ;# dave  !define pyinstallerOutputDir '/temp/MungeArtisanNSI'
-!DEFINE nsisLocalIncludes 'nsis_local_includes'
+!DEFINE nsisLocalIncludesDir "nsis_local_includes"
 !define PRODUCT_NAME "artisan"
 !define PRODUCT_NAME_CAP "Artisan"
 !define PRODUCT_PUBLISHER "The Artisan Team"
@@ -295,25 +295,24 @@ Var IsSilentMode        ; 1 = /S mode
 ; General
 !define MUI_ABORTWARNING
 ; #dave for test only
-!define MUI_FINISHPAGE_NOAUTOCLOSE  ; Prevents auto-jump from InstFiles page to Finish page
-!define MUI_INSTALLCOLORS "C79928 FFFFFF"   #dave
+; #dave !define MUI_FINISHPAGE_NOAUTOCLOSE  ; Prevents auto-jump from InstFiles page to Finish page
+;!define MUI_INSTALLCOLORS "C79928 FFFFFF"   #dave
 
 ; INSTALL
-; #dave !define MUI_ICON "${PRODUCT_NAME}.ico"
-!define MUI_ICON "artisan.ico"
+!define MUI_ICON "${PRODUCT_NAME}.ico"
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "${nsisLocalIncludes}\header-install.bmp" ; #dave Need the install version of this BMP
+!define MUI_HEADERIMAGE_BITMAP "${nsisLocalIncludesDir}\header-install.bmp"
 !define MUI_HEADERIMAGE_BITMAP_STRETCH "FitControl"
 !define MUI_HEADERIMAGE_RIGHT
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${nsisLocalIncludes}\sidebar-install.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${nsisLocalIncludesDir}\sidebar-install.bmp"
 !define MUI_BGCOLOR "2899c7"
 !define MUI_TEXTCOLOR "FFFFFF"
 !define MUI_INSTFILESPAGE_PROGRESSBAR "colored"
 
 ; UNINSTALL
-!define MUI_UNICON "${nsisLocalIncludes}\uninstall.ico"
-!define MUI_HEADERIMAGE_UNBITMAP "${nsisLocalIncludes}\header-uninstall.bmp"
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${nsisLocalIncludes}\sidebar-uninstall.bmp"
+!define MUI_UNICON "${nsisLocalIncludesDir}\uninstall.ico"
+!define MUI_HEADERIMAGE_UNBITMAP "${nsisLocalIncludesDir}\header-uninstall.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${nsisLocalIncludesDir}\sidebar-uninstall.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP_STRETCH "FitControl"
 !define MUI_FINISHPAGE_TITLE "$(UnFinish_Title)"  ;used only for uninstall
 !define MUI_FINISHPAGE_TEXT "$(UnFinish_Text)"    ;used only for uninstall
@@ -362,7 +361,7 @@ UninstPage custom un.WelcomeShow un.WelcomeLeave
 ; LANGUAGE  (must come after MUI configuration))
 ; ============================================================================
 !insertmacro MUI_LANGUAGE "English"
-!include "${nsisLocalIncludes}\install_translations.nsh"
+!include "${nsisLocalIncludesDir}\install_translations.nsh"
 
 ; MUI end ------
 
@@ -413,6 +412,10 @@ Function .onInit
     !insertmacro IsRunning
 
     StrCpy $ShowFinish 1
+
+    ; Extract image
+    InitPluginsDir
+    File /oname=$PLUGINSDIR\sidebar.bmp "${MUI_WELCOMEFINISHPAGE_BITMAP}"
 
     ; Check for existing installation
     ReadRegStr $PathToUninstaller ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString"
@@ -465,7 +468,8 @@ Function CustomWelcomeFreshCreator
     ; Image control (left sidebar bitmap)
     ${NSD_CreateBitmap} 0u 0u 109u 193u ""
     Pop $0
-    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
+;    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
+    ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\sidebar.bmp" $1
 
     ; Title
     ${NSD_CreateLabel} 120u 10u 195u 28u "$(Welcome_Install_Title)"
@@ -521,7 +525,8 @@ Function CustomWelcomeUpgradeCreator
     ; Image control (left sidebar bitmap)
     ${NSD_CreateBitmap} 0u 0u 109u 193u ""
     Pop $0
-    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
+;    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
+    ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\sidebar.bmp" $1
 
     ; Title
     ${NSD_CreateLabel} 120u 10u 195u 38u "$(Welcome_Upgrade_Title)"
@@ -646,7 +651,8 @@ Function CustomFinishPageCreate
     ; Image control (left sidebar bitmap)
     ${NSD_CreateBitmap} 0u 0u 109u 193u ""
     Pop $0
-    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
+;    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
+    ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\sidebar.bmp" $1
 
     ; Title
     ${NSD_CreateLabel} 120u 10u 195u 38u "$(Finish_Title)"
@@ -748,9 +754,8 @@ Function un.onInit
         Return
     ${EndIf}
 
-    ; trying to get the bmp to show in the welcome page
-    InitPluginsDir
     ; Extract the bitmap to the plugins directory with a known name
+    InitPluginsDir
     File /oname=$PLUGINSDIR\unsidebar.bmp "${MUI_UNWELCOMEFINISHPAGE_BITMAP}"
 
 FunctionEnd
@@ -920,18 +925,18 @@ Section "-Install Hidden"
     SetShellVarContext all
     WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-    CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninst.exe"
+    CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
     !if ${Sign} S== "True"
-        WriteUninstaller "$%TEMP%\uninst.exe"
+        WriteUninstaller "$%TEMP%\uninstall.exe"
     !else
-        WriteUninstaller "$INSTDIR\uninst.exe"
+        WriteUninstaller "$INSTDIR\uninstall.exe"
     !endif
 
     WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${PRODUCT_NAME}.exe"
     WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "Path" "$INSTDIR"
     WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
-    WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
+    WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninstall.exe"
     WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\${PRODUCT_NAME}.exe"
     WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
     WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
@@ -984,7 +989,7 @@ Section Uninstall
 ;    Sleep 2000
 ;; ---------------------------------------------
     Delete "$INSTDIR\${PRODUCT_NAME}.url"
-    Delete "$INSTDIR\uninst.exe"
+    Delete "$INSTDIR\uninstall.exe"
     Delete "$INSTDIR\${PRODUCT_NAME}.exe"
     Delete "$INSTDIR\${PRODUCT_NAME}.exe.manifest"
     Delete "$INSTDIR\*.pyd"
