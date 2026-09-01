@@ -920,10 +920,10 @@ SectionEnd
 
 ; #dave Section -AdditionalIcons
 Section "-Install Hidden"
-    ; #dave temporary
-    ${If} $UpgradeFlow == "1"
-        File trimNSI.nsi  ; #dave
-    ${EndIf}
+;    ; #dave temporary
+;    ${If} $UpgradeFlow == "1"
+;        File trimNSI.nsi  ; #dave
+;    ${EndIf}
 
     SetShellVarContext all
     WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
