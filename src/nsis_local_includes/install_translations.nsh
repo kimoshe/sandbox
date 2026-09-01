@@ -2,8 +2,6 @@
 LangString Tag_Line ${LANG_ENGLISH} "The world’s most trusted roasting software"
 LangString Caption_Install ${LANG_ENGLISH} "${PRODUCT_NAME} install"
 LangString Caption_Upgrade ${LANG_ENGLISH} "${PRODUCT_NAME} upgrade"
-;Commenting because we auto close on complete anyway
-;LangString SubCaption_Completed ${LANG_ENGLISH} " complete"
 LangString Caption_Uninstall ${LANG_ENGLISH} "${PRODUCT_NAME} uninstall"
 LangString Another_Instance ${LANG_ENGLISH} "Another installer or uninstaller is already running. Close it before proceeding."
 
@@ -30,8 +28,6 @@ LangString Finish_Text_Upgrade ${LANG_ENGLISH} "${PRODUCT_NAME_CAP} upgrade comp
 LangString Finish_RunApp ${LANG_ENGLISH} "Start ${PRODUCT_NAME}"
 LangString Finish_OpenDocumentation ${LANG_ENGLISH} "Open the Documentation page"
 LangString Finish_OpenDonate ${LANG_ENGLISH} "Open the Donate page"
-LangString Finish_Documentation_URL ${LANG_ENGLISH} "https://artisan-scope.org/docs/"
-LangString Finish_Donate_URL ${LANG_ENGLISH} "https://artisan-scope.org/donate/"
 
 ; Uninstall strings
 LangString UnFinish_Title ${LANG_ENGLISH} "Completed ${PRODUCT_NAME} uninstall"

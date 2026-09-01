@@ -259,6 +259,9 @@ Var IsSilentMode        ; 1 = /S mode
 ; The following gets transposed to "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\artisan-skeleton"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
+!define Finish_Documentation_URL "https://artisan-scope.org/docs/"
+!define Finish_Donate_URL "https://artisan-scope.org/donate/"
+
 ; Special commandline options
 ; Product version and build can be defined on the command line '/DPRODUCT_VERSION=ww.xx.yy'
 ;   and '/DPRODUCT_VERSION=zz' These will override the default version an build explicitly set below.
@@ -720,13 +723,13 @@ Function CustomFinishPageLeave
     ${NSD_GetState} $CheckboxOpenDocs $CheckboxState
     ${If} $CheckboxState == ${BST_CHECKED}
         ; Open Documentation URL
-        ExecShell "open" "$(Finish_Documentation_URL)"
+        ExecShell "open" "${Finish_Documentation_URL}"
     ${EndIf}
 
     ${NSD_GetState} $CheckboxOpenDonate $CheckboxState
     ${If} $CheckboxState == ${BST_CHECKED}
         ; Open Donate URL
-        ExecShell "open" "$(Finish_Donate_URL)"
+        ExecShell "open" "${Finish_Donate_URL}"
     ${EndIf}
 FunctionEnd
 
@@ -917,21 +920,23 @@ SectionEnd
 
 ; #dave Section -AdditionalIcons
 Section "-Install Hidden"
-;    ; #dave temporary
-;    ${If} $UpgradeFlow == "1"
-;        File trimNSI.nsi  ; #dave
-;    ${EndIf}
+    ; #dave temporary
+    ${If} $UpgradeFlow == "1"
+        File trimNSI.nsi  ; #dave
+    ${EndIf}
 
     SetShellVarContext all
     WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
-    !if ${Sign} S== "True"
-        WriteUninstaller "$%TEMP%\uninstall.exe"
+    ; When the file is signes copy it else genereate a new one
+    !ifdef Sign
+        File "dist\artisan\uninstall.exe"
     !else
         WriteUninstaller "$INSTDIR\uninstall.exe"
     !endif
+
 
     WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${PRODUCT_NAME}.exe"
     WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "Path" "$INSTDIR"
@@ -972,6 +977,7 @@ SectionEnd
 ; ============================================================================
 ; UNINSTALL SECTIONS
 ; ============================================================================
+!ifndef Sign  ;hide this section after signing
 Section Uninstall
 ; ---------------------------------------------
   ; #dave Here only for temporary testing
@@ -1149,3 +1155,4 @@ Section Uninstall
     DeleteRegKey HKCR "${PRODUCT_NAME}\shell\open\command"
     DeleteRegKey HKCR "${PRODUCT_NAME}"
 SectionEnd
+!endif
