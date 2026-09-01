@@ -61,7 +61,7 @@
 ; .nsi command line options:
 ;    /DPRODUCT_VERSION=ww.xx.yy     -explicitly set the product version, default is 0.0.0
 ;    /DPRODUCT_BUILD=zz             -explicityl set the product build, default is 0
-;    /DSIGN=True|False              -True if the build is part of the process to sign files, default is False
+;    /DSIGN                         -Use with SignArtisan to prevent gernating new uninstall.exe
 ;                                    Note: SignArtisan is not a part of the ci process
 ;
 ; installer command line options
@@ -270,7 +270,6 @@ Var IsSilentMode        ; 1 = /S mode
 ;!define /ifndef PRODUCT_VERSION "4.4.2"
 !define /ifndef PRODUCT_VERSION "0.0.0"
 !define /ifndef PRODUCT_BUILD "0"
-!define /ifndef SIGN "False"
 
 !define /date CUR_YEAR "%Y"
 
@@ -930,11 +929,11 @@ Section "-Install Hidden"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
-    ; When the file is signes copy it else genereate a new one
-    !ifdef Sign
-        File "dist\artisan\uninstall.exe"
-    !else
+    ; When the file is signed copy it else generate a new one
+    !ifndef SIGN
         WriteUninstaller "$INSTDIR\uninstall.exe"
+    !else
+        File "dist\artisan\uninstall.exe"
     !endif
 
 
@@ -977,7 +976,7 @@ SectionEnd
 ; ============================================================================
 ; UNINSTALL SECTIONS
 ; ============================================================================
-!ifndef Sign  ;hide this section after signing
+!ifndef SIGN  ;hide this section when using SignArtisan
 Section Uninstall
 ; ---------------------------------------------
   ; #dave Here only for temporary testing
