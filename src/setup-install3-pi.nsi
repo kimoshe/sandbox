@@ -144,11 +144,11 @@ ManifestDPIAware true
     nsExec::Exec "cmd /c for /f $\"tokens=1,2$\" %i in ('tasklist') do (if /i %i EQU ${PRODUCT_NAME}.exe fsutil file createnew $TEMP\25b241e1.tmp 0)"
     IfFileExists $TEMP\25b241e1.tmp 0 notRunning
         ;we have at least one main window active
-        ${If} caller == install
-            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning)" /SD IDOK
-        ${Else}
-            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning_Uninstall)" /SD IDOK
-        ${EndIf}
+        !if "${caller}" == "install"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_App_IsRunning)" /SD IDOK
+        !else
+            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_App_IsRunning_Uninstall)" /SD IDOK
+        !endif
         Delete "$TEMP\25b241e1.tmp"
         Quit
     notRunning:
