@@ -1,5 +1,4 @@
 ; TODO List
-; Consider whether Finish_Documentation_URL and Finish_Donate_URL should be a LANG string or !define
 ; Desired translations  German, Spanish, French, Italian, Portuguese and Chinese
 ; Where in the repo to store the translations file
 ; Review for consistent coding,
@@ -14,19 +13,6 @@
 ;       remove any unneeded !macros
 ;       all strings in the LANG list
 ;       look for redundant ClearErrors
-; Remove /RESIZETOFIT: The ${NSD_SetImage} macro does not accept /RESIZETOFIT.
-;   That flag is for the standard MUI page logic. For custom pages,
-;   use ${NSD_SetStretchedImage} if you need resizing, or ensure your BMP matches the
-;   control size (109x193) exactly. <-- Size is not correct
-; Should uninst.exe be renamed uninstall.exe?  (WriteUninstall command)
-; Check that the tag line and the line show everywhere they are supposed to and not where they shouldn't
-; ci setup needs to install NSIS v3.12
-; Update SignArtisanExe.ahk to support the translation file and any other custom !includes
-; Where in the repo to store the translations file and other needed includes like images and uninstall.ico
-
-; 109u 193u approx. 0.5647668393  vs  164 314 approx. 0.5222929936
-; 245x460 maybe  or 245x469 at 144
-; 388ish at 120, trying 204x390
 
 ; Common Font Weight Values:
 ; 400: Normal (Regular)
@@ -58,16 +44,15 @@
 ; Dave Baxter, Marko Luther 2023-2026
 ;
 
-; .nsi command line options:
+; .nsi command line options, override the default defines:
 ;    /DPRODUCT_VERSION=ww.xx.yy     -explicitly set the product version, default is 0.0.0
 ;    /DPRODUCT_BUILD=zz             -explicityl set the product build, default is 0
-;    /DSIGN                         -Use with SignArtisan to prevent gernating new uninstall.exe
+;    /DSIGN                         -Used by SignArtisan to prevent generating uninstall.exe
 ;                                    Note: SignArtisan is not a part of the ci process
 ;
 ; installer command line options
 ;    /S                             -silent operation
 
-;  Artisan #RRGGBB is #2899c7
 
 ; -----------------------------------------------------------------------------
 ; INCLUDES
@@ -93,7 +78,7 @@ ManifestDPIAware true
 ; CHECK NSIS MINIMUM VERSION AT COMPILE TIME (DURING CI)
 ; -----------------------------------------------------------------------------
 ; 0x + Major(2 digits) + Minor(3 digits) + Revision(2 digits) + Build(1 digit)
-!if ${NSIS_PACKEDVERSION} < 0x03011000  ; Require NSIS 3.12 or higher
+!if ${NSIS_PACKEDVERSION} < 0x03011000
   !error "NSIS 3.11 or higher is required to build this installer!"
 !endif
 
@@ -136,7 +121,6 @@ ManifestDPIAware true
      System::Call "shell32::SHChangeNotify(i,i,i,i) (${SHCNE_ASSOCCHANGED}, ${SHCNF_FLUSH}, 0, 0)"
 !macroend
 
-
 ; ---------------------------------------------------------------------------
 ; Macro to remove directory with wildcards
 ; ---------------------------------------------------------------------------
@@ -155,27 +139,32 @@ ManifestDPIAware true
 ; ---------------------------------------------------------------------------
 ; Macro to identify when an artisan instance is running
 ; ---------------------------------------------------------------------------
-!macro IsRunning
+!macro AppIsRunning caller
     Delete "$TEMP\25b241e1.tmp"
     nsExec::Exec "cmd /c for /f $\"tokens=1,2$\" %i in ('tasklist') do (if /i %i EQU ${PRODUCT_NAME}.exe fsutil file createnew $TEMP\25b241e1.tmp 0)"
     IfFileExists $TEMP\25b241e1.tmp 0 notRunning
         ;we have at least one main window active
-        MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_App_IsRunning)" /SD IDOK
+        ${If} caller == install
+            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning)" /SD IDOK
+        ${Else}
+            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning_Uninstall)" /SD IDOK
+        ${EndIf}
         Delete "$TEMP\25b241e1.tmp"
         Quit
     notRunning:
 !macroend
 
 ; ---------------------------------------------------------------------------
-; Macro to SetProgressBarColor   Note: FgColor is BBGGRR
+; Macro to SetProgressBarColor
 ; ---------------------------------------------------------------------------
-!macro SetProgressBarColor FgColor BgColor
+!macro SetProgressBarColor FgColor BgColor  ;FgColor is BBGGRR
     ; Find the inner dialog of the current page
     FindWindow $0 "#32770" "" $HWNDPARENT
 
     ; Get the progress bar handle by Class Name
     FindWindow $1 "msctls_progress32" "" $0
 
+    ; Set the colors
     ${If} $1 <> 0
         ; Disable Visual Styles (Themes)
         System::Call 'UxTheme::SetWindowTheme(i $1, w "", w "")'
@@ -248,8 +237,8 @@ Var IsProgressMode      ; 1 = /SHOWPROGRESS mode
 Var IsSilentMode        ; 1 = /S mode
 
 !define pyinstallerOutputDir "dist/artisan"
-;# dave  !define pyinstallerOutputDir '/temp/MungeArtisanNSI'
 !define nsisLocalIncludesDir "nsis_local_includes"
+
 !define PRODUCT_NAME "artisan"
 !define PRODUCT_NAME_CAP "Artisan"
 !define PRODUCT_PUBLISHER "The Artisan Team"
@@ -258,22 +247,14 @@ Var IsSilentMode        ; 1 = /S mode
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 ; The following gets transposed to "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\artisan-skeleton"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
-
 !define Finish_Documentation_URL "https://artisan-scope.org/docs/"
 !define Finish_Donate_URL "https://artisan-scope.org/donate/"
 
 ; Special commandline options
-; Product version and build can be defined on the command line '/DPRODUCT_VERSION=ww.xx.yy'
-;   and '/DPRODUCT_VERSION=zz' These will override the default version an build explicitly set below.
-
-; #dave CHANGE THIS BACK TO 0.0.0
-;!define /ifndef PRODUCT_VERSION "4.4.2"
 !define /ifndef PRODUCT_VERSION "0.0.0"
 !define /ifndef PRODUCT_BUILD "0"
 
-!define /date CUR_YEAR "%Y"
-
-; For use with SHChangeNotify, Note: !undef here to prevent makensis "symbol already defined" errors
+; Used by SHChangeNotify, Note: !undef here to prevent makensis "symbol already defined" errors
 !ifdef SHCNE_ASSOCCHANGED
     !undef SHCNE_ASSOCCHANGED
 !endif
@@ -291,14 +272,15 @@ Var IsSilentMode        ; 1 = /S mode
 !define Font_Weight "600"
 !define Font_Weight_Option "400"
 
+; Other
+!define /date CUR_YEAR "%Y"
+!define INSTALLMUTEX "{c2a7be4e-da57-44b9-b2cf-5b1f80c6b429}"
+
 ; -----------------------------------------------------------------------------
 ; MUI CONFIGURATION
 ; -----------------------------------------------------------------------------
 ; General
 !define MUI_ABORTWARNING
-; #dave for test only
-; #dave !define MUI_FINISHPAGE_NOAUTOCLOSE  ; Prevents auto-jump from InstFiles page to Finish page
-;!define MUI_INSTALLCOLORS "C79928 FFFFFF"   #dave
 
 ; INSTALL
 !define MUI_ICON "${PRODUCT_NAME}.ico"
@@ -323,8 +305,7 @@ Var IsSilentMode        ; 1 = /S mode
 ; ============================================================================
 ; INSTALLER PAGES
 ; ============================================================================
-
-; Welcome page
+; Welcome page, only one will be shown
 Page custom CustomWelcomeUpgradeCreator CustomWelcomeUpgradeLeave
 Page custom CustomWelcomeFreshCreator CustomWelcomeFreshLeave
 
@@ -336,7 +317,7 @@ Page custom CustomWelcomeFreshCreator CustomWelcomeFreshLeave
 
 ; Instfiles page
 !define MUI_PAGE_CUSTOMFUNCTION_PRE InstFilesPre
-!define MUI_PAGE_CUSTOMFUNCTION_SHOW CustomInstFilesCreator
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesShow
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE InstFilesLeave
 !insertmacro MUI_PAGE_INSTFILES
 
@@ -346,7 +327,6 @@ Page custom CustomFinishPageCreate CustomFinishPageLeave
 ; ============================================================================
 ; UNINSTALLER PAGES
 ; ============================================================================
-
 ; Un_Welcome page
 UninstPage custom un.WelcomeShow un.WelcomeLeave
 
@@ -365,7 +345,6 @@ UninstPage custom un.WelcomeShow un.WelcomeLeave
 !insertmacro MUI_LANGUAGE "English"
 !include "${nsisLocalIncludesDir}\install_translations.nsh"
 
-; MUI end ------
 
 ; ============================================================================
 ; SET VARIABLES
@@ -379,6 +358,7 @@ ShowUnInstDetails show
 UninstallCaption "$(Caption_Uninstall)"
 BrandingText "$(Tag_Line)"
 
+; Displayed by file  properties
 VIProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 VIAddVersionKey ProductName "${PRODUCT_NAME}"
 VIAddVersionKey Comments "Installer for ${PRODUCT_NAME}"
@@ -388,8 +368,6 @@ VIAddVersionKey FileVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 VIAddVersionKey FileDescription "${PRODUCT_NAME} Installer"
 VIAddVersionKey ProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 
-!define INSTALLMUTEX "{c2a7be4e-da57-44b9-b2cf-5b1f80c6b429}"
-; #dave !define UNINSTALLMUTEX "{cfa406d5-b8d0-49f8-94ca-1834e490ced5}"
 
 ; ============================================================================
 ; INSTALL on.Init
@@ -411,7 +389,7 @@ Function .onInit
     ${EndIf}
 
     ; Stop if there is a running instance of the app
-    !insertmacro IsRunning
+    !insertmacro AppIsRunning "install"
 
     StrCpy $ShowFinish 1
 
@@ -438,7 +416,6 @@ Function .onInit
 
   done:
 FunctionEnd
-
 
 ; ============================================
 ; CUSTOM WELCOME PAGE - FRESH INSTALL
@@ -527,7 +504,6 @@ Function CustomWelcomeUpgradeCreator
     ; Image control (left sidebar bitmap)
     ${NSD_CreateBitmap} 0u 0u 109u 193u ""
     Pop $0
-;    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
     ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\sidebar.bmp" $1
 
     ; Title
@@ -552,7 +528,6 @@ Function CustomWelcomeUpgradeLeave
     ExecWait '$PathToUninstaller /SHOWPROGRESS _?=$INSTDIR'
 FunctionEnd
 
-
 ; ============================================
 ; CUSTOM DIRECTORY PAGE
 ; ============================================
@@ -573,7 +548,6 @@ Function DirectoryShow
     ShowWindow $0 ${SW_SHOW}
 FunctionEnd
 
-
 ; ============================================
 ; CUSTOM INSTFILES PAGE
 ; ============================================
@@ -582,7 +556,7 @@ Function InstFilesPre
     SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Install)"
 FunctionEnd
 
-Function CustomInstFilesCreator
+Function InstFilesShow
     ${If} $UpgradeFlow == 1
         SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Upgrade)"
     ${EndIf}
@@ -615,14 +589,12 @@ FunctionEnd
 ; CUSTOM FINISH PAGE
 ; ============================================
 Function CustomFinishPageCreate
+    ; Set appropriate Caption
     ${If} $UpgradeFlow == 1
         SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Upgrade)"
     ${Else}
         SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Install)"
     ${EndIf}
-
-  ;#dave - could make the caption install or upgrade
-    ;SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Install)"
 
     ; Remove the back button and Cancel button
     GetDlgItem $0 $HWNDPARENT 3
@@ -653,7 +625,6 @@ Function CustomFinishPageCreate
     ; Image control (left sidebar bitmap)
     ${NSD_CreateBitmap} 0u 0u 109u 193u ""
     Pop $0
-;    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
     ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\sidebar.bmp" $1
 
     ; Title
@@ -715,8 +686,7 @@ Function CustomFinishPageLeave
     ${NSD_GetState} $CheckboxRunApp $CheckboxState
     ${If} $CheckboxState == ${BST_CHECKED}
         ; Run the application
-;     #dave    MessageBox MB_OK "CheckboxRunApp"
-       ExecShell "open" "$INSTDIR\${PRODUCT_NAME}.exe"
+        ExecShell "open" "$INSTDIR\${PRODUCT_NAME}.exe"
     ${EndIf}
 
     ${NSD_GetState} $CheckboxOpenDocs $CheckboxState
@@ -747,7 +717,10 @@ Function un.onInit
         StrCpy $IsProgressMode 1
         SetAutoClose true
     ${Else}
+        ; Stop if there is a running instance of install/uninstall
         !insertmacro CheckForRunningInstances
+        ; Stop if there is a running instance of the app
+        !insertmacro AppIsRunning "uninstall"
     ${EndIf}
 
     ${If} ${Silent}
@@ -898,15 +871,6 @@ Section "Install"
     SetOverwrite on
     File /r '${pyinstallerOutputDir}\*.*'
 
-;  ; #dave Here only for temporary testing
-;    ; Add delays to see the color
-;    Sleep 2000  ;5000
-;    File 'License.txt'
-;;    File 'vc_redist.x64.exe'
-;    ;File "/oname=$INSTDIR\artisan-skeleton.exe" "c:\program files\artisan\artisan.exe"
-;    File "/oname=$INSTDIR\artisan-skeleton.exe" "C:\Users\dave\Dropbox\Artisan Roast Profiles\!NewArtisanInstaller\artisan-skeletonNSI.nsi"
-;    File "/oname=$INSTDIR\artisan-skeletonProfile.ico" "c:\program files\artisan\artisanProfile.ico"
-
     CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
     CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
@@ -917,13 +881,7 @@ Section "Install"
     Delete '$INSTDIR\vc_redist.x64.exe'
 SectionEnd
 
-; #dave Section -AdditionalIcons
 Section "-Install Hidden"
-;    ; #dave temporary
-;    ${If} $UpgradeFlow == "1"
-;        File trimNSI.nsi  ; #dave
-;    ${EndIf}
-
     SetShellVarContext all
     WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
@@ -935,7 +893,6 @@ Section "-Install Hidden"
     !else
         File "dist\artisan\uninstall.exe"
     !endif
-
 
     WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${PRODUCT_NAME}.exe"
     WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "Path" "$INSTDIR"
@@ -972,27 +929,12 @@ Section "-Install Hidden"
 SectionEnd
 
 
-
 ; ============================================================================
 ; UNINSTALL SECTIONS
 ; ============================================================================
-!ifndef SIGN  ;hide this section when using SignArtisan
+!ifndef SIGN  ;skip this section when called from SignArtisan
 Section Uninstall
 ; ---------------------------------------------
-  ; #dave Here only for temporary testing
-    ; Add delays to see the color
-;    DetailPrint "IsProgressMode $IsProgressMode"
-;    Sleep 2000
-
-;; #dave We have to delete something in this test  <- Delete this
-;Delete "$INSTDIR\artisan-skeleton.url"
-;Delete "$INSTDIR\artisan-skeletonProfile.ico"
-;Delete "$INSTDIR\artisan-skeleton.exe"
-;Delete "$INSTDIR\License.txt"
-;Delete "$INSTDIR\uninst.exe"
-;delete "$INSTDIR\trimNSI.nsi"
-;    Sleep 2000
-;; ---------------------------------------------
     Delete "$INSTDIR\${PRODUCT_NAME}.url"
     Delete "$INSTDIR\uninstall.exe"
     Delete "$INSTDIR\${PRODUCT_NAME}.exe"

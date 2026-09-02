@@ -11,7 +11,8 @@ LangString Removed_Success ${LANG_ENGLISH} "${PRODUCT_NAME_CAP} was successfully
 LangString Remove_Confirm ${LANG_ENGLISH} "Are you sure you want to remove ${PRODUCT_NAME}?"
 LangString Alert_Windows_Version ${LANG_ENGLISH} "${PRODUCT_NAME_CAP} requires Windows 10 or later to install and run."
 LangString Alert_Windows_Arch ${LANG_ENGLISH} "You are not using a 64bit system.\nSorry, we can not install ${PRODUCT_NAME} on your system."
-LangString Alert_App_IsRunning ${LANG_ENGLISH} "${PRODUCT_NAME_CAP} was found to be running. Please close all instances then try the installer again."
+LangString Alert_AppIsRunning ${LANG_ENGLISH} "${PRODUCT_NAME_CAP} was found to be running. Please close all instances then try $EXEFILE again."
+LangString Alert_AppIsRunning_Uninstall ${LANG_ENGLISH} "${PRODUCT_NAME_CAP} was found to be running. Please close all instances then try uninstall.exe again."
 
 ; Welcome page strings
 LangString Welcome_Install_Title ${LANG_ENGLISH} "Welcome!"
