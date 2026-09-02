@@ -145,13 +145,30 @@ ManifestDPIAware true
     IfFileExists $TEMP\25b241e1.tmp 0 notRunning
         ;we have at least one main window active
         !if "${caller}" == "install"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning)" /SD IDOK
+            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Alert_AppIsRunning)", t "$(Caption_Install)", i 0x30) i.r0'
         !else
-            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning_Uninstall)" /SD IDOK
+            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Alert_AppIsRunning_Uninstall)", t "$(Caption_Uninstall)", i 0x30) i.r0'
         !endif
         Delete "$TEMP\25b241e1.tmp"
         Quit
     notRunning:
+!macroend
+
+; ---------------------------------------------------------------------------
+; Macro to prevent running multiple install/uninstall instances
+; ---------------------------------------------------------------------------
+!macro CheckForRunningInstances caller
+    System::Call 'KERNEL32::CreateMutex(i 0, i 0, t "${INSTALLMUTEX}") i .r1 ?e'
+    Pop $0
+    IntCmpU $0 183 anotherRunning noneRunning  ; ERROR_ALREADY_EXISTS = 183
+    anotherRunning:
+        !if "${caller}" == "install"
+            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Another_Instance)", t "$(Caption_Install)", i 0x30) i.r0'
+        !else
+            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Another_Instance)", t "$(Caption_Uninstall)", i 0x30) i.r0'
+        !endif
+        Abort
+    noneRunning:
 !macroend
 
 ; ---------------------------------------------------------------------------
@@ -172,19 +189,6 @@ ManifestDPIAware true
         SendMessage $1 ${PBM_SETBARCOLOR} 0 "0x${FgColor}"
         SendMessage $1 ${PBM_SETBKCOLOR} 0 "0x${BgColor}"
     ${EndIf}
-!macroend
-
-; ---------------------------------------------------------------------------
-; Macro to prevent running multiple instances
-; ---------------------------------------------------------------------------
-!macro CheckForRunningInstances
-    System::Call 'KERNEL32::CreateMutex(i 0, i 0, t "${INSTALLMUTEX}") i .r1 ?e'
-    Pop $0
-    IntCmpU $0 183 anotherRunning noneRunning  ; ERROR_ALREADY_EXISTS = 183
-    anotherRunning:
-        MessageBox MB_OK "$(Another_Instance)"
-        Abort
-    noneRunning:
 !macroend
 
 
@@ -374,7 +378,7 @@ VIAddVersionKey ProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 ; ============================================================================
 Function .onInit
     ; Prevent multiple instances of install / uninstall
-    !insertmacro CheckForRunningInstances
+    !insertmacro CheckForRunningInstances "install"
 
     ; Check for x64 Windows platform
     ${IfNot} ${RunningX64}
@@ -718,7 +722,7 @@ Function un.onInit
         SetAutoClose true
     ${Else}
         ; Stop if there is a running instance of install/uninstall
-        !insertmacro CheckForRunningInstances
+        !insertmacro CheckForRunningInstances "uninstall"
         ; Stop if there is a running instance of the app
         !insertmacro AppIsRunning "uninstall"
     ${EndIf}
