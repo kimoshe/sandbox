@@ -145,9 +145,9 @@ ManifestDPIAware true
     IfFileExists $TEMP\25b241e1.tmp 0 notRunning
         ;we have at least one main window active
         !if "${caller}" == "install"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_App_IsRunning)" /SD IDOK
+            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning)" /SD IDOK
         !else
-            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_App_IsRunning_Uninstall)" /SD IDOK
+            MessageBox MB_OK|MB_ICONEXCLAMATION "$(Alert_AppIsRunning_Uninstall)" /SD IDOK
         !endif
         Delete "$TEMP\25b241e1.tmp"
         Quit
