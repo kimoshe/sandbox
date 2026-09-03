@@ -235,7 +235,7 @@ Var CheckboxOpenDocs
 Var CheckboxOpenDonate
 Var UseInstallPath
 Var UpgradeFlow
-Var OnFinishPage
+Var NoConfirmAbort
 Var IsProgressMode      ; 1 = /SHOWPROGRESS mode
 Var IsSilentMode        ; 1 = /S mode
 
@@ -604,7 +604,7 @@ Function CustomFinishPageCreate
     GetDlgItem $0 $HWNDPARENT 3
     ShowWindow $0 ${SW_HIDE}
 
-    ; Show the cancel button ast OnFinishPage for onFinishAbort
+    ; Show the cancel button, set NoConfirmAbort for onFinishAbort
     GetDlgItem $0 $HWNDPARENT 2
     ShowWindow $0 ${SW_SHOW}
     EnableWindow $0 1
@@ -713,7 +713,7 @@ FunctionEnd
 
 Function onFinishAbort
     ${If} $NoConfirmAbort == "1"
-        ; just let it quit — no confirmation
+        ; just let it quit ? no confirmation
     ${Else}
         MessageBox MB_YESNO|MB_ICONEXCLAMATION "Are you sure you want to cancel?" IDNO abort_cancel
         Abort
