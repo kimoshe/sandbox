@@ -162,7 +162,7 @@ ManifestDPIAware true
     IntCmpU $0 183 anotherRunning noneRunning  ; ERROR_ALREADY_EXISTS = 183
     anotherRunning:
         !if "${caller}" == "install"
-            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Another_Instance)", t "$(Caption_Install)", i 0x30) i.r0'
+            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Another_Instance)", t "$(Caption_Setup)", i 0x30) i.r0'
         !else
             System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Another_Instance)", t "$(Caption_Uninstall)", i 0x30) i.r0'
         !endif
