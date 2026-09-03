@@ -53,6 +53,7 @@
 ; installer command line options
 ;    /S                             -silent operation
 
+; Note - the UI pages do not support right to left languages
 
 ; -----------------------------------------------------------------------------
 ; INCLUDES
@@ -116,8 +117,7 @@ ManifestDPIAware true
 !macroend
 
 !macro UPDATEFILEASSOC
-; Using the system.dll plugin to call the SHChangeNotify Win32 API function so we
-; can update the shell.
+    ; Use the system call to update the shell associations
      System::Call "shell32::SHChangeNotify(i,i,i,i) (${SHCNE_ASSOCCHANGED}, ${SHCNF_FLUSH}, 0, 0)"
 !macroend
 
@@ -193,7 +193,7 @@ ManifestDPIAware true
 
 
 ; ---------------------------------------------------------------------------
-;Unused macros
+; Unused macros, here if needed, take no memory
 ; ---------------------------------------------------------------------------
 !macro APP_ASSOCIATE_EX EXT FILECLASS DESCRIPTION ICON VERB DEFAULTVERB SHELLNEW COMMANDTEXT COMMAND
     ; Backup the previously associated file class
@@ -362,7 +362,7 @@ ShowUnInstDetails show
 UninstallCaption "$(Caption_Uninstall)"
 BrandingText "$(Tag_Line)"
 
-; Displayed by file  properties
+; Displayed by file properties, not language translated
 VIProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 VIAddVersionKey ProductName "${PRODUCT_NAME}"
 VIAddVersionKey Comments "Installer for ${PRODUCT_NAME}"
@@ -411,6 +411,7 @@ Function .onInit
         goto done
 
     isInstalled:
+        ; Get the existing install folder
         ReadRegStr $UseInstallPath HKLM "${PRODUCT_DIR_REGKEY}" "Path"
         ; Fallback if registry key is empty
         StrCmp $UseInstallPath "" 0 +2
@@ -425,6 +426,7 @@ FunctionEnd
 ; CUSTOM WELCOME PAGE - FRESH INSTALL
 ; ============================================
 Function CustomWelcomeFreshCreator
+    ; Exit if this is an Upgrade install
     ${If} $UpgradeFlow == 1
         Abort
     ${EndIf}
@@ -445,13 +447,12 @@ Function CustomWelcomeFreshCreator
     ; Create dialog
     nsDialogs::Create 1044
     Pop $Dialog
-;    nsDialogs::SetRTL $(^RTL)
+    nsDialogs::SetRTL $(^RTL)
     SetCtlColors $Dialog "" "2899C7"  ; blue background
 
     ; Image control (left sidebar bitmap)
     ${NSD_CreateBitmap} 0u 0u 109u 193u ""
     Pop $0
-;    ${NSD_SetStretchedImage} $0 "${MUI_WELCOMEFINISHPAGE_BITMAP}" $1
     ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\sidebar.bmp" $1
 
     ; Title
@@ -514,7 +515,7 @@ Function CustomWelcomeUpgradeCreator
     ${NSD_CreateLabel} 120u 10u 195u 38u "$(Welcome_Upgrade_Title)"
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"  ; white text, blue background
-    CreateFont $1 "${Font_Name}" "16" "${Font_Weight}"
+    CreateFont $1 "${Font_Name}" "${Font_Size_Title}" "${Font_Weight}"
     SendMessage $0 ${WM_SETFONT} $1 0
 
     ; Body text
@@ -635,7 +636,7 @@ Function CustomFinishPageCreate
     ${NSD_CreateLabel} 120u 10u 195u 38u "$(Finish_Title)"
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"  ; white text, blue background
-    CreateFont $1 "${Font_Name}" "16" "${Font_Weight}"
+    CreateFont $1 "${Font_Name}" "${Font_Size_Title}" "${Font_Weight}"
     SendMessage $0 ${WM_SETFONT} $1 0
 
     ; Body text
