@@ -283,7 +283,7 @@ Var IsSilentMode        ; 1 = /S mode
 ; MUI CONFIGURATION
 ; -----------------------------------------------------------------------------
 ; General
-!define MUI_CUSTOMFUNCTION_ABORT onFinishAbort
+!define MUI_CUSTOMFUNCTION_ABORT onUserAbort
 
 ; INSTALL
 !define MUI_ICON "${PRODUCT_NAME}.ico"
@@ -371,6 +371,17 @@ VIAddVersionKey FileVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 VIAddVersionKey FileDescription "${PRODUCT_NAME} Installer"
 VIAddVersionKey ProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 
+
+; ============================================================================
+; Cancel and Esc handler
+; ============================================================================
+Function onUserAbort
+    ${If} $NoConfirmCancel != "1"
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION "Are you sure you want to cancel?" IDYES abort_cancel
+        Abort  ;"No" Abort aborts the exit and stays on the page (crazy nsis logic)
+        abort_cancel:  ;"Yes", no Abort call so the user abort proceeds to exit
+    ${EndIf}
+FunctionEnd
 
 ; ============================================================================
 ; INSTALL on.Init
@@ -608,8 +619,7 @@ Function CustomFinishPageCreate
     GetDlgItem $0 $HWNDPARENT 2
     ShowWindow $0 ${SW_SHOW}
     EnableWindow $0 1
-    StrCpy $NoConfirmAbort 1
-
+    StrCpy $NoConfirmCancel 1
 
     ; Show the Close button
     GetDlgItem $0 $HWNDPARENT 1
@@ -708,16 +718,6 @@ Function CustomFinishPageLeave
     ${If} $CheckboxState == ${BST_CHECKED}
         ; Open Donate URL
         ExecShell "open" "${Finish_Donate_URL}"
-    ${EndIf}
-FunctionEnd
-
-Function onFinishAbort
-    ${If} $NoConfirmAbort == "1"
-        ; just let it quit ? no confirmation
-    ${Else}
-        MessageBox MB_YESNO|MB_ICONEXCLAMATION "Are you sure you want to cancel?" IDNO abort_cancel
-        Abort
-        abort_cancel:
     ${EndIf}
 FunctionEnd
 
