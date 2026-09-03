@@ -53,7 +53,6 @@
 ; installer command line options
 ;    /S                             -silent operation
 
-; Note - the UI pages do not support right to left languages
 
 ; -----------------------------------------------------------------------------
 ; INCLUDES
@@ -80,7 +79,7 @@ ManifestDPIAware true
 ; -----------------------------------------------------------------------------
 ; 0x + Major(2 digits) + Minor(3 digits) + Revision(2 digits) + Build(1 digit)
 !if ${NSIS_PACKEDVERSION} < 0x03011000
-  !error "NSIS 3.11 or higher is required to build this installer!"
+    !error "NSIS 3.11 or higher is required to build this installer!"
 !endif
 
 ; -----------------------------------------------------------------------------
@@ -145,7 +144,7 @@ ManifestDPIAware true
     IfFileExists $TEMP\25b241e1.tmp 0 notRunning
         ;we have at least one main window active
         !if "${caller}" == "install"
-            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Alert_AppIsRunning)", t "$(Caption_Install)", i 0x30) i.r0'
+            System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Alert_AppIsRunning)", t "$(Caption_Setup)", i 0x30) i.r0'
         !else
             System::Call 'user32::MessageBox(i $HWNDPARENT, t "$(Alert_AppIsRunning_Uninstall)", t "$(Caption_Uninstall)", i 0x30) i.r0'
         !endif
@@ -183,14 +182,13 @@ ManifestDPIAware true
 
     ; Set the colors
     ${If} $1 <> 0
-        ; Disable Visual Styles (Themes)
+        ; Disable visual styles so PBM_SETBARCOLOR/PBM_SETBKCOLOR will take effect
         System::Call 'UxTheme::SetWindowTheme(i $1, w "", w "")'
         ; Set the colors
         SendMessage $1 ${PBM_SETBARCOLOR} 0 "0x${FgColor}"
         SendMessage $1 ${PBM_SETBKCOLOR} 0 "0x${BgColor}"
     ${EndIf}
 !macroend
-
 
 ; ---------------------------------------------------------------------------
 ; Unused macros, here if needed, take no memory
@@ -237,6 +235,7 @@ Var CheckboxOpenDocs
 Var CheckboxOpenDonate
 Var UseInstallPath
 Var UpgradeFlow
+Var OnFinishPage
 Var IsProgressMode      ; 1 = /SHOWPROGRESS mode
 Var IsSilentMode        ; 1 = /S mode
 
@@ -270,7 +269,7 @@ Var IsSilentMode        ; 1 = /S mode
 
 ; Font values
 !define Font_Name "Segoe UI"
-!define Font_Size_Title "12"
+!define Font_Size_Title "14" ;12
 !define Font_Size_Body "10"
 !define Font_Size_Option "9.5"
 !define Font_Weight "600"
@@ -284,7 +283,7 @@ Var IsSilentMode        ; 1 = /S mode
 ; MUI CONFIGURATION
 ; -----------------------------------------------------------------------------
 ; General
-!define MUI_ABORTWARNING
+!define MUI_CUSTOMFUNCTION_ABORT onFinishAbort
 
 ; INSTALL
 !define MUI_ICON "${PRODUCT_NAME}.ico"
@@ -456,7 +455,7 @@ Function CustomWelcomeFreshCreator
     ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\sidebar.bmp" $1
 
     ; Title
-    ${NSD_CreateLabel} 120u 10u 195u 28u "$(Welcome_Install_Title)"
+    ${NSD_CreateLabel} 120u 10u 195u 38u "$(Welcome_Install_Title)"
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"  ; white text, blue background
     CreateFont $1 "${Font_Name}" "${Font_Size_Title}" "${Font_Weight}"
@@ -601,11 +600,16 @@ Function CustomFinishPageCreate
         SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Install)"
     ${EndIf}
 
-    ; Remove the back button and Cancel button
+    ; Remove the back button
     GetDlgItem $0 $HWNDPARENT 3
     ShowWindow $0 ${SW_HIDE}
+
+    ; Show the cancel button ast OnFinishPage for onFinishAbort
     GetDlgItem $0 $HWNDPARENT 2
-    ShowWindow $0 ${SW_HIDE}
+    ShowWindow $0 ${SW_SHOW}
+    EnableWindow $0 1
+    StrCpy $NoConfirmAbort 1
+
 
     ; Show the Close button
     GetDlgItem $0 $HWNDPARENT 1
@@ -641,9 +645,9 @@ Function CustomFinishPageCreate
 
     ; Body text
     ${If} $UpgradeFlow == 1
-        ${NSD_CreateLabel} 120u 55u 195u 38u "$(Finish_Text_Upgrade)"
+        ${NSD_CreateLabel} 120u 45u 195u 58u "$(Finish_Text_Upgrade)$\n$\n$(Finish_Instructions)"
     ${Else}
-        ${NSD_CreateLabel} 120u 55u 195u 38u "$(Finish_Text_Install)"
+        ${NSD_CreateLabel} 120u 45u 195u 58u "$(Finish_Text_Install)$\n$\n$(Finish_Instructions)"
     ${EndIf}
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"  ; white text, blue background
@@ -651,33 +655,33 @@ Function CustomFinishPageCreate
     SendMessage $0 ${WM_SETFONT} $1 0
 
     ; Checkbox 1: Open the app (default checked)
-    ${NSD_CreateCheckbox} 120u 100u 12u 12u ""
+    ${NSD_CreateCheckbox} 120u 120u 12u 12u ""
     Pop $CheckboxRunApp
     SetCtlColors $CheckboxRunApp "FFFFFF" "2899C7"
     ${NSD_SetState} $CheckboxRunApp ${BST_CHECKED}
-    ${NSD_CreateLabel} 135u 100u 195u 12u "$(Finish_RunApp)"
+    ${NSD_CreateLabel} 135u 120u 195u 12u "$(Finish_RunApp)"
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"
     CreateFont $1 "${Font_Name}" "${Font_Size_Option}" "${Font_Weight_Option}"
     SendMessage $0 ${WM_SETFONT} $1 0
 
     ; Checkbox 2: Open Documentation page
-    ${NSD_CreateCheckbox} 120u 115u 12u 12u ""
+    ${NSD_CreateCheckbox} 120u 135u 12u 12u ""
     Pop $CheckboxOpenDocs
     SetCtlColors $CheckboxOpenDocs "FFFFFF" "2899C7"
     ${NSD_SetState} $CheckboxOpenDocs ${BST_UNCHECKED}
-    ${NSD_CreateLabel} 135u 115u 195u 12u "$(Finish_OpenDocumentation)"
+    ${NSD_CreateLabel} 135u 135u 195u 12u "$(Finish_OpenDocumentation)"
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"
     CreateFont $1 "${Font_Name}" "${Font_Size_Option}" "${Font_Weight_Option}"
     SendMessage $0 ${WM_SETFONT} $1 0
 
     ; Checkbox 3: Open Donate page
-    ${NSD_CreateCheckbox} 120u 130u 12u 12u ""
+    ${NSD_CreateCheckbox} 120u 150u 12u 12u ""
     Pop $CheckboxOpenDonate
     SetCtlColors $CheckboxOpenDonate "FFFFFF" "2899C7"
     ${NSD_SetState} $CheckboxOpenDonate ${BST_UNCHECKED}
-    ${NSD_CreateLabel} 135u 130u 195u 12u "$(Finish_OpenDonate)"
+    ${NSD_CreateLabel} 135u 150u 195u 12u "$(Finish_OpenDonate)"
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"
     CreateFont $1 "${Font_Name}" "${Font_Size_Option}" "${Font_Weight_Option}"
@@ -706,6 +710,17 @@ Function CustomFinishPageLeave
         ExecShell "open" "${Finish_Donate_URL}"
     ${EndIf}
 FunctionEnd
+
+Function onFinishAbort
+    ${If} $NoConfirmAbort == "1"
+        ; just let it quit — no confirmation
+    ${Else}
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION "Are you sure you want to cancel?" IDNO abort_cancel
+        Abort
+        abort_cancel:
+    ${EndIf}
+FunctionEnd
+
 
 ; ============================================================================
 ; UNINSTALL un.onInit
@@ -776,7 +791,7 @@ Function un.WelcomeShow
     ${NSD_SetStretchedImage} $0 "$PLUGINSDIR\unsidebar.bmp" $1
 
     ; Title
-    ${NSD_CreateLabel} 120u 10u 195u 28u "$(Welcome_Uninstall_Title)"
+    ${NSD_CreateLabel} 120u 10u 195u 38u "$(Welcome_Uninstall_Title)"
     Pop $0
     SetCtlColors $0 "FFFFFF" "2899C7"
     CreateFont $1 "${Font_Name}" "${Font_Size_Title}" "${Font_Weight}"
@@ -864,7 +879,6 @@ Function un.FinishShow
     CreateFont $0 "${Font_Name}" "${Font_Size_Body}" "${Font_Weight}"
     SendMessage $mui.FinishPage.Text ${WM_SETFONT} $0 1
 FunctionEnd
-
 
 
 ; ============================================================================
