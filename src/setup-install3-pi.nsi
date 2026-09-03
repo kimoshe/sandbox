@@ -235,7 +235,7 @@ Var CheckboxOpenDocs
 Var CheckboxOpenDonate
 Var UseInstallPath
 Var UpgradeFlow
-Var NoConfirmAbort
+Var NoConfirmCancel
 Var IsProgressMode      ; 1 = /SHOWPROGRESS mode
 Var IsSilentMode        ; 1 = /S mode
 
@@ -615,7 +615,7 @@ Function CustomFinishPageCreate
     GetDlgItem $0 $HWNDPARENT 3
     ShowWindow $0 ${SW_HIDE}
 
-    ; Show the cancel button, set NoConfirmAbort for onFinishAbort
+    ; Show the cancel button, set NoConfirmCancel for onFinishAbort
     GetDlgItem $0 $HWNDPARENT 2
     ShowWindow $0 ${SW_SHOW}
     EnableWindow $0 1
