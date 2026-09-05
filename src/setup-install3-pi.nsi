@@ -1,18 +1,22 @@
 ; TODO List
 ; Desired translations  German, Spanish, French, Italian, Portuguese and Chinese
+
+; Must validate the Title section on all pages for all languages!!!  More than two lines is a killer!
+
 ; Where in the repo to store the translations file
+; Final decision on /SOLID
 ; Review for consistent coding,
 ;       named variables versus internal $0 like one.
-;       macros for common code
-;       consistent comment format
+;       ✓macros for common code
+;       ✓consistent comment format
 ;       useful comments
-;       order of the various sections
+;       ✓order of the various sections
 ;       remove unused LANG strings
 ;       remove unnecessary commented lines
 ;       remove unneeded !includes
-;       remove any unneeded !macros
-;       all strings in the LANG list
-;       look for redundant ClearErrors
+;       ✓remove any unneeded !macros
+;       ✓all strings in the LANG list
+;       ✓look for redundant ClearErrors
 
 ; Common Font Weight Values:
 ; 400: Normal (Regular)
@@ -44,11 +48,11 @@
 ; Dave Baxter, Marko Luther 2023-2026
 ;
 
-; .nsi command line options, override the default defines:
+; .nsi command line options, overrides any default defines:
 ;    /DPRODUCT_VERSION=ww.xx.yy     -explicitly set the product version, default is 0.0.0
 ;    /DPRODUCT_BUILD=zz             -explicityl set the product build, default is 0
+;    /DFORCE_LANG=Language          -force translation to Language, useful for testing
 ;    /DSIGN                         -Used by SignArtisan to prevent generating uninstall.exe
-;                                    Note: SignArtisan is not a part of the ci process
 ;
 ; installer command line options
 ;    /S                             -silent operation
@@ -67,26 +71,26 @@
 ;   !include nsDialogs.nsh
 ;   !include LangFile.nsh
 
-; -----------------------------------------------------------------------------
+; =============================================================================
 ; COMPILER FLAGS
-; -----------------------------------------------------------------------------
+; =============================================================================
 RequestExecutionLevel admin
-SetCompressor /SOLID lzma
+SetCompressor lzma
 ManifestDPIAware true
 
-; -----------------------------------------------------------------------------
+; =============================================================================
 ; CHECK NSIS MINIMUM VERSION AT COMPILE TIME (DURING CI)
-; -----------------------------------------------------------------------------
+; =============================================================================
 ; 0x + Major(2 digits) + Minor(3 digits) + Revision(2 digits) + Build(1 digit)
 !if ${NSIS_PACKEDVERSION} < 0x03011000
     !error "NSIS 3.11 or higher is required to build this installer!"
 !endif
 
-; -----------------------------------------------------------------------------
+; =============================================================================
 ; MACROS
-; -----------------------------------------------------------------------------
+; =============================================================================
 ; ---------------------------------------------------------------------------
-; Macros for making and removing associations
+; Macros for making and removing associations, ref:https://nsis.sourceforge.io/FileAssoc
 ; ---------------------------------------------------------------------------
 !macro APP_ASSOCIATE_URL FILECLASS DESCRIPTION COMMANDTEXT COMMAND
     WriteRegStr HKCR "${FILECLASS}" "" `${DESCRIPTION}`
@@ -124,7 +128,7 @@ ManifestDPIAware true
 ; Macro to remove directory with wildcards
 ; ---------------------------------------------------------------------------
 !macro Rmdir_Wildcard dir uid
-    ; RMDIR with wildcard, dir in the form $INSTDIR\dir_with_wildcard, uid should be ${__LINE__}
+    ; dir: in the quoted form "$INSTDIR\dir_with_wildcard", uid: must be ${__LINE__} not quoted
     FindFirst $0 $1 ${dir}
     loop_${uid}:
         StrCmp $1 "" endloop_${uid}
@@ -154,7 +158,7 @@ ManifestDPIAware true
 !macroend
 
 ; ---------------------------------------------------------------------------
-; Macro to prevent running multiple install/uninstall instances
+; Macro to prevent multiple install/uninstall instances
 ; ---------------------------------------------------------------------------
 !macro CheckForRunningInstances caller
     System::Call 'KERNEL32::CreateMutex(i 0, i 0, t "${INSTALLMUTEX}") i .r1 ?e'
@@ -171,7 +175,7 @@ ManifestDPIAware true
 !macroend
 
 ; ---------------------------------------------------------------------------
-; Macro to SetProgressBarColor
+; Macro to set ProgressBar color
 ; ---------------------------------------------------------------------------
 !macro SetProgressBarColor FgColor BgColor  ;FgColor is BBGGRR
     ; Find the inner dialog of the current page
@@ -190,45 +194,13 @@ ManifestDPIAware true
     ${EndIf}
 !macroend
 
-; ---------------------------------------------------------------------------
-; Unused macros, here if needed, take no memory
-; ---------------------------------------------------------------------------
-!macro APP_ASSOCIATE_EX EXT FILECLASS DESCRIPTION ICON VERB DEFAULTVERB SHELLNEW COMMANDTEXT COMMAND
-    ; Backup the previously associated file class
-    ReadRegStr $R0 HKCR ".${EXT}" ""
-    WriteRegStr HKCR ".${EXT}" "${FILECLASS}_backup" "$R0"
-    WriteRegStr HKCR ".${EXT}" "" "${FILECLASS}"
-    StrCmp "${SHELLNEW}" "0" +2
-    WriteRegStr HKCR ".${EXT}\ShellNew" "NullFile" ""
-    WriteRegStr HKCR "${FILECLASS}" "" `${DESCRIPTION}`
-    WriteRegStr HKCR "${FILECLASS}\DefaultIcon" "" `${ICON}`
-    WriteRegStr HKCR "${FILECLASS}\shell" "" `${DEFAULTVERB}`
-    WriteRegStr HKCR "${FILECLASS}\shell\${VERB}" "" `${COMMANDTEXT}`
-    WriteRegStr HKCR "${FILECLASS}\shell\${VERB}\command" "" `${COMMAND}`
-!macroend
 
-!macro APP_ASSOCIATE_ADDVERB FILECLASS VERB COMMANDTEXT COMMAND
-    WriteRegStr HKCR "${FILECLASS}\shell\${VERB}" "" `${COMMANDTEXT}`
-    WriteRegStr HKCR "${FILECLASS}\shell\${VERB}\command" "" `${COMMAND}`
-!macroend
-
-!macro APP_ASSOCIATE_REMOVEVERB FILECLASS VERB
-    DeleteRegKey HKCR `${FILECLASS}\shell\${VERB}`
-!macroend
-
-!macro APP_ASSOCIATE_GETFILECLASS OUTPUT EXT
-    ReadRegStr ${OUTPUT} HKCR ".${EXT}" ""
-!macroend
-;End Unused macros ------
-
-
-; -----------------------------------------------------------------------------
-; PRODUCT AND GENERAL VARIABLES
-; -----------------------------------------------------------------------------
-; Declare global variables
+; =============================================================================
+; USER VARIABLES
+; =============================================================================
+; Global variables
 Var PathToUninstaller
 Var Dialog
-Var ShowFinish
 Var CheckboxState
 Var CheckboxRunApp
 Var CheckboxOpenDocs
@@ -239,16 +211,18 @@ Var NoConfirmCancel
 Var IsProgressMode      ; 1 = /SHOWPROGRESS mode
 Var IsSilentMode        ; 1 = /S mode
 
+; Source locations
 !define pyinstallerOutputDir "dist/artisan"
 !define nsisLocalIncludesDir "nsis_local_includes"
 
+; Product definitions
 !define PRODUCT_NAME "artisan"
 !define PRODUCT_NAME_CAP "Artisan"
 !define PRODUCT_PUBLISHER "The Artisan Team"
 !define PRODUCT_WEB_SITE "https://github.com/artisan-roaster-scope/artisan/blob/master/README.md"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_NAME}.exe"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
-; The following gets transposed to "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\artisan-skeleton"
+; The following gets transposed to "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define Finish_Documentation_URL "https://artisan-scope.org/docs/"
 !define Finish_Donate_URL "https://artisan-scope.org/donate/"
@@ -257,7 +231,7 @@ Var IsSilentMode        ; 1 = /S mode
 !define /ifndef PRODUCT_VERSION "0.0.0"
 !define /ifndef PRODUCT_BUILD "0"
 
-; Used by SHChangeNotify, Note: !undef here to prevent makensis "symbol already defined" errors
+; Used by SHChangeNotify (UPDATEFILEASSOC)
 !ifdef SHCNE_ASSOCCHANGED
     !undef SHCNE_ASSOCCHANGED
 !endif
@@ -269,7 +243,7 @@ Var IsSilentMode        ; 1 = /S mode
 
 ; Font values
 !define Font_Name "Segoe UI"
-!define Font_Size_Title "14" ;12
+!define Font_Size_Title "13" ;12
 !define Font_Size_Body "10"
 !define Font_Size_Option "9.5"
 !define Font_Weight "600"
@@ -279,28 +253,26 @@ Var IsSilentMode        ; 1 = /S mode
 !define /date CUR_YEAR "%Y"
 !define INSTALLMUTEX "{c2a7be4e-da57-44b9-b2cf-5b1f80c6b429}"
 
-; -----------------------------------------------------------------------------
+; =============================================================================
 ; MUI CONFIGURATION
-; -----------------------------------------------------------------------------
+; =============================================================================
 ; General
 !define MUI_CUSTOMFUNCTION_ABORT onUserAbort
+!define MUI_BGCOLOR "2899c7"
+!define MUI_TEXTCOLOR "FFFFFF"
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_RIGHT
+!define MUI_INSTFILESPAGE_PROGRESSBAR "colored"
 
 ; INSTALL
 !define MUI_ICON "${PRODUCT_NAME}.ico"
-!define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "${nsisLocalIncludesDir}\header-install.bmp"
-!define MUI_HEADERIMAGE_BITMAP_STRETCH "FitControl"
-!define MUI_HEADERIMAGE_RIGHT
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${nsisLocalIncludesDir}\sidebar-install.bmp"
-!define MUI_BGCOLOR "2899c7"
-!define MUI_TEXTCOLOR "FFFFFF"
-!define MUI_INSTFILESPAGE_PROGRESSBAR "colored"
 
 ; UNINSTALL
 !define MUI_UNICON "${nsisLocalIncludesDir}\uninstall.ico"
 !define MUI_HEADERIMAGE_UNBITMAP "${nsisLocalIncludesDir}\header-uninstall.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP "${nsisLocalIncludesDir}\sidebar-uninstall.bmp"
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP_STRETCH "FitControl"
 !define MUI_FINISHPAGE_TITLE "$(UnFinish_Title)"  ;used only for uninstall
 !define MUI_FINISHPAGE_TEXT "$(UnFinish_Text)"    ;used only for uninstall
 
@@ -346,11 +318,16 @@ UninstPage custom un.WelcomeShow un.WelcomeLeave
 ; LANGUAGE  (must come after MUI configuration))
 ; ============================================================================
 !insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "German"
+!insertmacro MUI_LANGUAGE "Italian"
+!insertmacro MUI_LANGUAGE "Spanish"
+!insertmacro MUI_LANGUAGE "Portuguese"
+!insertmacro MUI_LANGUAGE "SimpChinese"
 !include "${nsisLocalIncludesDir}\install_translations.nsh"
 
 
 ; ============================================================================
-; SET VARIABLES
+; ATTRIBUTES
 ; ============================================================================
 Name "${PRODUCT_NAME}"
 OutFile "${PRODUCT_NAME}-win-x64-${PRODUCT_VERSION}-setup.exe"
@@ -372,9 +349,12 @@ VIAddVersionKey FileDescription "${PRODUCT_NAME} Installer"
 VIAddVersionKey ProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 
 
-; ============================================================================
+; =============================================================================
+; FUNCTIONS
+; =============================================================================
+; ----------------------------------------------------------------------------
 ; Cancel and Esc handler
-; ============================================================================
+; ----------------------------------------------------------------------------
 Function onUserAbort
     ${If} $NoConfirmCancel != "1"
         MessageBox MB_YESNO|MB_ICONEXCLAMATION "Are you sure you want to cancel?" IDYES abort_cancel
@@ -383,9 +363,9 @@ Function onUserAbort
     ${EndIf}
 FunctionEnd
 
-; ============================================================================
+; ----------------------------------------------------------------------------
 ; INSTALL on.Init
-; ============================================================================
+; ----------------------------------------------------------------------------
 Function .onInit
     ; Prevent multiple instances of install / uninstall
     !insertmacro CheckForRunningInstances "install"
@@ -404,8 +384,6 @@ Function .onInit
 
     ; Stop if there is a running instance of the app
     !insertmacro AppIsRunning "install"
-
-    StrCpy $ShowFinish 1
 
     ; Extract image
     InitPluginsDir
@@ -429,14 +407,19 @@ Function .onInit
         StrCpy $UpgradeFlow 1
         goto done
 
-  done:
+    done:
+
+    ; Language forced from the command line, used for testing only
+    !ifdef FORCE_LANG
+        StrCpy $LANGUAGE ${LANG_${FORCE_LANG}}
+    !EndIf
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM WELCOME PAGE - FRESH INSTALL
-; ============================================
+; --------------------------------------------
 Function CustomWelcomeFreshCreator
-    ; Exit if this is an Upgrade install
+    ; Skip this page if this is an Upgrade install
     ${If} $UpgradeFlow == 1
         Abort
     ${EndIf}
@@ -485,10 +468,11 @@ FunctionEnd
 Function CustomWelcomeFreshLeave
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM WELCOME PAGE - UPGRADE
-; ============================================
+; --------------------------------------------
 Function CustomWelcomeUpgradeCreator
+    ; Skip this page if this is note an Upgrade install
     ${If} $UpgradeFlow == 0
         Abort
     ${EndIf}
@@ -539,13 +523,14 @@ Function CustomWelcomeUpgradeCreator
 FunctionEnd
 
 Function CustomWelcomeUpgradeLeave
+    ; Start the uninstall as part of the upgrade process
     StrCpy $IsProgressMode 1
     ExecWait '$PathToUninstaller /SHOWPROGRESS _?=$INSTDIR'
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM DIRECTORY PAGE
-; ============================================
+; --------------------------------------------
 Function DirectoryPre
     ; Skip this page if $UpgradeFlow is 1
     StrCmp $UpgradeFlow "1" 0 +2
@@ -553,7 +538,7 @@ Function DirectoryPre
 FunctionEnd
 
 Function DirectoryShow
-    ; Sets the window title to exactly this string
+    ; Set the caption
     SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Install)"
 
     ; Show branding text (ID 1028) and line (ID 1045)
@@ -563,19 +548,19 @@ Function DirectoryShow
     ShowWindow $0 ${SW_SHOW}
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM INSTFILES PAGE
-; ============================================
+; --------------------------------------------
 Function InstFilesPre
-    ; Set the caption
-    SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Install)"
+    ; Set the appropriate caption
+    ${If} $UpgradeFlow == 1
+        SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Upgrade)"
+    ${Else}
+        SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Install)"
+    ${EndIf}
 FunctionEnd
 
 Function InstFilesShow
-    ${If} $UpgradeFlow == 1
-        SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Upgrade)"
-    ${EndIf}
-
     ; Change progress bar color
     !insertmacro SetProgressBarColor "C79928" "FFFFFF"
 
@@ -600,9 +585,9 @@ FunctionEnd
 Function InstFilesLeave
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM FINISH PAGE
-; ============================================
+; --------------------------------------------
 Function CustomFinishPageCreate
     ; Set appropriate Caption
     ${If} $UpgradeFlow == 1
@@ -722,43 +707,53 @@ Function CustomFinishPageLeave
 FunctionEnd
 
 
-; ============================================================================
+; ----------------------------------------------------------------------------
 ; UNINSTALL un.onInit
-; ============================================================================
+; ----------------------------------------------------------------------------
 Function un.onInit
+    ; Set the flag variables
     StrCpy $IsProgressMode 0
     StrCpy $IsSilentMode 0
 
+    ; Get command line options
     ${GetParameters} $R0
     ClearErrors
+    ; Test if this is an Upgrade uninstall
     ${GetOptions} $R0 "/SHOWPROGRESS" $R1
     ${IfNot} ${Errors}
         ; started from the installer
         StrCpy $IsProgressMode 1
         SetAutoClose true
     ${Else}
+        ; Check for other instances only when uninstall is started by the user
         ; Stop if there is a running instance of install/uninstall
         !insertmacro CheckForRunningInstances "uninstall"
         ; Stop if there is a running instance of the app
         !insertmacro AppIsRunning "uninstall"
     ${EndIf}
 
+    ; Test for the /S option
     ${If} ${Silent}
         StrCpy $IsSilentMode 1
         SetAutoClose true
         Return
     ${EndIf}
 
-    ; Extract the bitmap to the plugins directory with a known name
+    ; Extract the bitmap to the plugins directory with a fixed name
     InitPluginsDir
     File /oname=$PLUGINSDIR\unsidebar.bmp "${MUI_UNWELCOMEFINISHPAGE_BITMAP}"
 
+    ; Language forced from the command line, used for testing only
+    !ifdef FORCE_LANG
+        StrCpy $LANGUAGE ${LANG_${FORCE_LANG}}
+    !EndIf
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM UNINSTALL WELCOME PAGE
-; ============================================
+; --------------------------------------------
 Function un.WelcomeShow
+    ; Skip the page for /SHOWPROGRESS and /S
     ${If} $IsProgressMode == 1
         Abort
     ${EndIf}
@@ -766,7 +761,7 @@ Function un.WelcomeShow
         Abort
     ${EndIf}
 
-    ; Set Window Caption
+    ; Set the Caption
     SendMessage $HWNDPARENT ${WM_SETTEXT} 0 "STR:$(Caption_Uninstall)"
 
     ; Remove the back button
@@ -810,9 +805,9 @@ FunctionEnd
 Function un.WelcomeLeave
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM UNINSTALL INSTFILES PAGE
-; ============================================
+; --------------------------------------------
 Function un.InstFilesShow
     ; Change progress bar color
     !insertmacro SetProgressBarColor "C79928" "FFFFFF"
@@ -839,11 +834,11 @@ Function un.InstFilesShow
     SetAutoClose true
 FunctionEnd
 
-; ============================================
+; --------------------------------------------
 ; CUSTOM UNINSTALL FINISH PAGE
-; ============================================
+; --------------------------------------------
 Function un.PreFinish
-    ; Skip finish page for /SHOWPROGRESS and /S
+    ; Skip the page for /SHOWPROGRESS and /S
     ${If} $IsProgressMode == 1
         SetAutoClose true
         Abort
@@ -906,7 +901,7 @@ Section "-Install Hidden"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
-    ; When the file is signed copy it else generate a new one
+    ; When called from SignArtisan, copy the signed uninstall.exe otherwise generate the uninstaller
     !ifndef SIGN
         WriteUninstaller "$INSTDIR\uninstall.exe"
     !else
@@ -943,8 +938,6 @@ Section "-Install Hidden"
 
     !insertmacro APP_ASSOCIATE_URL "${PRODUCT_NAME}" "URL:${PRODUCT_NAME} Protocol" \
        "Open with URL" "$INSTDIR\${PRODUCT_NAME}.exe $\"%1$\""
-    Sleep 2000  ;5000
-
 SectionEnd
 
 
@@ -953,7 +946,6 @@ SectionEnd
 ; ============================================================================
 !ifndef SIGN  ;skip this section when called from SignArtisan
 Section Uninstall
-; ---------------------------------------------
     Delete "$INSTDIR\${PRODUCT_NAME}.url"
     Delete "$INSTDIR\uninstall.exe"
     Delete "$INSTDIR\${PRODUCT_NAME}.exe"
