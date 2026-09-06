@@ -216,7 +216,7 @@ Var IsSilentMode        ; 1 = /S mode
 
 ; Source locations
 !define pyinstallerOutputDir "dist/artisan"
-!define nsisLocalIncludesDir "nsis_local_includes"
+!define nsisLocalIncludesDir "nsis_includes"
 
 ; Product definitions
 !define PRODUCT_NAME "artisan"
