@@ -17,6 +17,7 @@
 ;       ✓remove any unneeded !macros
 ;       ✓all strings in the LANG list
 ;       ✓look for redundant ClearErrors
+; Remove Test from the trunk file
 
 ; Common Font Weight Values:
 ; 400: Normal (Regular)
@@ -48,14 +49,16 @@
 ; Dave Baxter, Marko Luther 2023-2026
 ;
 
+; All command line options are intended for internal use only.
 ; .nsi command line options, overrides any default defines:
 ;    /DPRODUCT_VERSION=ww.xx.yy     -explicitly set the product version, default is 0.0.0
 ;    /DPRODUCT_BUILD=zz             -explicityl set the product build, default is 0
-;    /DFORCE_LANG=Language          -force translation to Language, useful for testing
 ;    /DSIGN                         -Used by SignArtisan to prevent generating uninstall.exe
 ;
-; installer command line options
+; installer/uninstaller command line options:
 ;    /S                             -silent operation
+;    /L=nnnn                        -force language at runtime, nnnn is language id, used for testing
+;    /SHOWPROGRESS                  -uninstaller only, used with upgrade flow, shows progress only, skips other pages
 
 
 ; -----------------------------------------------------------------------------
@@ -227,7 +230,7 @@ Var IsSilentMode        ; 1 = /S mode
 !define Finish_Documentation_URL "https://artisan-scope.org/docs/"
 !define Finish_Donate_URL "https://artisan-scope.org/donate/"
 
-; Special commandline options
+; Set with command line options
 !define /ifndef PRODUCT_VERSION "0.0.0"
 !define /ifndef PRODUCT_BUILD "0"
 
@@ -246,12 +249,23 @@ Var IsSilentMode        ; 1 = /S mode
 !define Font_Size_Title "13" ;12
 !define Font_Size_Body "10"
 !define Font_Size_Option "9.5"
-!define Font_Weight "600"
+!define Font_Weight "600"         ; Range from 400:Normal to 700:Bold
 !define Font_Weight_Option "400"
 
 ; Other
 !define /date CUR_YEAR "%Y"
 !define INSTALLMUTEX "{c2a7be4e-da57-44b9-b2cf-5b1f80c6b429}"
+
+;---------
+!ifdef Test
+    !define /redef PRODUCT_NAME "artisan-skeleton"
+    !define /redef PRODUCT_NAME_CAP "Artisan-skeleton"
+    !define /redef PRODUCT_VERSION "9.8.0"
+    !define /redef PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_NAME}.exe"
+    !define /redef PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+!endif
+;---------
+
 
 ; =============================================================================
 ; MUI CONFIGURATION
@@ -299,6 +313,7 @@ Page custom CustomWelcomeFreshCreator CustomWelcomeFreshLeave
 ; Finish page
 Page custom CustomFinishPageCreate CustomFinishPageLeave
 
+
 ; ============================================================================
 ; UNINSTALLER PAGES
 ; ============================================================================
@@ -313,6 +328,7 @@ UninstPage custom un.WelcomeShow un.WelcomeLeave
 !define MUI_PAGE_CUSTOMFUNCTION_PRE un.PreFinish
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW un.FinishShow
 !insertmacro MUI_UNPAGE_FINISH
+
 
 ; ============================================================================
 ; LANGUAGE  (must come after MUI configuration))
@@ -357,8 +373,8 @@ VIAddVersionKey ProductVersion "${PRODUCT_VERSION}.${PRODUCT_BUILD}"
 ; ----------------------------------------------------------------------------
 Function onUserAbort
     ${If} $NoConfirmCancel != "1"
-        MessageBox MB_YESNO|MB_ICONEXCLAMATION "Are you sure you want to cancel?" IDYES abort_cancel
-        Abort  ;"No" Abort aborts the exit and stays on the page (crazy nsis logic)
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION "$(Alert_AbortConfirm)" IDYES abort_cancel
+        Abort          ;"No" Abort aborts the exit and stays on the page (crazy nsis logic)
         abort_cancel:  ;"Yes", no Abort call so the user abort proceeds to exit
     ${EndIf}
 FunctionEnd
@@ -410,9 +426,7 @@ Function .onInit
     done:
 
     ; Language forced from the command line, used for testing only
-    !ifdef FORCE_LANG
-        StrCpy $LANGUAGE ${LANG_${FORCE_LANG}}
-    !EndIf
+    ${GetOptions} $CMDLINE "/L=" $LANGUAGE
 FunctionEnd
 
 ; --------------------------------------------
@@ -523,8 +537,18 @@ Function CustomWelcomeUpgradeCreator
 FunctionEnd
 
 Function CustomWelcomeUpgradeLeave
-    ; Start the uninstall as part of the upgrade process
+    ; Set the flag to show the progress
     StrCpy $IsProgressMode 1
+
+    ; Language forced from the command line, used for testing only
+    ; pass it to the uninstaller
+    StrCpy $0 ""
+    ${GetOptions} $CMDLINE "/L=" $0
+    StrCmp $0 "" +3 0
+        ExecWait '$PathToUninstaller /SHOWPROGRESS /L=$LANGUAGE _?=$INSTDIR'
+        Goto +2
+
+    ; Start the uninstall as part of the upgrade process
     ExecWait '$PathToUninstaller /SHOWPROGRESS _?=$INSTDIR'
 FunctionEnd
 
@@ -744,9 +768,7 @@ Function un.onInit
     File /oname=$PLUGINSDIR\unsidebar.bmp "${MUI_UNWELCOMEFINISHPAGE_BITMAP}"
 
     ; Language forced from the command line, used for testing only
-    !ifdef FORCE_LANG
-        StrCpy $LANGUAGE ${LANG_${FORCE_LANG}}
-    !EndIf
+    ${GetOptions} $CMDLINE "/L=" $LANGUAGE
 FunctionEnd
 
 ; --------------------------------------------
@@ -885,6 +907,16 @@ Section "Install"
     SetOverwrite on
     File /r '${pyinstallerOutputDir}\*.*'
 
+;---------
+    !ifdef Test
+        Delete 'uninstall.exe'
+        ; Add delays to see the progress bar color
+        Sleep 2000  ;5000
+;        File "/oname=$INSTDIR\artisan-skeleton.exe" "C:\Users\dave\Dropbox\Artisan Roast Profiles\!NewArtisanInstaller\artisan-skeletonNSI.nsi"
+;        File "/oname=$INSTDIR\artisan-skeletonProfile.ico" "c:\users\dave\documents\github\artisan\src\artisanProfile.ico"
+    !endif
+;---------
+
     CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
     CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
@@ -896,6 +928,14 @@ Section "Install"
 SectionEnd
 
 Section "-Install Hidden"
+;--------
+    !ifdef Test
+        ${If} $UpgradeFlow == "1"
+            File trimNSI.nsi
+        ${EndIf}
+    !endif
+;--------
+
     SetShellVarContext all
     WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
@@ -938,6 +978,12 @@ Section "-Install Hidden"
 
     !insertmacro APP_ASSOCIATE_URL "${PRODUCT_NAME}" "URL:${PRODUCT_NAME} Protocol" \
        "Open with URL" "$INSTDIR\${PRODUCT_NAME}.exe $\"%1$\""
+;--------
+!ifdef Test
+  Sleep 2000
+!endif
+;--------
+
 SectionEnd
 
 
@@ -946,6 +992,18 @@ SectionEnd
 ; ============================================================================
 !ifndef SIGN  ;skip this section when called from SignArtisan
 Section Uninstall
+;---------
+!ifdef Test
+; We have to delete something in this test  <- Delete this
+Delete "$INSTDIR\artisan-skeleton.url"
+Delete "$INSTDIR\artisan-skeletonProfile.ico"
+Delete "$INSTDIR\artisan-skeleton.exe"
+Delete "$INSTDIR\License.txt"
+Delete "$INSTDIR\uninstall.exe"
+delete "$INSTDIR\trimNSI.nsi"
+    Sleep 2000
+!endif
+;---------
     Delete "$INSTDIR\${PRODUCT_NAME}.url"
     Delete "$INSTDIR\uninstall.exe"
     Delete "$INSTDIR\${PRODUCT_NAME}.exe"
@@ -1106,5 +1164,12 @@ Section Uninstall
     DeleteRegKey HKCR "${PRODUCT_NAME}\shell"
     DeleteRegKey HKCR "${PRODUCT_NAME}\shell\open\command"
     DeleteRegKey HKCR "${PRODUCT_NAME}"
+
+;--------
+!ifdef Test
+    Sleep 2000
+!endif
+;--------
+
 SectionEnd
 !endif
