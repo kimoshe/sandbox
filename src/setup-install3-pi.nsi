@@ -4,20 +4,21 @@
 ; Must validate the Title section on all pages for all languages!!!  More than two lines is a killer!
 
 ; Where in the repo to store the translations file
-; Final decision on /SOLID
-; Review for consistent coding,
-;       named variables versus internal $0 like one.
-;       ✓macros for common code
-;       ✓consistent comment format
-;       useful comments
-;       ✓order of the various sections
-;       remove unused LANG strings
-;       remove unnecessary commented lines
-;       remove unneeded !includes
-;       ✓remove any unneeded !macros
-;       ✓all strings in the LANG list
-;       ✓look for redundant ClearErrors
 ; Remove Test from the trunk file
+
+; ✘ Final decision on /SOLID
+; Review for consistent coding,
+;       ✓ named variables versus internal $0 like one.
+;       ✓ macros for common code
+;       ✓ consistent comment format
+;       ✓ useful comments
+;       ✓ order of the various sections
+;       ✓ remove unused LANG strings
+;       ✓ remove unnecessary commented lines
+;       ✓ remove unneeded !includes
+;       ✓ remove any unneeded !macros
+;       ✓ all strings in the LANG list
+;       ✓ look for redundant ClearErrors
 
 ; Common Font Weight Values:
 ; 400: Normal (Regular)
@@ -246,10 +247,10 @@ Var IsSilentMode        ; 1 = /S mode
 
 ; Font values
 !define Font_Name "Segoe UI"
-!define Font_Size_Title "13" ;12
+!define Font_Size_Title "13"
 !define Font_Size_Body "10"
 !define Font_Size_Option "9.5"
-!define Font_Weight "600"         ; Range from 400:Normal to 700:Bold
+!define Font_Weight "600" ; Range from 400:Normal to 700:Bold
 !define Font_Weight_Option "400"
 
 ; Other
@@ -350,7 +351,7 @@ OutFile "${PRODUCT_NAME}-win-x64-${PRODUCT_VERSION}-setup.exe"
 InstallDir "C:\Program Files\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
-ShowUnInstDetails show
+ShowUninstDetails show
 UninstallCaption "$(Caption_Uninstall)"
 BrandingText "$(Tag_Line)"
 
@@ -910,17 +911,14 @@ Section "Install"
 ;---------
     !ifdef Test
         Delete 'uninstall.exe'
-        ; Add delays to see the progress bar color
-        Sleep 2000  ;5000
-;        File "/oname=$INSTDIR\artisan-skeleton.exe" "C:\Users\dave\Dropbox\Artisan Roast Profiles\!NewArtisanInstaller\artisan-skeletonNSI.nsi"
-;        File "/oname=$INSTDIR\artisan-skeletonProfile.ico" "c:\users\dave\documents\github\artisan\src\artisanProfile.ico"
+        Sleep 2000  ; Add delay to slow the progress
     !endif
 ;---------
 
     CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-    CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
-    CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
-    !insertMacro UPDATEFILEASSOC
+    CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
+    CreateShortcut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_NAME}.exe"
+    !insertmacro UPDATEFILEASSOC
 
     ; Install Microsoft Visual C++ Redistributable Package (x64)
     ExecWait '$INSTDIR\vc_redist.x64.exe /install /passive /norestart'
@@ -937,9 +935,9 @@ Section "-Install Hidden"
 ;--------
 
     SetShellVarContext all
-    WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
-    CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-    CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
+    WriteINIStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
+    CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+    CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
     ; When called from SignArtisan, copy the signed uninstall.exe otherwise generate the uninstaller
     !ifndef SIGN
@@ -980,7 +978,7 @@ Section "-Install Hidden"
        "Open with URL" "$INSTDIR\${PRODUCT_NAME}.exe $\"%1$\""
 ;--------
 !ifdef Test
-  Sleep 2000
+  Sleep 2000  ; add delay to slow progress
 !endif
 ;--------
 
@@ -994,13 +992,13 @@ SectionEnd
 Section Uninstall
 ;---------
 !ifdef Test
-; We have to delete something in this test  <- Delete this
-Delete "$INSTDIR\artisan-skeleton.url"
-Delete "$INSTDIR\artisan-skeletonProfile.ico"
-Delete "$INSTDIR\artisan-skeleton.exe"
-Delete "$INSTDIR\License.txt"
-Delete "$INSTDIR\uninstall.exe"
-delete "$INSTDIR\trimNSI.nsi"
+    ; We have to delete something in this test  <- Delete this
+    Delete "$INSTDIR\artisan-skeleton.url"
+    Delete "$INSTDIR\artisan-skeletonProfile.ico"
+    Delete "$INSTDIR\artisan-skeleton.exe"
+    Delete "$INSTDIR\License.txt"
+    Delete "$INSTDIR\uninstall.exe"
+    delete "$INSTDIR\trimNSI.nsi"
     Sleep 2000
 !endif
 ;---------
