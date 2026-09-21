@@ -1,30 +1,3 @@
-; TODO List
-; Desired translations  German, Spanish, French, Italian, Portuguese and Chinese
-
-; Must validate the Title section on all pages for all languages!!!  More than two lines is a killer!
-
-; Where in the repo to store the translations file
-; Remove Test from the trunk file
-
-; ✘ Final decision on /SOLID
-; Review for consistent coding,
-;       ✓ named variables versus internal $0 like one.
-;       ✓ macros for common code
-;       ✓ consistent comment format
-;       ✓ useful comments
-;       ✓ order of the various sections
-;       ✓ remove unused LANG strings
-;       ✓ remove unnecessary commented lines
-;       ✓ remove unneeded !includes
-;       ✓ remove any unneeded !macros
-;       ✓ all strings in the LANG list
-;       ✓ look for redundant ClearErrors
-
-; Common Font Weight Values:
-; 400: Normal (Regular)
-; 700: Bold
-; 600: Semi-Bold
-
 ; ABOUT
 ; NSIS script file for artisan Windows installer.
 ;
@@ -51,15 +24,16 @@
 ;
 
 ; All command line options are intended for internal use only.
-; .nsi command line options, overrides any default defines:
-;    /DPRODUCT_VERSION=ww.xx.yy     -explicitly set the product version, default is 0.0.0
-;    /DPRODUCT_BUILD=zz             -explicityl set the product build, default is 0
-;    /DSIGN                         -Used by SignArtisan to prevent generating uninstall.exe
+;    .nsi command line options, overrides any default defines:
+;        /DPRODUCT_VERSION=ww.xx.yy  -explicitly set the product version, default is 0.0.0
+;        /DPRODUCT_BUILD=zz          -explicityl set the product build, default is 0
+;        /DSIGN                      -Used by SignArtisan to prevent generating uninstall.exe
+;        /DSkel                      -builds a skeleton installer for local testing, not supported from repository
 ;
-; installer/uninstaller command line options:
-;    /S                             -silent operation
-;    /L=nnnn                        -force language at runtime, nnnn is language id, used for testing
-;    /SHOWPROGRESS                  -uninstaller only, used with upgrade flow, shows progress only, skips other pages
+;    installer/uninstaller command line options:
+;        /S                          -silent operation
+;        /L=nnnn                     -force language at runtime, nnnn is language id, used for Skeling
+;        /SHOWPROGRESS               -uninstaller only, used with upgrade flow, shows progress only, skips other pages
 
 
 ; -----------------------------------------------------------------------------
@@ -87,7 +61,7 @@ ManifestDPIAware true
 ; =============================================================================
 ; 0x + Major(2 digits) + Minor(3 digits) + Revision(2 digits) + Build(1 digit)
 !if ${NSIS_PACKEDVERSION} < 0x03011000
-    !error "NSIS 3.11 or higher is required to build this installer!"
+    !error "NSIS 3.11 or higher is required to build this installer"
 !endif
 
 ; =============================================================================
@@ -258,12 +232,10 @@ Var IsSilentMode        ; 1 = /S mode
 !define INSTALLMUTEX "{c2a7be4e-da57-44b9-b2cf-5b1f80c6b429}"
 
 ;---------
-!ifdef Test
-    !define /redef PRODUCT_NAME "artisan-skeleton"
-    !define /redef PRODUCT_NAME_CAP "Artisan-skeleton"
-    !define /redef PRODUCT_VERSION "9.8.0"
-    !define /redef PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_NAME}.exe"
-    !define /redef PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+!ifdef Skel
+    !include artisan-skeleton.nsh  #for local testing, not supported from repository
+    !insertmacro identify
+    !insertmacro skel01
 !endif
 ;---------
 
@@ -335,10 +307,11 @@ UninstPage custom un.WelcomeShow un.WelcomeLeave
 ; LANGUAGE  (must come after MUI configuration))
 ; ============================================================================
 !insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "French"
 !insertmacro MUI_LANGUAGE "German"
 !insertmacro MUI_LANGUAGE "Italian"
 !insertmacro MUI_LANGUAGE "Spanish"
-!insertmacro MUI_LANGUAGE "Portuguese"
+!insertmacro MUI_LANGUAGE "PortugueseBR"
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !include "${nsisLocalIncludesDir}\install_translations.nsh"
 
@@ -909,9 +882,8 @@ Section "Install"
     File /r '${pyinstallerOutputDir}\*.*'
 
 ;---------
-    !ifdef Test
-        Delete 'uninstall.exe'
-        Sleep 2000  ; Add delay to slow the progress
+    !ifdef Skel
+        !insertmacro skel02
     !endif
 ;---------
 
@@ -927,10 +899,8 @@ SectionEnd
 
 Section "-Install Hidden"
 ;--------
-    !ifdef Test
-        ${If} $UpgradeFlow == "1"
-            File trimNSI.nsi
-        ${EndIf}
+    !ifdef Skel
+        !insertmacro skel03
     !endif
 ;--------
 
@@ -977,9 +947,9 @@ Section "-Install Hidden"
     !insertmacro APP_ASSOCIATE_URL "${PRODUCT_NAME}" "URL:${PRODUCT_NAME} Protocol" \
        "Open with URL" "$INSTDIR\${PRODUCT_NAME}.exe $\"%1$\""
 ;--------
-!ifdef Test
-  Sleep 2000  ; add delay to slow progress
-!endif
+    !ifdef Skel
+        !insertmacro skel04
+    !endif
 ;--------
 
 SectionEnd
@@ -991,16 +961,9 @@ SectionEnd
 !ifndef SIGN  ;skip this section when called from SignArtisan
 Section Uninstall
 ;---------
-!ifdef Test
-    ; We have to delete something in this test  <- Delete this
-    Delete "$INSTDIR\artisan-skeleton.url"
-    Delete "$INSTDIR\artisan-skeletonProfile.ico"
-    Delete "$INSTDIR\artisan-skeleton.exe"
-    Delete "$INSTDIR\License.txt"
-    Delete "$INSTDIR\uninstall.exe"
-    delete "$INSTDIR\trimNSI.nsi"
-    Sleep 2000
-!endif
+    !ifdef Skel
+        !insertmacro skel05
+    !endif
 ;---------
     Delete "$INSTDIR\${PRODUCT_NAME}.url"
     Delete "$INSTDIR\uninstall.exe"
@@ -1164,9 +1127,9 @@ Section Uninstall
     DeleteRegKey HKCR "${PRODUCT_NAME}"
 
 ;--------
-!ifdef Test
-    Sleep 2000
-!endif
+    !ifdef Skel
+        !insertmacro skel05
+    !endif
 ;--------
 
 SectionEnd
