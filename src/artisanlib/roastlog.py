@@ -255,9 +255,9 @@ def extractProfileRoastLog(url:'QUrl',
                 res['timeindex'] = timeindex
 
                 mode = 'F'
-                if 0 < timeindex[6] < len(temp1) and temp1[timeindex[6]] < 250:
+                if timeindex[6] != 0 and len(temp1) > timeindex[6] and temp1[timeindex[6]] < 250:
                     mode = 'C'
-                if -1 < timeindex[0] < len(temp1) and temp1[timeindex[0]] < 250:
+                if timeindex[0] > -1 and len(temp1) > timeindex[0] and temp1[timeindex[0]] < 250:
                     mode = 'C'
                 res['mode'] = mode
 

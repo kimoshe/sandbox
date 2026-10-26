@@ -23,7 +23,6 @@ from artisanlib.rubasse import extractProfileRubasseCSV
 from artisanlib.stronghold import extractProfileStrongholdXLSX
 from artisanlib.cropster import extractProfileCropsterXLS
 from artisanlib.orbiter import extractProfileOrbiterROP
-from artisanlib.aillio_r1 import extractProfileAillioCSV
 
 
 #from artisanlib.main import ApplicationWindow
@@ -81,8 +80,7 @@ import_specs:list[ImportSpecs] = [
     (extractProfileRubasseCSV, 'rubasse', '.csv'),
     (extractProfileStrongholdXLSX, 'stronghold', '.xlsx'),
     (extractProfileOrbiterROP, 'orbiter', '.zip'),
-    (extractProfileOrbiterROP, 'orbiter', '.rop'),
-    (extractProfileAillioCSV, 'aillio', '.csv')
+    (extractProfileOrbiterROP, 'orbiter', '.rop')
 ]
 
 

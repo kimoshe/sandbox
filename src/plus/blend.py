@@ -27,27 +27,23 @@
 # AUTHOR
 # Marko Luther
 
-import platform
+from PyQt6.QtWidgets import (QApplication, QComboBox, QLineEdit, QDialogButtonBox,
+    QToolButton, QTableWidget, QStyle, QHeaderView)
+from PyQt6.QtCore import Qt, pyqtSlot, QSize, QSettings
+from PyQt6.QtGui import QKeySequence, QAction, QIcon, QStandardItemModel
+
 import logging
+from artisanlib.util import comma2dot, float2floatWeightVolume
+from artisanlib.dialogs import ArtisanDialog
+from artisanlib.widgets import MyQComboBox
 from uic import BlendDialog # OFF type: ignore[attr-defined] # pylint: disable=no-name-in-module
 from collections.abc import Collection
 from typing import override, Final, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
-    from PyQt6.QtWidgets import QWidget # noqa: F401 # pylint: disable=unused-import,reimported
+    from PyQt6.QtWidgets import QWidget # noqa: F401 # pylint: disable=unused-import
     from PyQt6.QtGui import QCloseEvent, QKeyEvent # pylint: disable=unused-import
-
-from PyQt6.QtWidgets import (QApplication, QComboBox, QLineEdit, QDialogButtonBox,
-    QToolButton, QTableWidget, QHeaderView, QWidget, QHBoxLayout)
-from PyQt6.QtCore import Qt, pyqtSlot, QSize, QSettings
-from PyQt6.QtGui import QKeySequence, QAction, QStandardItemModel, QColor, QIcon, QPalette
-
-from artisanlib.util import comma2dot, float2floatWeightVolume, getStyleIconPath
-from artisanlib.dialogs import ArtisanDialog
-from artisanlib.widgets import MyQComboBox
-from artisanlib.styles import (tool_button_icon_style, line_edit_style, table_style, horizontal_header_style,
-    vertical_header_style, artisan_dialog_button_style, artisan_push_button_style, combobox_style)
 
 _log: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -125,7 +121,7 @@ class CustomBlendDialog(ArtisanDialog):
         super().__init__(parent, aw)
         self.initialTotalWeight:float = inWeight
         self.inWeight:float = inWeight
-        self.weightUnit:str = weightUnit.lower()
+        self.weightUnit:str = weightUnit
         self.coffee_hr_ids_with_stock_in_store:set[str] = coffee_hr_ids_with_stock_in_store
         self.coffees:dict[str, str] = coffees # dict associating coffee names to their hr_id
         self.coffee_ids:dict[str, str] = {v: k for k, v in self.coffees.items()} # dict associating coffee hr_ids to their names
@@ -144,7 +140,6 @@ class CustomBlendDialog(ArtisanDialog):
         if applyButton is not None:
             self.ui.buttonBox.removeButton(applyButton)
             self.applyButton = self.ui.buttonBox.addButton(applyButton.text(), QDialogButtonBox.ButtonRole.AcceptRole)
-            self.setButtonTranslations(self.applyButton, 'Apply', QApplication.translate('Button','Apply'))
 
         cancelButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
         if cancelButton is not None:
@@ -161,51 +156,9 @@ class CustomBlendDialog(ArtisanDialog):
             except Exception: # pylint: disable=broad-except
                 pass
             cancelButton.addActions([cancelAction])
-            cancelButton.setIcon(QIcon())
-        self.setButtonTranslations(cancelButton, 'Cancel', QApplication.translate('Button','Cancel'))
 
-        self.ui.pushButton_add.setFixedSize(QSize(28,28))
-        self.ui.pushButton_add.setText('')
-        self.ui.pushButton_add.setIconSize(QSize(20,20))
-        self.ui.pushButton_add.setIcon(QIcon(getStyleIconPath('add-01-stroke-rounded-white.svg')))
-        self.ui.pushButton_add.setStyleSheet(artisan_push_button_style(self.aw.app.darkmode))
-        self.ui.pushButton_add.setEnabled(True)
-
-        # style
-        palette = self.palette()
-        accent_color = palette.color(QPalette.ColorRole.Accent)
-        if not accent_color.isValid() or platform.system() != 'darwin':
-            accent_color = QColor('#3979ae')  # Fallback artisan button blue if OS provides none (and on Windows/Linux)
-        # Generate math-driven lighting variants for the accent button
-        accent_name = accent_color.name()
-        accent_hover = accent_color.lighter(115).name() if self.aw.app.darkmode else accent_color.darker(115).name()
-        accent_pressed = accent_color.darker(110).name() if self.aw.app.darkmode else accent_color.darker(125).name()
-        self.ui.buttonBox.setStyleSheet(artisan_dialog_button_style(
-            self.aw.app.darkmode,
-            accent_name,
-            accent_hover,
-            accent_pressed))
-        self.ui.tableWidget.setStyleSheet(table_style(self.aw.app.darkmode))
-        self.ui.tableWidget.setShowGrid(False)
-        horizontal_header = self.ui.tableWidget.horizontalHeader()
-        if horizontal_header is not None:
-            horizontal_header.setStyleSheet(horizontal_header_style(aw.app.darkmode))
-            horizontal_header.setSectionsClickable(False)
-            horizontal_header.setHighlightSections(False)
-        vertical_header = self.ui.tableWidget.verticalHeader()
-        if vertical_header is not None:
-            vertical_header.setStyleSheet(vertical_header_style(aw.app.darkmode))
-            vertical_header.setDefaultAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter)
-            vertical_header.setSectionsClickable(False)
-            vertical_header.setHighlightSections(False)
-            vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-
-        # tooltips
-        self.ui.pushButton_add.setToolTip(QApplication.translate('Tooltip','add a component'))
 
         # populate widgets
-        self.ui.lineEdit_name.setStyleSheet(line_edit_style(self.aw.app.darkmode))
-        self.ui.lineEdit_weight.setStyleSheet(line_edit_style(self.aw.app.darkmode))
         self.ui.lineEdit_name.setText(self.blend.name)
         self.ui.label_weight.setText(QApplication.translate('Label','Weight'))
         self.ui.lineEdit_weight.setValidator(self.aw.createCLocaleDoubleValidator(0., 9999999., 4, self.ui.lineEdit_weight))  # the max limit has to be high enough otherwise the connected signals are not send!
@@ -374,12 +327,7 @@ class CustomBlendDialog(ArtisanDialog):
         return True
 
     def updateAddButton(self) -> None:
-        enabled = len(self.coffees)>len(self.blend.components)
-        self.ui.pushButton_add.setEnabled(enabled)
-        if enabled:
-            self.ui.pushButton_add.setIcon(QIcon(getStyleIconPath('add-01-stroke-rounded-white.svg')))
-        else:
-            self.ui.pushButton_add.setIcon(QIcon(getStyleIconPath('add-01-stroke-rounded-white.svg' if self.aw.app.darkmode else 'add-01-stroke-rounded.svg')))
+        self.ui.pushButton_add.setEnabled(len(self.coffees)>len(self.blend.components))
 
     # returns True if all component ratios sum up to (about) 1 and all individual ratios are above 0 and below 100
     def checkRatio(self) -> bool:
@@ -416,21 +364,17 @@ class CustomBlendDialog(ArtisanDialog):
                 #ratio
                 ratioedit = QLineEdit(f'{c.ratio*100:.1f}'.rstrip('0').rstrip('.'))
                 ratioedit.setAlignment(Qt.AlignmentFlag.AlignRight)
-                ratioedit.setMinimumWidth(50)
-                ratioedit.setMaximumWidth(50)
+                ratioedit.setMinimumWidth(40)
+                ratioedit.setMaximumWidth(40)
                 ratioedit.setValidator(self.aw.createCLocaleDoubleValidator(0., 9999999., 1, ratioedit))  # the max limit has to be high enough otherwise the connected signals are not send!
                 if not ratio_correct:
-#                    ratioedit.setStyleSheet('QLineEdit { color: #CC0F50; }')
-                    ratioedit.setStyleSheet(line_edit_style(self.aw.app.darkmode, color='#CC0F50'))
-                else:
-                    ratioedit.setStyleSheet(line_edit_style(self.aw.app.darkmode))
+                    ratioedit.setStyleSheet('QLineEdit { color: #CC0F50; }')
                 self.ui.tableWidget.setCellWidget(i,0,ratioedit)
                 ratioedit.editingFinished.connect(self.ratioChanged)
 
                 #weight
                 component_weight = c.ratio * self.inWeight
                 weightedit = QLineEdit(f'{float2floatWeightVolume(component_weight):g}')
-                weightedit.setStyleSheet(line_edit_style(self.aw.app.darkmode))
                 weightedit.setAlignment(Qt.AlignmentFlag.AlignRight)
                 weightedit.setMinimumWidth(70)
                 weightedit.setMaximumWidth(70)
@@ -440,10 +384,6 @@ class CustomBlendDialog(ArtisanDialog):
 
                 #beans
                 beansComboBox = MyQComboBox()
-                beansComboBox.setStyleSheet(combobox_style(
-                    self.aw.app.darkmode,
-                    getStyleIconPath('arrow-down-01-stroke-rounded-dark.svg' if self.aw.app.darkmode else 'arrow-down-01-stroke-rounded-light.svg')))
-
                 beansComboBox.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
                 # the popup contains all available coffees but the ones used already in the blend, but always contains the components coffee
                 coffees_tuples = [(n, hr_id) for (n, hr_id) in self.sorted_coffees if hr_id == c.coffee or hr_id not in blend_coffees]
@@ -466,25 +406,16 @@ class CustomBlendDialog(ArtisanDialog):
                 #delete
                 if rows>2:
                     deleteButton = QToolButton()
-                    deleteButton.setText('')
-#                    app_style = QApplication.style()
-#                    if app_style is not None:
-#                        deleteButton.setIcon(QIcon(app_style.standardIcon(QStyle.StandardPixmap.SP_DialogDiscardButton))) #SP_TitleBarCloseButton
-                    deleteButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-                    deleteButton.setStyleSheet(tool_button_icon_style(self.aw.app.darkmode,
-                        'delete-02-stroke-rounded-light.svg', 'delete-02-stroke-rounded-dark.svg'))
+                    app_style = QApplication.style()
+                    if app_style is not None:
+                        deleteButton.setIcon(QIcon(app_style.standardIcon(QStyle.StandardPixmap.SP_DialogDiscardButton))) #SP_TitleBarCloseButton
                     deleteButton.setIconSize(QSize(16,16))
                     deleteButton.setFixedSize(QSize(22, 22))
                     deleteButton.clicked.connect(self.deleteComponent)
-                    container = QWidget()
-                    layout = QHBoxLayout(container)
-                    layout.addWidget(deleteButton)
-                    layout.setContentsMargins(0, 0, 0, 0)
-                    layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    self.ui.tableWidget.setCellWidget(i,3,container)
+                    self.ui.tableWidget.setCellWidget(i,3,deleteButton)
 
-            self.ui.tableWidget.resizeColumnsToContents()
             header = self.ui.tableWidget.horizontalHeader()
+            self.ui.tableWidget.resizeColumnsToContents()
             if header is not None:
                 header.setStretchLastSection(False)
                 header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
@@ -494,8 +425,6 @@ class CustomBlendDialog(ArtisanDialog):
             self.ui.tableWidget.setColumnWidth(3,22)
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
-
-
 
 
 def openCustomBlendDialog(window:'QWidget', aw:'ApplicationWindow', inWeight:float, weightUnit:str,

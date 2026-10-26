@@ -508,7 +508,6 @@ class TestToggleFunction:
         ) as mock_queue:
 
             mock_config.app_window = mock_app_window
-            mock_config.app_window.qmc.flagon = False
             mock_config.connected = True
 
             # Act

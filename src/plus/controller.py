@@ -28,7 +28,7 @@
 # Marko Luther
 
 from PyQt6.QtCore import QSemaphore, QTimer, Qt, pyqtSlot
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 import platform
 import threading
@@ -38,8 +38,7 @@ from typing import Final, TYPE_CHECKING
 if TYPE_CHECKING:
     from artisanlib.main import ApplicationWindow # noqa: F401 # pylint: disable=unused-import
 
-from plus import config, connection, stock, queue, sync, roast
-from artisanlib.dialogs import artisan_question
+from plus import config, connection, stock, queue, sync, roast, util
 
 
 _log: Final[logging.Logger] = logging.getLogger(__name__)
@@ -50,8 +49,8 @@ def is_connected() -> bool:
     return config.connected
 
 
-# artisan platform is on as soon as an account id has been established
-# Note that artisan platform might be on, while not being connected due to
+# artisan.plus is on as soon as an account id has been established
+# Note that artisan.plus might be on, while not being connected due to
 # connectivity issues
 def is_on() -> bool:
     aw = config.app_window
@@ -66,7 +65,7 @@ def is_synced() -> bool:
     aw = config.app_window
     if aw is not None:
         if aw.qmc.roastUUID is None:
-            # not in sync if no roastUUID and (saved to file or (OFF and not saved yet but at least 5min in length))
+            # not in sync if no roastUUID and saved to file or (OFF and not saved yet but at least 5min in length)
             return not (bool(aw.curFile) or
                 (not aw.qmc.flagon and
                     (len(aw.qmc.timex)>0 and ((aw.qmc.timex[-1] - (aw.qmc.timex[aw.qmc.timeindex[0]] if aw.qmc.timeindex[0] != -1 else 0)) > 5*60))))
@@ -96,7 +95,7 @@ def toggle(app_window:'ApplicationWindow') -> None:
         ):  # @UndefinedVariable
             sync.sync()
     elif config.connected:
-        if not is_synced() and not app_window.qmc.flagon and app_window.qmc.checkSaved(allow_discard=False):
+        if not is_synced() and app_window.qmc.checkSaved(allow_discard=False):
             # we (manually) turn syncing for the current roast on
             queue.addRoast(unsynced=True)
         else:
@@ -208,7 +207,8 @@ def connect(clear_on_failure: bool =False, interactive: bool = True) -> None:
                                 )
                                 keychain_success = True
                                 _log.debug('keyring set password (%s)', login)
-                            except Exception as e:  # pylint: disable=broad-except
+                            # pylint: disable=broad-except
+                            except Exception as e:
                                 _log.exception(e)
                                 if (
                                     not platform.system().startswith('Windows')
@@ -260,15 +260,15 @@ def connect(clear_on_failure: bool =False, interactive: bool = True) -> None:
                             True,
                             None,
                         )  # @UndefinedVariable
-                        _log.info('artisan platform connected')
+                        _log.info('artisan.plus connected')
                         try:
                             queue.start()  # start the outbox queue
                         except Exception as e:  # pylint: disable=broad-except
                             _log.exception(e)
-#                        try:
-#                            aw.resetDonateCounter()
-#                        except Exception as e:  # pylint: disable=broad-except
-#                            _log.exception(e)
+                        try:
+                            aw.resetDonateCounter()
+                        except Exception as e:  # pylint: disable=broad-except
+                            _log.exception(e)
                     elif clear_on_failure:
                         connection.clearCredentials()
                         aw.sendmessageSignal.emit(
@@ -324,19 +324,21 @@ def connect(clear_on_failure: bool =False, interactive: bool = True) -> None:
                 connect_semaphore.release(1)
         if aw is not None:
             aw.updatePlusStatusSignal.emit()  # @UndefinedVariable
-        if is_connected():
-            if interactive:
-                QTimer.singleShot(2000, stock.update)
-            if aw is not None:
-                aw.dashboard.update_inventory_section()
+        if interactive and is_connected():
+            QTimer.singleShot(2000, stock.update)
 
 
 # show a dialog to have the user confirm the disconnect action
 # NOTE: adding a stylesheet to the QApplication referts this to a Qt dialog instead of native dialogs again
 def disconnect_confirmed() -> bool:
+    string = QApplication.translate('Plus', 'Disconnect?')
+    mbox = QMessageBox()
+    mbox.setText(string)
     if config.app_window is not None:
-        return artisan_question(config.app_window, config.app_window, '', QApplication.translate('Plus', 'Disconnect?'), default_cancel=True)
-    return False
+        util.setPlusIcon(mbox, config.app_window.app.darkmode)
+    mbox.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    res = mbox.exec()
+    return QMessageBox.StandardButton.Yes == res
 
 # if keepON is set (the default), the credentials are not removed at all and
 # just the connected flag is toggled to keep plus in ON (dark-grey) state
@@ -397,7 +399,6 @@ def disconnect(
             if connect_semaphore.available() < 1:
                 connect_semaphore.release(1)
         if aw is not None:
-            aw.dashboard.update_inventory_section()
             aw.updatePlusStatusSignal.emit()  # @UndefinedVariable
             aw.disconnectPlusSignal.emit()  # @UndefinedVariable
 
@@ -447,7 +448,7 @@ def updateSyncRecordHashAndSync() -> str|None:
                         roast_record['roast_id'], server_updates_modified_at
                     )
                     sync.setApplidedServerUpdatesModifiedAt(None)
-                # artisan platform is ON and the profile is under sync
+                # artisan.plus is ON and the profile is under sync
                 if sync.syncRecordUpdated(roast_record):
                     # we push updates on the sync record back to the server
                     # via the queue

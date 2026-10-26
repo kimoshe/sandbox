@@ -38,12 +38,10 @@ SOURCES = \
     artisanlib/cropster.py \
     artisanlib/cup_profile.py \
     artisanlib/curves.py \
-    artisanlib/dashboard.py \
     artisanlib/designer.py \
     artisanlib/devices.py \
     artisanlib/dialogs.py \
     artisanlib/events.py \
-    artisanlib/hibean.py \
     artisanlib/giesen.py \
     artisanlib/ikawa.py \
     artisanlib/large_lcds.py \
@@ -51,18 +49,14 @@ SOURCES = \
     artisanlib/loring.py \
     artisanlib/main.py \
     artisanlib/modbusport.py \
-    artisanlib/mqttport.py \
-    artisanlib/orbiter.py \
     artisanlib/petroncini.py \
-    artisanlib/phases_canvas.py \
     artisanlib/phases.py \
+    artisanlib/phases_canvas.py \
     artisanlib/pid_control.py \
     artisanlib/pid_dialogs.py \
     artisanlib/platformdlg.py \
     artisanlib/ports.py \
     artisanlib/roast_properties.py \
-    artisanlib/roastpath.py \
-    artisanlib/roest.py \
     artisanlib/rubasse.py \
     artisanlib/s7port.py \
     artisanlib/sampling.py \

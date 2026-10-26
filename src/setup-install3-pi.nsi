@@ -56,6 +56,13 @@ RequestExecutionLevel admin
 SetCompressor lzma
 ManifestDPIAware true
 
+; =============================================================================
+; CHECK NSIS MINIMUM VERSION AT COMPILE TIME (DURING CI)
+; =============================================================================
+; 0x + Major(2 digits) + Minor(3 digits) + Revision(2 digits) + Build(1 digit)
+!if ${NSIS_PACKEDVERSION} < 0x03011000
+    !error "NSIS 3.11 or higher is required to build this installer"
+!endif
 
 ; =============================================================================
 ; MACROS
@@ -93,16 +100,6 @@ ManifestDPIAware true
 !macro UPDATEFILEASSOC
     ; Use the system call to update the shell associations
      System::Call "shell32::SHChangeNotify(i,i,i,i) (${SHCNE_ASSOCCHANGED}, ${SHCNF_FLUSH}, 0, 0)"
-!macroend
-
-; ---------------------------------------------------------------------------
-; Macro to simulate the missing !Info
-; ---------------------------------------------------------------------------
-!macro info msg
-    !verbose push
-    !verbose 4
-    !echo "INFO: ${msg}"
-    !verbose pop
 !macroend
 
 ; ---------------------------------------------------------------------------
@@ -174,17 +171,6 @@ ManifestDPIAware true
         SendMessage $1 ${PBM_SETBKCOLOR} 0 "0x${BgColor}"
     ${EndIf}
 !macroend
-
-
-; =============================================================================
-; CHECK NSIS MINIMUM VERSION AT COMPILE TIME (DURING CI)
-; =============================================================================
-; 0x + Major(2 digits) + Minor(3 digits) + Revision(2 digits) + Build(1 digit)
-!if ${NSIS_PACKEDVERSION} < 0x03011000
-    !error "NSIS 3.11 or higher is required to build this installer"
-!else
-    !insertmacro info "NSIS running version ${NSIS_VERSION}"
-!endif
 
 
 ; =============================================================================
@@ -1067,8 +1053,6 @@ Section Uninstall
     Delete "$INSTDIR\dijkstra.ttf"
     Delete "$INSTDIR\xkcd-script.ttf"
     Delete "$INSTDIR\Nunito-Regular.ttf"
-    Delete "$INSTDIR\Nunito-SemiBold.ttf"
-    Delete "$INSTDIR\Nunito-ExtraBold.ttf"
     Delete "$INSTDIR\NotoSansMono-Regular.ttf"
     Delete "$INSTDIR\ComicNeue-Regular.ttf"
     Delete "$INSTDIR\WenQuanYiZenHei-01.ttf"
@@ -1091,31 +1075,12 @@ Section Uninstall
     Delete "$INSTDIR\browserconfig.xml"
     Delete "$INSTDIR\favicon-16x16.png"
     Delete "$INSTDIR\favicon-32x32.png"
-    Delete "$INSTDIR\favicon-48x48.png"
     Delete "$INSTDIR\favicon.ico"
     Delete "$INSTDIR\mstile-150x150.png"
     Delete "$INSTDIR\safari-pinned-tab.svg"
     Delete "$INSTDIR\site.webmanifest"
     Delete "$INSTDIR\artisan.tpl"
-    Delete "$INSTDIR\green_scale_widget.tpl"
-    Delete "$INSTDIR\green-android-chrome-192x192.png"
-    Delete "$INSTDIR\green-android-chrome-512x512.png"
-    Delete "$INSTDIR\green-apple-touch-icon.png"
-    Delete "$INSTDIR\green-favicon-16x16.png"
-    Delete "$INSTDIR\green-favicon-32x32.png"
-    Delete "$INSTDIR\green-favicon-48x48.png"
-    Delete "$INSTDIR\green-favicon.ico"
-    Delete "$INSTDIR\green-site.webmanifest"
-    Delete "$INSTDIR\roasted_scale_widget.tpl"
-    Delete "$INSTDIR\roasted-android-chrome-192x192.png"
-    Delete "$INSTDIR\roasted-android-chrome-512x512.png"
-    Delete "$INSTDIR\roasted-apple-touch-icon.png"
-    Delete "$INSTDIR\roasted-favicon-16x16.png"
-    Delete "$INSTDIR\roasted-favicon-32x32.png"
-    Delete "$INSTDIR\roasted-favicon-48x48.png"
-    Delete "$INSTDIR\roasted-favicon.ico"
-    Delete "$INSTDIR\roasted-site.webmanifest"
-    Delete "$INSTDIR\artisan-combo-mark-white.svg"
+    Delete "$INSTDIR\scale_widget.tpl"
     Delete "$INSTDIR\fitty_patched.js"
     Delete "$INSTDIR\bigtext.js"
     Delete "$INSTDIR\sorttable.js"

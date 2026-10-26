@@ -149,7 +149,7 @@ class TestPhidgetManagerInitialization:
     ) -> None:
         """Test PhidgetManager close method."""
         # Arrange
-        phidget_manager_instance.attachedPhidgetChannels = {}
+        phidget_manager_instance.attachedPhidgetChannels = {'test': True} # ty: ignore
 
         # Act
         phidget_manager_instance.close()

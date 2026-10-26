@@ -39,20 +39,20 @@ if TYPE_CHECKING:
     from PyQt6.QtWidgets import QStyleOptionViewItem  # pylint: disable=unused-import
     from PyQt6.QtCore import QModelIndex # pylint: disable=unused-import
 
+from artisanlib.main import UI_MODE
+from artisanlib.util import deltaLabelUTF8, comma2dot, float2float, deserialize
+from artisanlib.dialogs import ArtisanResizeablDialog
+from artisanlib.widgets import (MyQComboBox, MyTableWidgetItemNumber, MyTableWidgetItemQCheckBox,
+                                MyTableWidgetItemQComboBox, MyTableWidgetItemQLineEdit, MyTableWidgetItemQTime)
+from artisanlib.table_style import horizontal_header_style
 
-from PyQt6.QtCore import Qt, pyqtSlot, QSettings, QTimer, QSize
-from PyQt6.QtGui import QColor, QIntValidator, QIcon
+
+from PyQt6.QtCore import (Qt, pyqtSlot, QSettings, QTimer)
+from PyQt6.QtGui import QColor, QIntValidator
 from PyQt6.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, QDialogButtonBox,
             QTableWidget, QHBoxLayout, QVBoxLayout, QCheckBox, QPushButton, QSizePolicy, QSpinBox,
-            QTableWidgetSelectionRange, QTimeEdit, QGridLayout, QGroupBox, QHeaderView, QStyledItemDelegate)
+            QTableWidgetSelectionRange, QTimeEdit, QTabWidget, QGridLayout, QGroupBox, QHeaderView, QStyledItemDelegate, QAbstractSpinBox)
 
-
-from artisanlib.main import UI_MODE
-from artisanlib.util import deltaLabelUTF8, comma2dot, float2float, deserialize, getStyleIconPath
-from artisanlib.dialogs import ArtisanResizeablDialog
-from artisanlib.widgets import (MyQComboBox, MyTableWidgetItemNumber, MyTableWidgetItemQCheckBox, ArtisanMinorPushButton,
-                                MyTableWidgetItemQComboBox, MyTableWidgetItemQLineEdit, MyTableWidgetItemQTime, ArtisanQTabWidget)
-from artisanlib.styles import horizontal_header_style, line_edit_style, spin_box_style, table_style, artisan_minor_push_button_style
 
 
 _log: Final[logging.Logger] = logging.getLogger(__name__)
@@ -80,65 +80,44 @@ class AlarmDlg(ArtisanResizeablDialog):
 
         #table for alarms
         self.alarmtable = QTableWidget()
-        self.alarmtable.setStyleSheet(table_style(self.aw.app.darkmode))
-        self.alarmtable.setShowGrid(False)
         horizontal_header = self.alarmtable.horizontalHeader()
         if horizontal_header is not None:
             horizontal_header.setStyleSheet(horizontal_header_style(self.aw.app.darkmode))
         self.alarmtable.itemSelectionChanged.connect(self.selectionChanged)
-        allonButton = ArtisanMinorPushButton(QApplication.translate('Button','All On'),
-            'alarm-clock-check-stroke-rounded-white.svg',
-            'alarm-clock-check-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        allonButton = QPushButton(QApplication.translate('Button','All On'))
         allonButton.clicked.connect(self.alarmsAllOn)
         allonButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        alloffButton = ArtisanMinorPushButton(QApplication.translate('Button','All Off'),
-            'alarm-clock-off-stroke-rounded-white.svg',
-            'alarm-clock-off-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        alloffButton = QPushButton(QApplication.translate('Button','All Off'))
         alloffButton.clicked.connect(self.alarmsAllOff)
         alloffButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        addButton = ArtisanMinorPushButton(QApplication.translate('Button','Add'),
-            'add-01-stroke-rounded-white.svg',
-            'add-01-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        addButton = QPushButton(QApplication.translate('Button','Add'))
         addButton.clicked.connect(self.addalarm)
+        addButton.setMinimumWidth(80)
         addButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        self.insertButton = ArtisanMinorPushButton(QApplication.translate('Button','Insert'),
-            'row-insert-stroke-rounded-white.svg',
-            'row-insert-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        self.insertButton = QPushButton(QApplication.translate('Button','Insert'))
         self.insertButton.clicked.connect(self.insertalarm)
+        self.insertButton.setMinimumWidth(80)
         self.insertButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.insertButtonSetEnabled(False)
+        self.insertButton.setEnabled(False)
 
-        deleteButton = ArtisanMinorPushButton(QApplication.translate('Button','Delete'),
-            'delete-02-stroke-rounded-white.svg',
-            'delete-02-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        deleteButton = QPushButton(QApplication.translate('Button','Delete'))
         deleteButton.clicked.connect(self.deletealarm)
+        deleteButton.setMinimumWidth(80)
         deleteButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        self.copyalarmTableButton = ArtisanMinorPushButton(QApplication.translate('Button', 'Copy table'),
-            'copy-stroke-rounded-white.svg',
-            'copy-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        self.copyalarmTableButton = QPushButton(QApplication.translate('Button', 'Copy Table'))
         self.copyalarmTableButton.setToolTip(QApplication.translate('Tooltip','Copy table to clipboard, OPTION or ALT click for tabular text'))
         self.copyalarmTableButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.copyalarmTableButton.clicked.connect(self.copyAlarmTabletoClipboard)
 
-        importButton = ArtisanMinorPushButton(QApplication.translate('Button','Load'),
-            'file-02-stroke-rounded-white.svg',
-            'file-02-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        importButton = QPushButton(QApplication.translate('Button','Load'))
         importButton.clicked.connect(self.importalarms)
+        importButton.setMinimumWidth(80)
         importButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        exportButton = ArtisanMinorPushButton(QApplication.translate('Button','Save'),
-            'save-stroke-rounded-white.svg',
-            'save-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        exportButton = QPushButton(QApplication.translate('Button','Save'))
         exportButton.clicked.connect(self.exportalarms)
+        exportButton.setMinimumWidth(80)
         exportButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         # connect the ArtisanDialog standard OK/Cancel buttons
@@ -151,63 +130,55 @@ class AlarmDlg(ArtisanResizeablDialog):
             self.setButtonTranslations(helpButton,'Help',QApplication.translate('Button','Help'))
             helpButton.setToolTip(QApplication.translate('Tooltip','Show help'))
             helpButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            helpButton.setMinimumWidth(80)
             helpButton.clicked.connect(self.showAlarmbuttonhelp)
-            helpButton.setStyleSheet(artisan_minor_push_button_style(self.aw.app.darkmode))
-            helpButton.setIconSize(QSize(14,14))
-            helpButton.setIcon(QIcon(getStyleIconPath(
-                'tick-01-stroke-rounded-dark.svg' if self.aw.app.darkmode else 'tick-01-stroke-rounded-white.svg')))
-
-        clearDialogButton = QDialogButtonBox()
-        clearButton = clearDialogButton.addButton(QDialogButtonBox.StandardButton.Reset)
-        if clearButton is not None:
-            clearButton.clicked.connect(self.clearalarms)
-            self.setButtonTranslations(clearButton,'Reset',QApplication.translate('Button','Reset'))
-            clearButton.setIconSize(QSize(14,14))
-            clearButton.setStyleSheet(artisan_minor_push_button_style(self.aw.app.darkmode))
-            clearButton.setIcon(QIcon(getStyleIconPath('undo-03-stroke-rounded-dark.svg' if self.aw.app.darkmode else 'undo-03-stroke-rounded-white.svg')))
-
+        clearButton = QPushButton(QApplication.translate('Button','Clear'))
+        clearButton.setToolTip(QApplication.translate('Tooltip','Clear alarms table'))
+        clearButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        clearButton.setMinimumWidth(80)
+        clearButton.clicked.connect(self.clearalarms)
         self.loadAlarmsFromProfile = QCheckBox(QApplication.translate('CheckBox', 'Load from profile'))
         self.loadAlarmsFromProfile.setChecked(self.aw.qmc.loadalarmsfromprofile)
         self.loadAlarmsFromBackground = QCheckBox(QApplication.translate('CheckBox', 'Load from background'))
         self.loadAlarmsFromBackground.setChecked(self.aw.qmc.loadalarmsfrombackground)
 
         self.popupTimoutSpinBox = QSpinBox()
-        self.popupTimoutSpinBox.setStyleSheet(spin_box_style(self.aw.app.darkmode))
         self.popupTimoutSpinBox.setSuffix('s')
         self.popupTimoutSpinBox.setSingleStep(1)
         self.popupTimoutSpinBox.setRange(0,120)
         self.popupTimoutSpinBox.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.popupTimoutSpinBox.setValue(int(self.aw.qmc.alarm_popup_timout))
-        popupTimeoutLabel = QLabel(QApplication.translate('Label', 'Pop Up timeout'))
+        popupTimeoutLabel = QLabel(QApplication.translate('Label', 'Pop Up Timeout'))
 
         alarmLabelLabel = QLabel(QApplication.translate('Label', 'Label'))
         self.alarmLabelEdit = QLineEdit(self.aw.qmc.alarmsetlabel)
-        self.alarmLabelEdit.setStyleSheet(line_edit_style(self.aw.app.darkmode))
 
         self.alarmsfile = QLabel(self.aw.qmc.alarmsfile)
         self.alarmsfile.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.alarmsfile.setMinimumWidth(300)
         self.alarmsfile.setSizePolicy(QSizePolicy.Policy.MinimumExpanding,QSizePolicy.Policy.Preferred)
         tablelayout = QVBoxLayout()
-        tablelayout.addWidget(self.alarmtable)
         buttonlayout = QHBoxLayout()
         okbuttonlayout = QHBoxLayout()
-        buttonlayout.addWidget(helpButton)
-        buttonlayout.addWidget(self.copyalarmTableButton)
-        buttonlayout.addWidget(clearButton)
-        buttonlayout.addSpacing(25)
-        buttonlayout.addStretch()
+        tablelayout.addWidget(self.alarmtable)
         buttonlayout.addWidget(addButton)
         buttonlayout.addWidget(self.insertButton)
         buttonlayout.addWidget(deleteButton)
-        buttonlayout.addSpacing(25)
+        buttonlayout.addWidget(self.copyalarmTableButton)
         buttonlayout.addStretch()
+        buttonlayout.addSpacing(10)
         buttonlayout.addWidget(allonButton)
         buttonlayout.addWidget(alloffButton)
-        buttonlayout.addSpacing(15)
+        buttonlayout.addStretch()
+        buttonlayout.addSpacing(10)
         buttonlayout.addWidget(importButton)
         buttonlayout.addWidget(exportButton)
-        buttonlayout.setSpacing(3)
+        buttonlayout.addStretch()
+        buttonlayout.addSpacing(15)
+        buttonlayout.addWidget(clearButton)
+        buttonlayout.addStretch()
+        buttonlayout.addSpacing(15)
+        buttonlayout.addWidget(helpButton)
         confButtonLayout = QHBoxLayout()
         confButtonLayout.addWidget(self.loadAlarmsFromProfile)
         confButtonLayout.addSpacing(10)
@@ -225,19 +196,12 @@ class AlarmDlg(ArtisanResizeablDialog):
 
         ## alarm sets
         alarmSetListLabel = QLabel(QApplication.translate('Label','Alarm Sets'))
-        transferalarmsetbutton = ArtisanMinorPushButton(QApplication.translate('Button','Store Alarm Set'),
-            'arrow-big-left-dash-stroke-rounded-white.svg',
-            'arrow-big-left-dash-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        transferalarmsetbutton = QPushButton(QApplication.translate('Button','<< Store Alarm Set'))
         transferalarmsetbutton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        setalarmsetbutton = ArtisanMinorPushButton(QApplication.translate('Button','Activate Alarm Set'),
-            'arrow-big-right-dash-stroke-rounded-white.svg',
-            'arrow-big-right-dash-stroke-rounded-dark.svg',
-            self.aw.app.darkmode)
+        setalarmsetbutton = QPushButton(QApplication.translate('Button','Activate Alarm Set >>'))
         setalarmsetbutton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         transferalarmesetcurrentLabel = QLabel(QApplication.translate('Label','Current Alarm Set'))
         self.transferalarmesetcurrentset = QLineEdit(self.aw.qmc.alarmsetlabel)
-        self.transferalarmesetcurrentset.setStyleSheet(line_edit_style(self.aw.app.darkmode))
         self.transferalarmsetcombobox = QComboBox()
         self.transferalarmsetcombobox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         # next line needed to avoid truncation of entries on Mac OS X under Qt 5.12.1-5.12.3
@@ -265,14 +229,14 @@ class AlarmDlg(ArtisanResizeablDialog):
         alarmsetGroupLayout = QGroupBox(QApplication.translate('GroupBox','Management'))
         alarmsetGroupLayout.setLayout(alarmsetManagementBox)
         #tab layout
-        self.TabWidget = ArtisanQTabWidget()
+        self.TabWidget = QTabWidget()
 
         tab1layout = QVBoxLayout()
         tab1layout.addLayout(tablelayout)
         tab1layout.addLayout(buttonlayout)
         if self.aw.ui_mode is UI_MODE.EXPERT:
             tab1layout.addLayout(confButtonLayout)
-        tab1layout.setSpacing(10)
+        tab1layout.setSpacing(5)
         tab1layout.setContentsMargins(2, 10, 2, 2)
 
         C1Widget = QWidget()
@@ -308,13 +272,6 @@ class AlarmDlg(ArtisanResizeablDialog):
         # some tabs are not rendered at all on Windows using Qt v6.5.1 (https://bugreports.qt.io/projects/QTBUG/issues/QTBUG-114204?filter=allissues)
         QTimer.singleShot(50, self.setActiveTab)
 
-    def insertButtonSetEnabled(self, b:bool) -> None:
-        self.insertButton.setEnabled(b)
-        if b:
-            self.insertButton.setIcon(QIcon(getStyleIconPath('row-insert-stroke-rounded-white.svg')))
-        else:
-            self.insertButton.setIcon(QIcon(getStyleIconPath('row-insert-stroke-rounded-dark.svg' if self.aw.app.darkmode else 'row-insert-stroke-rounded.svg')))
-
     @pyqtSlot()
     def setActiveTab(self) -> None:
         if self.activeTab == 0:
@@ -322,7 +279,7 @@ class AlarmDlg(ArtisanResizeablDialog):
         self.TabWidget.setCurrentIndex(self.activeTab)
 
     def setAlarmSetLabels(self) -> None:
-        alarmset_labels:list[str] = []
+        alarmset_labels = []
         for i in range(self.aw.qmc.ALARMSET_COUNT):
             alarmset:AlarmSet|None = self.aw.qmc.getAlarmSet(i)
             if alarmset is not None:
@@ -388,9 +345,9 @@ class AlarmDlg(ArtisanResizeablDialog):
     def selectionChanged(self) -> None:
         selected = self.alarmtable.selectedRanges()
         if selected and len(selected) > 0:
-            self.insertButtonSetEnabled(True)
+            self.insertButton.setEnabled(True)
         else:
-            self.insertButtonSetEnabled(False)
+            self.insertButton.setEnabled(False)
 
     def deselectAll(self) -> None:
         selected = self.alarmtable.selectedRanges()
@@ -806,15 +763,8 @@ class AlarmDlg(ArtisanResizeablDialog):
             self.aw.qmc.alarmbeep = [0]*nalarms
             self.aw.qmc.alarmstrings = ['']*nalarms
             for i in range(nalarms):
-                flagWidget = cast(QWidget, self.alarmtable.cellWidget(i,1))
-                flagLayout = flagWidget.layout()
-                if flagLayout is not None:
-                    item0 = flagLayout.itemAt(0)
-                    if item0 is not None:
-                        flag = item0.widget()
-                        if flag is not None:
-                            flag = cast(QCheckBox, flag)
-                            self.aw.qmc.alarmflag[i] = int(flag.isChecked())
+                flag = cast(QCheckBox, self.alarmtable.cellWidget(i,1))
+                self.aw.qmc.alarmflag[i] = int(flag.isChecked())
                 guard = cast(QLineEdit, self.alarmtable.cellWidget(i,2))
                 try:
                     guard_value = int(str(guard.text())) - 1
@@ -882,25 +832,19 @@ class AlarmDlg(ArtisanResizeablDialog):
     # creates Widget in row i of self.alarmtable and sets them to values from local dialog variables at position i
     def setalarmtablerow(self, i:int) -> None:
         #1: flag
-        flagCheckBox = QCheckBox()
-        flagCheckBox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        flagCheckBox.setText(QApplication.translate('ComboBox','ON'))
-        flagWidget = QWidget()
-        flagLayout = QHBoxLayout(flagWidget)
-        flagLayout.addWidget(flagCheckBox)
-        flagLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        flagLayout.setContentsMargins(0,0,0,0)
+        flagComboBox = QCheckBox()
+        flagComboBox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        flagComboBox.setText(QApplication.translate('ComboBox','ON'))
         if self.aw.qmc.alarmflag[i]:
-            flagCheckBox.setCheckState(Qt.CheckState.Checked)
+            flagComboBox.setCheckState(Qt.CheckState.Checked)
         else:
-            flagCheckBox.setCheckState(Qt.CheckState.Unchecked)
+            flagComboBox.setCheckState(Qt.CheckState.Unchecked)
         #2: guarded by alarm
         if self.aw.qmc.alarmguard[i] > -1:
             guardstr = str(self.aw.qmc.alarmguard[i] + 1)
         else:
             guardstr = '0'
         guardedit = QLineEdit(guardstr)
-        guardedit.setStyleSheet(line_edit_style(self.aw.app.darkmode))
         guardedit.setValidator(QIntValidator(0, 999,guardedit))
         guardedit.setAlignment(Qt.AlignmentFlag.AlignRight)
         #3: neg guarded by alarm
@@ -909,7 +853,6 @@ class AlarmDlg(ArtisanResizeablDialog):
         else:
             negguardstr = '0'
         negguardedit = QLineEdit(negguardstr)
-        negguardedit.setStyleSheet(line_edit_style(self.aw.app.darkmode))
         negguardedit.setValidator(QIntValidator(0, 999,negguardedit))
         negguardedit.setAlignment(Qt.AlignmentFlag.AlignRight)
         #4: Effective time from
@@ -930,13 +873,10 @@ class AlarmDlg(ArtisanResizeablDialog):
         timeComboBox.setCurrentIndex(self.aw.qmc.alarmtime2menuidx[self.aw.qmc.alarmtime[i]])
         #5: time after selected event
         timeoffsetedit = QTimeEdit()
-        timeoffsetedit.setStyleSheet(spin_box_style(self.aw.app.darkmode))
         timeoffsetedit.setAlignment(Qt.AlignmentFlag.AlignRight)
         timeoffsetedit.setDisplayFormat('mm:ss')
         timeoffsetedit.setTime(self.aw.time2QTime(max(0,self.aw.qmc.alarmoffset[i])))
-        timeoffsetedit.setSpecialValueText(' ')
-#        timeoffsetedit.setDisplayFormat('mm:ss')
-#        timeoffsetedit.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons) # on Qt6.12 with the setStyle() set this results in white on white
+        timeoffsetedit.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         #6: type/source
         typeComboBox = MyQComboBox()
         typeComboBox.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
@@ -962,7 +902,6 @@ class AlarmDlg(ArtisanResizeablDialog):
         condComboBox.setCurrentIndex(self.aw.qmc.alarmcond[i])
         #8: temperature
         tempedit = QLineEdit(str(float2float(self.aw.qmc.alarmtemperature[i])))
-        tempedit.setStyleSheet(line_edit_style(self.aw.app.darkmode))
         tempedit.setAlignment(Qt.AlignmentFlag.AlignRight)
         tempedit.setMaximumWidth(130)
 #        tempedit.setValidator(QIntValidator(0, 999,tempedit))
@@ -1015,15 +954,14 @@ class AlarmDlg(ArtisanResizeablDialog):
             beepCheckBox.setCheckState(Qt.CheckState.Unchecked)
         #11: text description
         descriptionedit = QLineEdit(self.aw.qmc.alarmstrings[i])
-        descriptionedit.setStyleSheet(line_edit_style(self.aw.app.darkmode))
         descriptionedit.setCursorPosition(0)
         descriptionedit.setPlaceholderText(QApplication.translate('Label','Enter description'))
         #
         numberWidget = MyTableWidgetItemNumber(str(i+1),i)
-        numberWidget.setTextAlignment(Qt.AlignmentFlag.AlignCenter|Qt.AlignmentFlag.AlignVCenter)
+        numberWidget.setTextAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter)
         self.alarmtable.setItem(i, 0, numberWidget)
-        self.alarmtable.setCellWidget(i,1,flagWidget)
-#        self.alarmtable.setItem(i, 1, MyTableWidgetItemQCheckBox(flagComboBox))
+        self.alarmtable.setCellWidget(i,1,flagComboBox)
+        self.alarmtable.setItem(i, 1, MyTableWidgetItemQCheckBox(flagComboBox))
         self.alarmtable.setCellWidget(i,2,guardedit)
         self.alarmtable.setItem(i, 2, MyTableWidgetItemQLineEdit(guardedit))
         self.alarmtable.setCellWidget(i,3,negguardedit)
@@ -1098,31 +1036,31 @@ class AlarmDlg(ArtisanResizeablDialog):
             #populate table
             for i in range(nalarms):
                 self.setalarmtablerow(i)
-            fixed_columns:list[tuple[int,int]] = [(0,30),(1, 20),(5, 80), (7, 80), (10, 40)] # tuple with idx and minimum width
+            fixed_columns:list[int] = [0,1,5,7,10]
             header = self.alarmtable.horizontalHeader()
             if header is not None:
                 header.setStretchLastSection(True)
                 self.alarmtable.resizeColumnsToContents()
-                for i, min_width  in fixed_columns:
+                for i in fixed_columns:
                     header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
-                    header.resizeSection(i, max(min_width, header.sectionSize(i)))
+                    header.resizeSection(i, header.sectionSize(i) + (10 if i in {0,5} else 5))
             if not self.aw.qmc.alarmtablecolumnwidths:
-                self.alarmtable.setColumnWidth(1, 50)
                 self.alarmtable.setColumnWidth(2, 50)
                 self.alarmtable.setColumnWidth(3, 50)
                 self.alarmtable.setColumnWidth(4, 95)
+                self.alarmtable.setColumnWidth(5, 65)
                 self.alarmtable.setColumnWidth(6, 100)
                 self.alarmtable.setColumnWidth(8, 51)
                 self.alarmtable.setColumnWidth(9, 103)
             else:
                 # remember the columnwidth
                 for i, _ in enumerate(self.aw.qmc.alarmtablecolumnwidths):
-                    if i not in [i for i,mw in fixed_columns]:
+                    if i not in fixed_columns:
                         try:
                             w = self.aw.qmc.alarmtablecolumnwidths[i]
-                            if i in {4, 6, 9}: # popups min width
-                                w = max(80,w)
-                            self.alarmtable.setColumnWidth(i, max(60, w))
+                            if i == 6:
+                                w = max(100,w)
+                            self.alarmtable.setColumnWidth(i,w)
                         except Exception: # pylint: disable=broad-except
                             pass
             self.markNotEnabledAlarmRows()
@@ -1130,7 +1068,6 @@ class AlarmDlg(ArtisanResizeablDialog):
             self.alarmtable.sortItems(0)
 
         except Exception as ex: # pylint: disable=broad-except
-            _log.exception(ex)
             _, _, exc_tb = sys.exc_info()
             self.aw.qmc.adderror((QApplication.translate('Error Message','Exception:') + ' createalarmtable() {0}').format(str(ex)),getattr(exc_tb, 'tb_lineno', '?'))
 

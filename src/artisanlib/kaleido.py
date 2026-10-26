@@ -530,7 +530,7 @@ class KaleidoPort:
             try:
                 # we try to convert to integer or float with one decimal packaged within a string if possible
                 # (we default to float)
-                if not self.floatVar(tag):
+                if self.floatVar(tag):
                     # integers expected, we remove decimals
                     value_encoded = f'{float(value):.0f}'
                 else:
