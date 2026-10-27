@@ -211,7 +211,7 @@ DEVICES: Final[list[str]] = [
     'ColorTrack Serial',         #170
     'Santoker R BT/ET',          #171
     '+Santoker IR/Board',        #172
-    '+Santoker DelatBT/DeltaET', #173
+    '+Santoker DeltaBT/DeltaET', #173
     'ColorTrack BT',             #174
     'Thermoworks BlueDOT',       #175
     'Aillio Bullet R2',          #176
@@ -225,7 +225,7 @@ DEVICES: Final[list[str]] = [
     'TASI TA612C',                   #184
     '+TASI TA612C 34',               #185
     '+CM ET/BT',                     #186
-    '+RoastSeeNEXT Agtron/Crack',    #187
+    '+RoastSeeNEXT Agtron/Noise',    #187
     '+RoastSeeNEXT RoR/FoR',         #188
     '+RoastSeeNEXT Distance/Time',   #189
     '+RoastSeeNEXT Yellow',          #190
@@ -246,6 +246,10 @@ DEVICES: Final[list[str]] = [
     '+MQTT 910',                  #205
     '+MQTT 1112',                 #206
     '+MODBUS 1112',               #207
+    '+Santoker XT/YT',            #208
+    'SR900 BT/ET',                #209
+    '+SR900 Heater/Fan',          #210
+    '+SR900 State/Time',          #211
 ]
 
 
@@ -341,7 +345,9 @@ NON_TEMP_DEVICES : Final[dict[int,tuple[bool,bool]]] = {
             195: (True, True), # +Yocto Meteo Pressure
             198: (True, True), # +Orbiter Sound/Drum
             199: (True, True), # +Orbiter Damper/Heater
-            200: (True, True)  # +Orbiter Air/RoR
+            200: (True, True), # +Orbiter Air/RoR
+            210: (True, True), # +SR900 Heater/Fan
+            211: (True, True), # +SR900 State/Time
         }
 
 # ids of (main) Phidget devices (without a + in front of their name string) as well as Phidget TMP100, HUM100 or PRE1000
@@ -412,8 +418,7 @@ NON_SERIAL_DEVICES: Final[set[int]] = PHIDGET_DEVICES.union({
     174, # ColorTrack BT
     175, # Thermoworks BlueDOT
     176, # Aillio Bullet R2
-    194, # +Yocto Meteo Hum/Temp
-    195, # +Yocto Meteo Pressure
+    209, # SR900 BT/ET
 })
 
 # ids of special devices certain input filters should not be applied
