@@ -29,8 +29,8 @@ environment:
   matrix:
 #  - job_name: windows
 #    appveyor_build_worker_image: Visual Studio 2026
-#  - job_name: macos
-#    appveyor_build_worker_image: macos-sonoma
+  - job_name: macos
+    appveyor_build_worker_image: macos-sonoma
   - job_name: linux
     appveyor_build_worker_image: Ubuntu2404
 
@@ -261,7 +261,8 @@ for:
     - sudo apt install -y python${PYTHON_UPGRADE_V} python${PYTHON_UPGRADE_V}-venv libpython${PYTHON_UPGRADE_V}
     # Create and activate virtual environment
     - echo "Creating and activating virtual environment"
-    - python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
+    - /usr/bin/python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
+#    - python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
     - source venv${PYTHON_UPGRADE_V}/bin/activate
     # Log for confirmation
     - echo "Confirming Python version and location"
