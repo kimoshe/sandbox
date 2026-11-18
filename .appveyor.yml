@@ -91,7 +91,6 @@ for:
 
     # upgrade the python version installed if necessary
     - cmd: .ci/upgrade-py-win.bat
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
     # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
