@@ -108,8 +108,8 @@ echo *** Installing Python !PYUPGRADE_WIN_VER!
 rem python-!PYUPGRADE_WIN_VER!-amd64.exe /quiet PrependPath=1
 rem if not exist !PYTHON_PATH!\python.exe (exit /b 90)
 rem echo ***** Upgrade Complete
-echo Python Version Now:
-!PYTHON_PATH!\python -V
+rem echo Python Version Now:
+rem !PYTHON_PATH!\python -V
 goto End
 
 :NoUpgrade
