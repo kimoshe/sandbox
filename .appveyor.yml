@@ -75,6 +75,7 @@ for:
 
   install:
     - cmd: echo Windows Install
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
     # Update the Python version when PYUPGRADE_WIN_VER is set.  The upgrade happens in upgrade-py-win.bat
     # Note that the paths set below may not exist yet.
