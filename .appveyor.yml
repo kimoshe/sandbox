@@ -20,15 +20,15 @@ environment:
   # Set the default Appveyor Python version here. Can be overridden in platform environment.
   PYTHON_V: 3.14
   # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  PYUPGRADE_WIN_VER: 3.15.2
+  PYUPGRADE_WIN_VER: 3.14.9
   #PYUPGRADE_MACOS_V: 3.12.1  # when upgrading see the notes in the deploy phase
 
   ARTISAN_KEY:
     secure: xqoahZ+xpEJOClcLTL5yIa3gdoql/Vzs8uTEWYFX2QV0P1gLe5WS3/3WIQB9dQ/UClC1FE/5EC2yawYjwAQ1tJdHyawh7uL7+zgtTZxRqWo=
 
   matrix:
-#  - job_name: windows
-#    appveyor_build_worker_image: Visual Studio 2026
+  - job_name: windows
+    appveyor_build_worker_image: Visual Studio 2026
 #  - job_name: macos
 #    appveyor_build_worker_image: macos-sonoma
   - job_name: linux
@@ -238,7 +238,7 @@ for:
     fast_finish: false
 
   environment:
-    PYTHON_UPGRADE_V: 3.15  # Upgrade to the latest maintenance release of this version
+    PYTHON_UPGRADE_V: 3.14  # Upgrade to the latest maintenance release of this version
     # PYTHON_V: 3.13  # Override the stack key
     ARTISAN_OS: linux
     PYTHONSITEPKGS: /home/appveyor/venv${PYTHON_V}/lib/python${PYTHON_V}/site-packages
