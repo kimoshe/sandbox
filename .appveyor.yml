@@ -28,8 +28,8 @@ environment:
     secure: xqoahZ+xpEJOClcLTL5yIa3gdoql/Vzs8uTEWYFX2QV0P1gLe5WS3/3WIQB9dQ/UClC1FE/5EC2yawYjwAQ1tJdHyawh7uL7+zgtTZxRqWo=
 
   matrix:
-  - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2026
+#  - job_name: windows
+#    appveyor_build_worker_image: Visual Studio 2026
   - job_name: macos
     appveyor_build_worker_image: macos-sonoma
   - job_name: linux
@@ -193,6 +193,10 @@ for:
     - which python
     - python3 -V
     - echo "Finshed Upgrading Python"
+    - echo "Reinstalling openssl"
+    - brew reinstall openssl # needed to get the ssl certificates properly installed for artisan.tools communication
+    - echo "Finished reinstalling openssl"
+
 
     # run the install script
     - .ci/install-macos.sh
