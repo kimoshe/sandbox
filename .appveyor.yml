@@ -28,8 +28,8 @@ environment:
     secure: xqoahZ+xpEJOClcLTL5yIa3gdoql/Vzs8uTEWYFX2QV0P1gLe5WS3/3WIQB9dQ/UClC1FE/5EC2yawYjwAQ1tJdHyawh7uL7+zgtTZxRqWo=
 
   matrix:
-#  - job_name: windows
-#    appveyor_build_worker_image: Visual Studio 2026
+  - job_name: windows
+    appveyor_build_worker_image: Visual Studio 2026
   - job_name: macos
     appveyor_build_worker_image: macos-sonoma
   - job_name: linux
@@ -71,7 +71,7 @@ for:
     #PYTHON_V: 3.14  # Override the stack key
     PYQT: "6"
     PYUIC: "pyuic6.exe"
-    BUILD_PYINSTALLER: "False"
+    BUILD_PYINSTALLER: "True"
     VC_REDIST: "https://aka.ms/vc14/vc_redist.x64.exe"  #redistributable for VS 2017-2026
 
   install:
@@ -193,10 +193,9 @@ for:
     - which python
     - python3 -V
     - echo "Finshed Upgrading Python"
-
+    # Update ssl certificates installed for artisan.tools communication
     - echo "Reinstalling openssl, previously"
-    - openssl version -a
-    - brew reinstall openssl # needed to get the ssl certificates properly installed for artisan.tools communication
+    - brew reinstall openssl
     - echo "Finished reinstalling openssl"
 
 
@@ -273,7 +272,6 @@ for:
     - echo "Creating and activating virtual environment"
     - SETUPTOOLS_USE_DISTUTILS=stdlib /usr/bin/python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
     - /usr/bin/python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
-#    - python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
     - source venv${PYTHON_UPGRADE_V}/bin/activate
     # Log for confirmation
     - echo "Confirming Python version and location"
