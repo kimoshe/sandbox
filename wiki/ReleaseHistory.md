@@ -2,21 +2,32 @@ Detailed Release History
 ========================
 
 ----
+v5.0.1
+------------------
+
+* CHANGES
+  - Revise Slovak translation ([PR #2255](../../../pull/2255)) contributed by [Patrik Cevela](https://github.com/pcevela))
+
+* FIXES
+  - fixes Svietz SRM machine setup quantifier range (min was 0, but should have been 20)
+  - disables zoom follow for NONE / Manual device ([Issue #2252](../../../issues/2252))
+
+----
 v5.0.0 (Nov 5, 2026)
 ------------------
 
 * ADDITIONS
   - adds dashboard
-  - adds support for [Dutch Master Roasters](https://artisan-scope.org/machines/dmr/)
-  - adds support for [FreshRoast SR900](https://artisan-scope.org/machines/freshroast/) including the IO Command `sr900(<target>[,<value>])` ([PR #2240](../../../pull/2240) contributed by [Brian Schmitt](https://github.com/brianschmitt))
-  - adds improved machine setups for [Sivetz](https://artisan-scope.org/machines/sivetz/) original fluid bed roasters
-  - adds improved support for [Orbiter](https://artisan-scope.org/machines/orbiter/) smart roasters
-  - adds autoCHARGE/autoDROP synchronization for [IMF machines](https://artisan-scope.org/machines/imf/) as 'auto' setup which picks up CHARGE and DROP events from the machine
-  - adds autoCHARGE/DROP and drum speed control to the [Schuilenburg](https://artisan-scope.org/machines/schuilenburg/) PLC machine setup
-  - adds device setup for Lebrews online-color sensor [RoastSee NEXT](https://artisan-scope.org/devices/lebrew/) and `lebrew(<msg>)` IO Command
-  - adds configuration to use the artisan internal software PID instead of the [Kaleido machines](https://artisan-scope.org/machines/kaleido/) internal one
-  - adds [Aillio](https://artisan-scope.org/machines/aillio/) CSV import
-  - adds [MCR](https://artisan-scope.org/machines/mcr/) RoastPATH `.rpath` import
+  - adds support for [Dutch Master Roasters](https://docs.artisan.tools/desktop/machines/dmr/)
+  - adds support for [FreshRoast SR900](https://docs.artisan.tools/desktop/machines/freshroast/) including the IO Command `sr900(<target>[,<value>])` ([PR #2240](../../../pull/2240) contributed by [Brian Schmitt](https://github.com/brianschmitt))
+  - adds improved machine setups for [Sivetz](https://docs.artisan.tools/desktop/machines/sivetz/) original fluid bed roasters
+  - adds improved support for [Orbiter](https://docs.artisan.tools/desktop/machines/orbiter/) smart roasters
+  - adds autoCHARGE/autoDROP synchronization for [IMF machines](https://docs.artisan.tools/desktop/machines/imf/) as 'auto' setup which picks up CHARGE and DROP events from the machine
+  - adds autoCHARGE/DROP and drum speed control to the [Schuilenburg](https://docs.artisan.tools/desktop/machines/schuilenburg/) PLC machine setup
+  - adds device setup for Lebrews online-color sensor [RoastSee NEXT](https://docs.artisan.tools/desktop/devices/lebrew/) and `lebrew(<msg>)` IO Command
+  - adds configuration to use the artisan internal software PID instead of the [Kaleido machines](https://docs.artisan.tools/desktop/machines/kaleido/) internal one
+  - adds [Aillio](https://docs.artisan.tools/desktop/machines/aillio/) CSV import
+  - adds [MCR](https://docs.artisan.tools/desktop/machines/mcr/) RoastPATH `.rpath` import
   - adds [Catppuccin](https://github.com/catppuccin) and Chalkboard themes
   - adds UI scaling
   - adds two more MODBUS device channels
@@ -45,14 +56,14 @@ v4.2.0 (Jun 30, 2026)
 ------------------
 
 * ADDITIONS
-  - adds support for [ROEST](https://artisan-scope.org/machines/roest/) sample and production roasters
-  - adds support for [Orbiter](https://artisan-scope.org/machines/orbiter/) smart roasters
-  - adds support for [Pratter](https://artisan-scope.org/machines/pratter/) roasting machines
-  - adds support for [Probat G/UG 2026 models](https://artisan-scope.org/machines/probat/) communicating via WebSockets
-  - adds support for [Neuhaus Neotec RFB Junior, RFB-S and Neoroast](https://artisan-scope.org/machines/neuhaus/) machines
-  - adds support for [North Roasters](https://artisan-scope.org/machines/north/)
-  - adds support for [Schuilenburg](https://artisan-scope.org/machines/schuilenburg/) machines equipped with Unitronics PLC
-  - adds [MQTT support](https://artisan-scope.org/devices/mqtt/)
+  - adds support for [ROEST](https://docs.artisan.tools/desktop/machines/roest/) sample and production roasters
+  - adds support for [Orbiter](https://docs.artisan.tools/desktop/machines/orbiter/) smart roasters
+  - adds support for [Pratter](https://docs.artisan.tools/desktop/machines/pratter/) roasting machines
+  - adds support for [Probat G/UG 2026 models](https://docs.artisan.tools/desktop/machines/probat/) communicating via WebSockets
+  - adds support for [Neuhaus Neotec RFB Junior, RFB-S and Neoroast](https://docs.artisan.tools/desktop/machines/neuhaus/) machines
+  - adds support for [North Roasters](https://docs.artisan.tools/desktop/machines/north/)
+  - adds support for [Schuilenburg](https://docs.artisan.tools/desktop/machines/schuilenburg/) machines equipped with Unitronics PLC
+  - adds [MQTT support](https://docs.artisan.tools/desktop/devices/mqtt/)
   - adds IO Command `publish(<topic>, <data>)` to publish payloads to the connected MQTT broker
   - adds Artisan Command `pidSVbuttons(<bool>)` ([Issue #2121](../../../issues/2121))
   - adds Excel and Orbiter formats to the autosave "save also" options
@@ -81,7 +92,7 @@ v4.2.0 (Jun 30, 2026)
   - fixes regression where Iterm of the internal PID did not get reset between roasts (thanks Peter for reporting!)
   - fixes a regression in the software PID calculation of the Dterm (thanks Peter for reporting!)
   - fixes long standing regression which broke the Rubasse importer ([Issue #1958](../../../issues/1958))
-  - fixes a typo in the [Petronciini TT i06 Avantgarde](https://artisan-scope.org/machines/petroncini/) machine setup which prevented the Airflow and DrumSpeed to be rendered correctly
+  - fixes a typo in the [Petronciini TT i06 Avantgarde](https://docs.artisan.tools/desktop/machines/petroncini/) machine setup which prevented the Airflow and DrumSpeed to be rendered correctly
   - improves the endian label in MODBUS dialog ([Issue #2174](../../../issues/2174))
   - adds explicit `clear settings` on Factory Reset to prevent issues on migrating from releases before v4 ([Issue #2173](../../../issues/2173))
   - improving robustness of profile loading w.r.t. unknown devices
@@ -108,7 +119,7 @@ v4.0.0 (Jan 28, 2026)
 
 * ADDITIONS
   - adds UI modes (production, standard, expert)
-  - adds support for [Lebrew RoastSee NEXT](https://lebrewtech.com/products/roastsee-next) real-time Agtron and crack analyzer
+  - adds support for [Lebrew RoastSee NEXT](https://lebrewtech.com/products/roastsee-next) real-time Agtron sensor
   - adds support for [Acaia Pyxis Black (2025)](https://eu.acaia.co/products/pyxis-black)
   - adds support for Yoccto Meteo as well as Phidget TMP1000, HUM1000 and PRE1000 configured as extra devices ([Issue #1251](../../../issues/1251))
   - adds Kaleido CSV importer ([PR #2090](../../../pull/2090) contributed by [Terracotta-6](https://github.com/Terracotta-6))
@@ -142,17 +153,17 @@ Last version featuring legacy builds supporting macOS 10.13+, Window 8, as well 
 
 * ADDITIONS
   - adds tooltip to phases widget in Comparator displaying 2nd and 3rd phase bean temperatures (or RoR if ALT/Option key is pressed) limits ([Issue #1906](../../../issues/1906))
-  - adds support for [Kraffe](https://artisan-scope.org/machines/kraffe/) shop roasters
-  - adds support for [Berto Essential and Autonics](https://artisan-scope.org/machines/berto/) models
-  - adds support for [Nordic](https://artisan-scope.org/machines/nordic/) PLC models supporting burner, airflow, and drum speed control
-  - adds support for [Prisma](https://artisan-scope.org/machines/prisma/) USB and PLC models supporting burner, airflow, and drum speed control
-  - adds support for [Cogen roasting machines](https://artisan-scope.org/machines/cogen/) with Siemens PLC (v2)
-  - adds support for [Easyster Smart](https://artisan-scope.org/machines/easyster/), legacy [Proaster](https://artisan-scope.org/machines/proaster/) THCR-01A as well as Easyster/Proaster machines with air pressure sensor
-  - adds support for [Toper roasting machines](https://artisan-scope.org/machines/toper/) with PLC and touch screen produced after 2025 supporting burner, airflow, and drum speed control
-  - extended setups for [Sweet Coffee Italia Gemma_2IND and Gemma_6-8IND machines](https://artisan-scope.org/machines/sci/)
+  - adds support for [Kraffe](https://docs.artisan.tools/desktop/machines/kraffe/) shop roasters
+  - adds support for [Berto Essential and Autonics](https://docs.artisan.tools/desktop/machines/berto/) models
+  - adds support for [Nordic](https://docs.artisan.tools/desktop/machines/nordic/) PLC models supporting burner, airflow, and drum speed control
+  - adds support for [Prisma](https://docs.artisan.tools/desktop/machines/prisma/) USB and PLC models supporting burner, airflow, and drum speed control
+  - adds support for [Cogen roasting machines](https://docs.artisan.tools/desktop/machines/cogen/) with Siemens PLC (v2)
+  - adds support for [Easyster Smart](https://docs.artisan.tools/desktop/machines/easyster/), legacy [Proaster](https://docs.artisan.tools/desktop/machines/proaster/) THCR-01A as well as Easyster/Proaster machines with air pressure sensor
+  - adds support for [Toper roasting machines](https://docs.artisan.tools/desktop/machines/toper/) with PLC and touch screen produced after 2025 supporting burner, airflow, and drum speed control
+  - extended setups for [Sweet Coffee Italia Gemma_2IND and Gemma_6-8IND machines](https://docs.artisan.tools/desktop/machines/sci/)
   - extended setup for [Joper](https://joper-roasters.com/) PLC-based machines adding buttons to control the burner, cooler and stirrer states (ON/OFF)
-  - adds support for the 4 channel K/J type TC meter [Tasi TA612C](https://artisan-scope.org/devices/meters/) ([Discussion #1997](../../../discussions/1997))
-  - adds support for [Shelly energy meters](https://artisan-scope.org/devices/shelly/)
+  - adds support for the 4 channel K/J type TC meter [Tasi TA612C](https://docs.artisan.tools/desktop/devices/meters/) ([Discussion #1997](../../../discussions/1997))
+  - adds support for [Shelly energy meters](https://docs.artisan.tools/desktop/devices/shelly/)
   - adds batch conversion from Cropster XLS, Giesen CSV, IKAWA CSV, Loring CSV, Petroncini CSV, ROEST CSV, Rubase CSV, and Stronghold XLSX profiles to artisan `.alog` profiles
   - adds drag-and-drop import of a artisan JSON, Cropster XLS, Giesen CSV and Stronghold XLSX profiles
   - adds HiBean importer/converter
@@ -222,10 +233,10 @@ v3.2.0 (June 23, 2025)
 Last version supporting macOS 12, Ubuntu 22.04 and RedHat 8.4 (glibc 2.3.5).
 
 * ADDITIONS
-  - adds [batch manager](https://doc.artisan.plus/docs/batch-manager)
-  - adds support for Acaia relay scales like the [Umbra](https://acaia.co/products/umbra-lunar) and the [Cosmo](https://buy.artisan.plus/Acaia-Cosmo-Scale)
+  - adds [batch manager](https://docs.artisan.tools/web-platform/features/batch-manager)
+  - adds support for Acaia relay scales like the [Umbra](https://acaia.co/products/umbra-lunar) and the [Cosmo](https://artisan.tools/shop/acaia-cosmo-100/)
   - adds custom local scale names
-  - adds button to manual synchronize the roast schedule with the [artisan platform](https://artisan.plus)
+  - adds button to manual synchronize the roast schedule with the [artisan platform](https://artisan.tools)
   - adds URL open handler for Linux/RPi
   - adds possibility to dock sliders to the right side of the main window ([Discussion #1880](../../../discussions/1880))
 
@@ -288,20 +299,20 @@ v3.1.2 (April 30, 2025)
   - adds quick keyboard focused event slider input using numeric keys followed by the ENTER/RETURN key. The last digit can be removed by using the backspace key. ESC cancels the action.
   - a double click on the graph canvas temporarily scales the y-axis to cover all artists
   - adds search to help pages
-  - adds non-standard bean label formatting for inventory managed on the [artisan platform](https://artisan.plus)
+  - adds non-standard bean label formatting for inventory managed on the [artisan platform](https://artisan.tools)
   - adds implicit automatic reconnection on errors for WebSocket connections
 
 
 * NEW HARDWARE SUPPORT
-  - adds a new [IMF](https://artisan-scope.org/machines/imf/) machine setup that supports machine control enabling IT/BT and IT/Power profiling
-  - updated [Giesen](https://artisan-scope.org/machines/giesen/) machine support (now incl. sample roasters and PRO machines) supporting the control of additional actors
-  - adds support for [Carmomaq's Stratto Lab sample roaster](https://artisan-scope.org/machines/carmomaq/)
-  - adds [Santoker Cube](https://artisan-scope.org/machines/santoker/) PID setup
-  - adds [Aillio Bullet R2](https://artisan-scope.org/machines/aillio/) support (provided by [Mike](https://github.com/mikefsq))
-  - adds support for the [DCC1100 and DCC1120 Brushless DC Motor controllers and the DCC1020 DC Motor controller](https://artisan-scope.org/devices/phidgets/#45-dc-motor-control) ([Discussion #1750](../../../discussions/1750))
-  - adds [ROEST](https://artisan-scope.org/machines/roest/) CSV import
+  - adds a new [IMF](https://docs.artisan.tools/desktop/machines/imf/) machine setup that supports machine control enabling IT/BT and IT/Power profiling
+  - updated [Giesen](https://docs.artisan.tools/desktop/machines/giesen/) machine support (now incl. sample roasters and PRO machines) supporting the control of additional actors
+  - adds support for [Carmomaq's Stratto Lab sample roaster](https://docs.artisan.tools/desktop/machines/carmomaq/)
+  - adds [Santoker Cube](https://docs.artisan.tools/desktop/machines/santoker/) PID setup
+  - adds [Aillio Bullet R2](https://docs.artisan.tools/desktop/machines/aillio/) support (provided by [Mike](https://github.com/mikefsq))
+  - adds support for the [DCC1100 and DCC1120 Brushless DC Motor controllers and the DCC1020 DC Motor controller](https://docs.artisan.tools/desktop/devices/phidgets/#45-dc-motor-control) ([Discussion #1750](../../../discussions/1750))
+  - adds [ROEST](https://docs.artisan.tools/desktop/machines/roest/) CSV import
   - adds [Thermoworks BlueDOT](https://www.thermoworks.com/bluedot) support
-  - adds [Atilla](https://artisan-scope.org/machines/atilla/) `auto` setup which picks up CHARGE and DROP events set from Atilla Gold Plus machines with automation
+  - adds [Atilla](https://docs.artisan.tools/desktop/machines/atilla/) `auto` setup which picks up CHARGE and DROP events set from Atilla Gold Plus machines with automation
 
 * CHANGES
   - the Phidget driver is now bundled with the artisan scope app and no longer needs to be installed separately. NOTE: some legacy USB HID devices, like the original 1046 and 1048 still require the kernel extension of the driver package to be installed in the system.
@@ -316,15 +327,15 @@ v3.1.2 (April 30, 2025)
   - the quick custom event entry using the q, w, e and e key followed by number keys now requires the ENTER/RETURN key to establish the new value.  The last entered digit can be removed by using the backspace key. ESC cancels the action.
   - event replay at any time ensures that only future events are replayed. As the set of future events may change on moving the background profile, an event can still be replayed again. In previous artisan scope versions, events did replay only once per roast.
   - persist Energy Tab summary choice
-  - suppresses pick year received from the [artisa nplatform](https://artisan.plus) in the beans pop up and roast name suggestion if origin/name combination is unique
-  - improved accuracy on rendering blend components and schedule item weights received from the [artisan platform](https://artisan.plus)
+  - suppresses pick year received from the [artisan platform](https://artisan.tools) in the beans pop up and roast name suggestion if origin/name combination is unique
+  - improved accuracy on rendering blend components and schedule item weights received from the [artisan platform](https://artisan.tools)
   - improved Cropster importer
   - the autosave mechanism will no longer save accidentally produced recordings on OFF lacking the CHARGE and DROP events. Note that that for roasts longer than 7min, the end of a roast is automatically added as DROP event on OFF, if no DROP event was set before.
   - disables playback of DROP event, only active after CHARGE, for the first 7min into the roast
   - restrict file selection to load background profiles to files with extension .alog
 
 * FIXES
-  - fixes processing of MODBUS function 2 request which broke the just introduced autoCHARGE/autoDROP triggered by [Loring machines](https://artisan-scope.org/machines/loring/)
+  - fixes processing of MODBUS function 2 request which broke the just introduced autoCHARGE/autoDROP triggered by [Loring machines](https://docs.artisan.tools/desktop/machines/loring/)
   - ensure complete reset to defaults in energy tab loads tab
   - makes loading of (broken) profiles with inconsistent data length more robust
   - prevents exceptions caused by empty event type names ([Discussion #1745](../../../discussions/1745))
@@ -336,9 +347,9 @@ v3.1.2 (April 30, 2025)
   - fixes communication with some Santoker R Master Series machines ([Issue #1811](../../../issues/1811))
   - fixes DROP being triggered by Kaleido machine on CHARGE ([Issue #1808](../../../issues/1808))
   - ensures that projection lines are immediately redrawn after full redraw ([Issue #1826](../../../issues/1826))
-  - fixes a case where disconnecting from the [artisan platform](https://artisan.plus) was not functional
-  - makes indication of connection loss to the [artisan platform](https://artisan.plus) more reliable
-  - list single blend with only replacement stock on the [artisan platform](https://artisan.plus) if no other blend has stock which was not listed by error before
+  - fixes a case where disconnecting from the [artisan platform](https://artisan.tools) was not functional
+  - makes indication of connection loss to the [artisan platform](https://artisan.tools) more reliable
+  - list single blend with only replacement stock on the [artisan platform](https://artisan.tools) if no other blend has stock which was not listed by error before
   - fixes broken rendering of roasting times in CSV production reports
   - remembered last batch size now correctly converted to current weight unit
   - sliders send decimal values (instead of rounded integers via MODBUS, PWM, Artisan, WebSocket, IO, VOUT, S7 and RC Commands)
@@ -355,23 +366,23 @@ v3.1.0 (November 22, 2024)
 
 * ADDITIONS
   - adds (total) correction to cup profiles and enables column drag-and-drop ([Discussion #1690](../../../discussions/1690))
-  - adds option to manually add a roast to an open schedule item assigned by the [artisan platform](https://artisan.plus)
+  - adds option to manually add a roast to an open schedule item assigned by the [artisan platform](https://artisan.tools)
   - adds option to synchronization of the artisan PID SV slider with external MODBUS/S7 PIDs
   - adds symbolic expression `bit(n,x)` which returns the n-th bit of x interpreted as integer
 
 * NEW HARDWARE SUPPORT
-  - adds support for the [induction heated roasting machines Gemma_2IND, Gemma_6-8IND and Gemma_26-30IND](https://artisan-scope.org/machines/sci/) from Sweet Coffee Italia
-  - adds support for various newer [Santoker machines](https://artisan-scope.org/machines/santoker/) communicating via Bluetooth like the Cube10, the Bluetooth enabled X, Q and R Master Series as well as the R Series machines ([Issue #1088](../../../issues/1088) and [Issue #1702](../../../issues/1702))
-  - adds experimental support for [ColorTrack](https://artisan-scope.org/devices/colortrack/) via serial and bluetooth ([Issue #1680](../../../issues/1680))
-  - adds support for [Primo roasting machines](https://artisan-scope.org/machines/primo/)
-  - adds [Loring](https://artisan-scope.org/machines/loring/) 'auto' setup which picks up CHARGE and DROP events set at the machine
-  - adds control function to [Diedrich DR](https://artisan-scope.org/machines/diedrich/) machine setup and adds [Diedrich CR](https://artisan-scope.org/machines/diedrich/) machine setup
+  - adds support for the [induction heated roasting machines Gemma_2IND, Gemma_6-8IND and Gemma_26-30IND](https://docs.artisan.tools/desktop/machines/sci/) from Sweet Coffee Italia
+  - adds support for various newer [Santoker machines](https://docs.artisan.tools/desktop/machines/santoker/) communicating via Bluetooth like the Cube10, the Bluetooth enabled X, Q and R Master Series as well as the R Series machines ([Issue #1088](../../../issues/1088) and [Issue #1702](../../../issues/1702))
+  - adds experimental support for [ColorTrack](https://docs.artisan.tools/desktop/devices/colortrack/) via serial and bluetooth ([Issue #1680](../../../issues/1680))
+  - adds support for [Primo roasting machines](https://docs.artisan.tools/desktop/machines/primo/)
+  - adds [Loring](https://docs.artisan.tools/desktop/machines/loring/) 'auto' setup which picks up CHARGE and DROP events set at the machine
+  - adds control function to [Diedrich DR](https://docs.artisan.tools/desktop/machines/diedrich/) machine setup and adds [Diedrich CR](https://docs.artisan.tools/desktop/machines/diedrich/) machine setup
   - adds support for [Acaia](https://acaia.co/) scales on Windows 11
-  - adds support for [Phidget Stepper Motor Controllers](https://artisan-scope.org/devices/phidgets/#47-stepper-motor-control) ([Discussion #891](../../../discussions/891) and [PR #1715](../../../pull/1715))
-  - adds importer for [Stronghold](https://artisan-scope.org/machines/stronghold/) profiles exported as XLSX
+  - adds support for [Phidget Stepper Motor Controllers](https://docs.artisan.tools/desktop/devices/phidgets/#47-stepper-motor-control) ([Discussion #891](../../../discussions/891) and [PR #1715](../../../pull/1715))
+  - adds importer for [Stronghold](https://docs.artisan.tools/desktop/machines/stronghold/) profiles exported as XLSX
 
 * CHANGES
-  - automatically start of the scheduler while connected to the [artisan platform](https://artisan.plus) if there are incompleted scheduled items
+  - automatically start of the scheduler while connected to the [artisan platform](https://artisan.tools) if there are incompleted scheduled items
   - disable items in coffee popups of the Custom Blend dialog without stock in the selected store or, if no store is selected, without stock in every store
   - reduces the size of builds by removing unnecessary files
   - upgrades MODBUS communication from sync to async IO ([Issue #1694](../../../issues/1694))
@@ -428,7 +439,7 @@ v3.0.0 (August 1, 2024)
 
 
 * ADDITIONS
-  - adds support for the [execution of roast plans](https://doc.artisan.plus/docs/schedule/#plan-execution) scheduled on the [artisan platform](https://artisan.plus)
+  - adds support for the [execution of roast plans](https://docs.artisan.tools/web-platform/roasting/schedule#plan-execution) scheduled on the [artisan platform](https://artisan.tools)
   - adds advanced summary statistics
   - adds support for transparent colors
   - adds `{WEIGHTin}` placeholder substitute by the current batch size (g) in command actions
@@ -437,9 +448,9 @@ v3.0.0 (August 1, 2024)
   - capture and persist between-batch protocol (BBP) data as measured during a roasting session
 
 * NEW HARDWARE SUPPORT
-  - adds machine support for the [BeanGo Cube X](https://artisan-scope.org/machines/beango/)
-  - adds machine support for [MUGMA Roasters](https://artisan-scope.org/machines/mugma/)
-  - adds updated [Sivetz fluid bed roasting machines](https://artisan-scope.org/machines/sivetz/) support for the latest machines recording also fan changes
+  - adds machine support for the [BeanGo Cube X](https://docs.artisan.tools/desktop/machines/beango/)
+  - adds machine support for [MUGMA Roasters](https://docs.artisan.tools/desktop/machines/mugma/)
+  - adds updated [Sivetz fluid bed roasting machines](https://docs.artisan.tools/desktop/machines/sivetz/) support for the latest machines recording also fan changes
   - adds machine support for [iRm roasting machines](https://www.irm.coffee/) featuring Mitshubishi PLCs
   - adds [Bühler RM20](https://www.buhlergroup.com/global/de/products/roastmaster_coffeeroaster.html) Simatic Legacy setup supporting older firmware versions not returning the machine state ([Issue #1529](../../../issues/1529))
   - adds support for the [Phidget RCC0004 server motor controller](https://phidgets.com/?prodid=1147) ([Discussion #1546](../../../discussions/1546))
@@ -533,7 +544,7 @@ v2.10.0 (November 28, 2023)
   - adds extra device curves to Comparator
   - adds new font graph font options [Comic Neue](http://comicneue.com/) (a redesigned Comic Sans) and [xkcd Script](https://github.com/ipython/xkcd-font/) (a more complete version of Humor)
   - adds alternative slider layout (controlled by the menu `Config >> Events`, Slider tab `Alternative Layout` flag)
-  - adds optional alternative weight units in stock received from the [artisan platform](https://artisan.plus/), activated by holding the ALT (Windows) or OPTION (macOS) key on opening the stock menus
+  - adds optional alternative weight units in stock received from the [artisan platform](https://artisan.tools/), activated by holding the ALT (Windows) or OPTION (macOS) key on opening the stock menus
   - adds flags to control ET and BT projection lines separately
   - adds actions to clicks on large LCDs to set tare and to show/hide curves
   - adds additional translatable button labels (`\i`: STIRRER, `\f`: FILL, `\r`: RELEASE)
@@ -567,7 +578,7 @@ v2.10.0 (November 28, 2023)
   - use default spawn instead fork multiprocessing also on macOS and replaced troublesome multiprocessing for Hottop and WebLCDs communication by asyncio
   - internal improvements leading to faster app start and exit as well as faster start of WebLCDs and more stable communication with Hottop roasters. As a consequence of this re-implementation, CONTROL can only be started after a connection to the Hottop via the button ON has been initialized.
   - upgrades dependencies (PyQt 6.6, matplotlib 3.8, pymodbus 3.5)
-  - adds Idempotency-Key header to POST requests send to the [artisan platform](https://artisan.plus/)
+  - adds Idempotency-Key header to POST requests send to the [artisan platform](https://artisan.tools/)
 
 * FIXES
   - improve autoDROP accuracy for most setups ([Issue #1232](../../../issues/1232))
@@ -597,9 +608,9 @@ v2.8.4 (June 21, 2023)
 Last version supporting macOS 11, but newer legacy builds still support macOS 10.13 and newer.
 
 * ADDITIONS
-  - adds official support for [Kaleido]([https://www.kaleido-roaster.com/](https://artisan-scope.org/machines/kaleido/)) Network, Serial and Legacy protocols
-  - adds experimental support for [IKAWA HOME/PRO]([https://www.ikawacoffee.com/](https://artisan-scope.org/machines/ikawa/))
-  - adds [Santoker Q Series and R Series](https://artisan-scope.org/machines/santoker/) support over serial (USB/Bluetooth)
+  - adds official support for [Kaleido]([https://www.kaleido-roaster.com/](https://docs.artisan.tools/desktop/machines/kaleido/)) Network, Serial and Legacy protocols
+  - adds experimental support for [IKAWA HOME/PRO]([https://www.ikawacoffee.com/](https://docs.artisan.tools/desktop/machines/ikawa/))
+  - adds [Santoker Q Series and R Series](https://docs.artisan.tools/desktop/machines/santoker/) support over serial (USB/Bluetooth)
   - adds IKAWA URL import
   - adds support for [Phidget TMP1200_1](https://phidgets.com/?view=search&q=TMP1200)
   - adds keyboard shortcuts CTRL+ENTER (on macOS COMMAND+ENTER) to start recording and SHIFT+ENTER to stop logging
@@ -674,10 +685,10 @@ v2.8.2 (December 21, 2022)
 Last version supporting macOS 10.15, but legacy builds of v2.8 still supports macOS 10.13+.
 
 * NEW FEATURES
-  - adds [Sivetz fluid bed roasting machines](https://artisan-scope.org/machines/sivetz/) support
-  - adds [Santoker Q Series and R Series](https://artisan-scope.org/machines/santoker/) support ([Discussion #1019](../../../discussions/1019))
-  - adds support for the [Yocto Watt module](https://artisan-scope.org/devices/yoctopuce/#Yocto-Watt) ([Discussion #955](../../../discussions/955)) and for [generic Yoctopuce sensors](https://artisan-scope.org/devices/yoctopuce/#Yocto-Sensor)
-  - adds [Phidget DAQ1500](https://artisan-scope.org/devices/phidgets/#DAQ1500) support
+  - adds [Sivetz fluid bed roasting machines](https://docs.artisan.tools/desktop/machines/sivetz/) support
+  - adds [Santoker Q Series and R Series](https://docs.artisan.tools/desktop/machines/santoker/) support ([Discussion #1019](../../../discussions/1019))
+  - adds support for the [Yocto Watt module](https://docs.artisan.tools/desktop/devices/yoctopuce/#Yocto-Watt) ([Discussion #955](../../../discussions/955)) and for [generic Yoctopuce sensors](https://docs.artisan.tools/desktop/devices/yoctopuce/#Yocto-Sensor)
+  - adds [Phidget DAQ1500](https://docs.artisan.tools/desktop/devices/phidgets/#DAQ1500) support
   - adds Artisan Command `keepON(<bool>)`
   - adds MODBUS Commands `readBCD`, `read32`, `read32Signed`, `read32BCD`, and `readFloat`
   - adds extra device channels as PID sources to the artisan scope internal software PID ([Discussion #998](../../../discussions/998))
@@ -725,11 +736,11 @@ v2.8.0 (October 21, 2022)
 * NEW FEATURES
   - adds Comparator phases widget ([Issue #479](../../../issues/479))
   - adds auto time axis modes (Roast, BBP+Roast, BBP) toggle as popup in Axis and Comparator dialogs and via shortcut key G
-  - adds support for [Besca](https://artisan-scope.org/machines/besca/) BEE v2 (2022 model), [Besca](https://artisan-scope.org/machines/besca/) BSC full-automatic, [Titanium Roasters](https://artisan-scope.org/machines/titanium/) and [Coffee Machines Sale](https://artisan-scope.org/machines/cms/) roasting machines
-  - adds support for [San Franciscan](https://artisan-scope.org/machines/sf/) 2022 Eurotherm variant and [Diedrich DR](https://artisan-scope.org/machines/diedrich/)
+  - adds support for [Besca](https://docs.artisan.tools/desktop/machines/besca/) BEE v2 (2022 model), [Besca](https://docs.artisan.tools/desktop/machines/besca/) BSC full-automatic, [Titanium Roasters](https://docs.artisan.tools/desktop/machines/titanium/) and [Coffee Machines Sale](https://docs.artisan.tools/desktop/machines/cms/) roasting machines
+  - adds support for [San Franciscan](https://docs.artisan.tools/desktop/machines/sf/) 2022 Eurotherm variant and [Diedrich DR](https://docs.artisan.tools/desktop/machines/diedrich/)
   - adds support for the [Plugin Roast 2.0 module](https://www.pluginroast.com.br/)
-  - adds back support for [Typhoon roasters](https://artisan-scope.org/machines/typhoon/) ([Issue #959](../../../issues/959))
-  - adds energy defaults for [Probat](https://artisan-scope.org/machines/probat/) P01E
+  - adds back support for [Typhoon roasters](https://docs.artisan.tools/desktop/machines/typhoon/) ([Issue #959](../../../issues/959))
+  - adds energy defaults for [Probat](https://docs.artisan.tools/desktop/machines/probat/) P01E
   - adds Loring CSV importer ([Issue #902](../../../issues/902))
   - adds individual control on the event types participating in playback aid and event playback
   - adds mm:ss time formats for special events annotations ([Issue #864](../../../issues/864))
@@ -745,8 +756,8 @@ v2.8.0 (October 21, 2022)
 * CHANGES
   - autoDROP on OFF only if CHARGE is set before
   - artisanViewer logs to separate file
-  - artisanViewer submits changes to [artisan.plus](https://artisan.plus)
-  - send roast templates temperature, pressure, humidity along every roast record to [artisan.plus](https://artisan.plus)
+  - artisanViewer submits changes to the [artisan platform](https://artisan.tools)
+  - send roast templates temperature, pressure, humidity along every roast record to the [artisan platform](https://artisan.tools)
   - support unicode characters in filenames ([Issue #869](../../../issues/869))
   - CONTROL button rendered in red if PID is active
   - sets default batch size from nominal batch size
@@ -778,7 +789,7 @@ v2.8.0 (October 21, 2022)
   - fixes TE-VA18B decoding ([Issue #882](../../../issues/882))
   - prevents a potential deadlock on RampSoak processing
   - updates playback mode indicator (color of background profile name as subtitle in the upper right corner) on Artisan Command playback mode
-  - avoids sending -1 error temperatures to the [artisan platform](https://artisan.plus)
+  - avoids sending -1 error temperatures to the [artisan platform](https://artisan.tools)
   - avoids unproductive event quantification while OFF
   - don't replay background events after background profile DROP
   - ensures that relative event buttons work correctly after PID control is turned off
@@ -790,7 +801,7 @@ v2.6.0 (March 11, 2022)
 ------------------
 
 * NEW FEATURES
-  - additional machine setups for [ARC 800/S RTD](https://artisan-scope.org/machines/arc/), [NOR roasting machines](https://artisan-scope.org/machines/nor/), [Kuban Supreme Manual](https://artisan-scope.org/machines/kuban/), [Caparaó Prime Line](https://artisan-scope.org/machines/caparao/), [Prometheus Ignis](https://artisan-scope.org/machines/prometheus/), [Yoshan EC-500](https://artisan-scope.org/machines/yoshan/) and [Atillia gold plus 2022](https://artisan-scope.org/machines/atilla/)
+  - additional machine setups for [ARC 800/S RTD](https://docs.artisan.tools/desktop/machines/arc/), [NOR roasting machines](https://docs.artisan.tools/desktop/machines/nor/), [Kuban Supreme Manual](https://docs.artisan.tools/desktop/machines/kuban/), [Caparaó Prime Line](https://docs.artisan.tools/desktop/machines/caparao/), [Prometheus Ignis](https://docs.artisan.tools/desktop/machines/prometheus/), [Yoshan EC-500](https://docs.artisan.tools/desktop/machines/yoshan/) and [Atillia gold plus 2022](https://docs.artisan.tools/desktop/machines/atilla/)
   - adds support for the [Phidget HUB0001](https://www.phidgets.com/?prodid=1202) and the Phidget HUB0000 firmware 307
   - adds support for [Phidget VCP100x](https://www.phidgets.com/?tier=3&catid=16&pcid=14&prodid=953) Voltage Input modules
   - adds support for the new generation [Acaia](https://acaia.co/) [Pearl-S](https://acaia.co/collections/coffee-scales/products/pearl-model-s)/[Pearl2021](https://acaia.co/collections/coffee-scales/products/pearl)/[Lunar2021](https://acaia.co/products/lunar_2021) bluetooth scales
@@ -817,10 +828,10 @@ v2.6.0 (March 11, 2022)
   - adds automatic mark DROP on OFF if at least 7min were recorded and either Auto DROP is active or DROP button is hidden
   - adds PDF as export format of roast, production and ranking reports
   - adds "PDF Report" as additional format to autosave ([Issue #478](../../../issues/478))
-  - adds notifications incl. Artisan Commands `notify` and `notifications` with support for the [artisan platform](https://artisan.plus) reminders
+  - adds notifications incl. Artisan Commands `notify` and `notifications` with support for the [artisan platform](https://artisan.tools) reminders
   - improves fidelity of analyzer calculations when samples are missing and other circumstances
-  - adds support for the [artisan platform](https://artisan.plus) quota system
-  - adds custom blend editor for the [artisan platform](https://artisan.plus) ([Issue #760](../../../issues/760))
+  - adds support for the [artisan platform](https://artisan.tools) quota system
+  - adds custom blend editor for the [artisan platform](https://artisan.tools) ([Issue #760](../../../issues/760))
   - adds Artisan Command "keyboard" to enable/disable keyboard mode
   - adds Artisan Commands `showCurve`, `showExtraCurve`, `showEvents`, and `showBackgroundEvents` to show/hide curves and events
   - implements Artisan Commands `PIDon`, `PIDoff`, `PIDtoggle`, `pidmode` for Fujji PIDs
@@ -927,13 +938,13 @@ Last version supporting Windows 8, but legacy build of v2.6.0 supports Windows 8
   - Spanish translations updated ([PR #543](../../../pull/543), [PR #553](../../../pull/553), [PR #554](../../../pull/554))
   - Chinese translations updated (thanks to Leo Huang)
   - most other translations updated and extended
-  - updates some [Coffed](https://artisan-scope.org/machines/coffed/) machine setup
+  - updates some [Coffed](https://docs.artisan.tools/desktop/machines/coffed/) machine setup
   - allows mini editor to show and change time before recording CHARGE
   - statistics bar always use DE event value if it is set, if no DE event exists use the phases table temp
   - allows for a y-axis step sizes below 10
   - a step size of 0 (or the empty step entry for the x-axis) removes the ticks on the corresponding axis
   - better handling of decimal number input in Roast Properties by automatic conversion of decimal separators
-  - dynamically update recent roasts according to the [artisan platform](https://artisan.plus) stock blend replacement situations
+  - dynamically update recent roasts according to the [artisan platform](https://artisan.tools) stock blend replacement situations
   - when available use greens temp in linear regressions computed by the profile analyzer
   - slider actions do now bind floats to the placeholder `{}` instead of integers, also for S7 commands (in previous versions only for IO, VOUT and RC Commands)
   - replaces the AUC readings per phase in the statistic line by the temperature delta per phase
@@ -944,7 +955,7 @@ Last version supporting Windows 8, but legacy build of v2.6.0 supports Windows 8
   - align to begin of background profile on START instead of its CHARGE event ([Issue #616](../../../issues/616))
   - energy result values added to ranking reports
   - Dry, Mid and Finish Phase values added to the Excel and CSV ranking reports
-  - synchronizes the behavior of opening profiles per double-click on Linux to the one on macOS and Windows (see [Working Together – Artisan, ArtisanViewer and artisan.plus
+  - synchronizes the behavior of opening profiles per double-click on Linux to the one on macOS and Windows (see [Working Together – Artisan, ArtisanViewer and the artisan platform
   ](https://artisan-roasterscope.blogspot.com/2020/06/working-together-artisan-artisanviewer.html))
   - the currently displayed profile is reopened after loading a new settings file
 * FIXES
@@ -970,7 +981,7 @@ v2.4.4 (December 14, 2020)
 Last version supporting Raspbian Stretch.
 
 * NEW FEATURES
-  - adds machine setups for the PLC equipped machines from [Nordic](https://artisan-scope.org/machines/nordic/), [Fabrica Roasters](https://artisan-scope.org/machines/fabrica/) and [MCR Series in C](https://artisan-scope.org/machines/mcr/)
+  - adds machine setups for the PLC equipped machines from [Nordic](https://docs.artisan.tools/desktop/machines/nordic/), [Fabrica Roasters](https://docs.artisan.tools/desktop/machines/fabrica/) and [MCR Series in C](https://docs.artisan.tools/desktop/machines/mcr/)
   - adds support for [Phidget HUM1001](https://www.phidgets.com/?tier=3&catid=14&pcid=12&prodid=1179)
   - adds [Rubasse](https://rubasseroasters.com/) importer
   - adds [Aillio](https://aillio.com/) RoastWorld importer
@@ -986,7 +997,7 @@ Last version supporting Raspbian Stretch.
   - adds Artisan Commands: `popup(m[,t])`, `message(s)`, `setCanvasColor(c)`, `resetCanvasColor`, `button(e)` with `e = { START, CHARGE, DRY, FCs, FCe, SCs, SCe, DROP, COOL, OFF }`, `p-i-d(p,i,d)`, `pidSV(v)`, `pidRS(rs)`, `pidSource(n)`, `palette(p)`, `loadBackground(<filepath>)`, `clearBackground`, `alarmset(as)`, `adjustSV(n)`
   - adds Dijkstra curve font
 * CHANGES
-  - updates [Trinitas T2 and T7](https://artisan-scope.org/machines/trinitas/), [Oztürk](https://artisan-scope.org/machines/ozturk/) and [Giesen](https://artisan-scope.org/machines/giesen/) machine setups
+  - updates [Trinitas T2 and T7](https://docs.artisan.tools/desktop/machines/trinitas/), [Oztürk](https://docs.artisan.tools/desktop/machines/ozturk/) and [Giesen](https://docs.artisan.tools/desktop/machines/giesen/) machine setups
   - renames empty MODBUS decoder entry to Int
   - renames MODBUS IntFloat decoder to Int32 and adds implementation
   - interprets Software PID Ramp/Soak patterns w.r.t. time since PID ON in monitoring only mode
@@ -999,7 +1010,7 @@ Last version supporting Raspbian Stretch.
   - use proper time edit widget to set alarm times in alarm table
   - extends ranking reports by additional attributes (Excel, CSV)
   - extends the Cropster XLS importer to work also with exports done in languages others than English
-  - optimized synchronization with the [artisan platform](https://artisan.plus/)
+  - optimized synchronization with the [artisan platform](https://artisan.tools/)
   - improved S7 serial logging and communication error handling
   - [special events annotations](https://artisan-roasterscope.blogspot.com/2020/05/special-events-annotations.html) respect the decimal places setting
   - updated Spanish translations ([PR #525](../../../pull/525), [PR #527](../../../pull/427), [PR #530](../../../pull/530), [PR #535](../../../pull/535), [PR #536](../../../pull/536) and [PR #537](../../../pull/537) by [
@@ -1032,19 +1043,19 @@ Last version supporting macOS 10.13 and 10.14; note that legacy builds of v2.6.0
 
 * NEW FEATURES
   - extended machine support
-     - adds [CTE Ghibli touch](https://artisan-scope.org/machines/coffeetech/) setup incl. control of burner, fan and drum speed
-     - adds updated [IMF RM](https://artisan-scope.org/machines/imf/) setups
+     - adds [CTE Ghibli touch](https://docs.artisan.tools/desktop/machines/coffeetech/) setup incl. control of burner, fan and drum speed
+     - adds updated [IMF RM](https://docs.artisan.tools/desktop/machines/imf/) setups
      - adds burner control to [San Franciscan](https://www.sanfranroaster.com/) setup
-     - adds Toper USB setup next to the network MODBUS/TCP variant to connect to  [Toper TKM-SX](https://artisan-scope.org/machines/toper/) roasters
-     - adds support for the new [Probat Sample Roaster and P Series III roasters](https://artisan-scope.org/machines/probat/)
-     - adds [support for machines of more than 40 additional brands](https://artisan-scope.org/machines/index): [Ambex](https://artisan-scope.org/machines/ambex/), [ARC S/800](https://artisan-scope.org/machines/arc/), [Bella TW](https://artisan-scope.org/machines/bellatw/), [Berto One and D](https://artisan-scope.org/machines/berto/), [Bideli](https://artisan-scope.org/machines/bideli/), [Blueking BK](https://artisan-scope.org/machines/blueking/), [Brambati PLC](https://artisan-scope.org/machines/brambati/), [Dätgen DR/DW](https://artisan-scope.org/machines/datgen/), [Dongyi BR/BY/DY](https://artisan-scope.org/machines/dongyi/), [Easyster](https://artisan-scope.org/machines/easyster/), [Froco PLC](https://artisan-scope.org/machines/froco/), [Garanti GKPX](https://artisan-scope.org/machines/garanti/), [Golden Roasters GR](https://artisan-scope.org/machines/goldenroasters/), [HB-Roaster](https://artisan-scope.org/machines/hb/), [Hive Roaster](https://artisan-scope.org/machines/hive/), [IP Xenakis iRm_Series incl. full control](https://artisan-scope.org/machines/iRm/), [KapoK](https://artisan-scope.org/machines/kapok/), [Kuban Supreme setup incl. full control](https://artisan-scope.org/machines/kuban/), [Lilla PLC](https://artisan-scope.org/machines/lilla/), [Mill City Roasters MCR Series](https://artisan-scope.org/machines/mcr/), [NOR Coffee Roaster](https://artisan-scope.org/machines/nor/), [Nordic](https://artisan-scope.org/machines/nordic/), [Opp Roaster](https://artisan-scope.org/machines/opp/), [Öztürk](https://artisan-scope.org/machines/ozturk/), [Petroncini](https://artisan-scope.org/machines/petroncini/), [Roaster & Roaster](https://artisan-scope.org/machines/roasterandroaster/), [Rasco Mac](https://artisan-scope.org/machines/rascomac/), [Rolltech EL](https://artisan-scope.org/machines/rolltech/), [Santoker](https://artisan-scope.org/machines/santoker/), [Tesla](https://artisan-scope.org/machines/tesla/), [Tostabar Genius](https://artisan-scope.org/machines/tostabar/), [TRINITAS T2 and T7](https://artisan-scope.org/machines/trinitas/), [Trobrat](https://artisan-scope.org/machines/trobrat/), [Typhoon](https://artisan-scope.org/machines/typhoon/), [VNT](https://artisan-scope.org/machines/vnt/), [Vortecs](https://artisan-scope.org/machines/vortecs/), [Wintop](https://artisan-scope.org/machines/wintop/), [Yang-Chia Feima](https://artisan-scope.org/machines/yangchia/), and [Yoshan](https://artisan-scope.org/machines/yoshan/)
+     - adds Toper USB setup next to the network MODBUS/TCP variant to connect to  [Toper TKM-SX](https://docs.artisan.tools/desktop/machines/toper/) roasters
+     - adds support for the new [Probat Sample Roaster and P Series III roasters](https://docs.artisan.tools/desktop/machines/probat/)
+     - adds [support for machines of more than 40 additional brands](https://docs.artisan.tools/desktop/machines/index): [Ambex](https://docs.artisan.tools/desktop/machines/ambex/), [ARC S/800](https://docs.artisan.tools/desktop/machines/arc/), [Bella TW](https://docs.artisan.tools/desktop/machines/bellatw/), [Berto One and D](https://docs.artisan.tools/desktop/machines/berto/), [Bideli](https://docs.artisan.tools/desktop/machines/bideli/), [Blueking BK](https://docs.artisan.tools/desktop/machines/blueking/), [Brambati PLC](https://docs.artisan.tools/desktop/machines/brambati/), [Dätgen DR/DW](https://docs.artisan.tools/desktop/machines/datgen/), [Dongyi BR/BY/DY](https://docs.artisan.tools/desktop/machines/dongyi/), [Easyster](https://docs.artisan.tools/desktop/machines/easyster/), [Froco PLC](https://docs.artisan.tools/desktop/machines/froco/), [Garanti GKPX](https://docs.artisan.tools/desktop/machines/garanti/), [Golden Roasters GR](https://docs.artisan.tools/desktop/machines/goldenroasters/), [HB-Roaster](https://docs.artisan.tools/desktop/machines/hb/), [Hive Roaster](https://docs.artisan.tools/desktop/machines/hive/), [IP Xenakis iRm_Series incl. full control](https://docs.artisan.tools/desktop/machines/iRm/), [KapoK](https://docs.artisan.tools/desktop/machines/kapok/), [Kuban Supreme setup incl. full control](https://docs.artisan.tools/desktop/machines/kuban/), [Lilla PLC](https://docs.artisan.tools/desktop/machines/lilla/), [Mill City Roasters MCR Series](https://docs.artisan.tools/desktop/machines/mcr/), [NOR Coffee Roaster](https://docs.artisan.tools/desktop/machines/nor/), [Nordic](https://docs.artisan.tools/desktop/machines/nordic/), [Opp Roaster](https://docs.artisan.tools/desktop/machines/opp/), [Öztürk](https://docs.artisan.tools/desktop/machines/ozturk/), [Petroncini](https://docs.artisan.tools/desktop/machines/petroncini/), [Roaster & Roaster](https://docs.artisan.tools/desktop/machines/roasterandroaster/), [Rasco Mac](https://docs.artisan.tools/desktop/machines/rascomac/), [Rolltech EL](https://docs.artisan.tools/desktop/machines/rolltech/), [Santoker](https://docs.artisan.tools/desktop/machines/santoker/), [Tesla](https://docs.artisan.tools/desktop/machines/tesla/), [Tostabar Genius](https://docs.artisan.tools/desktop/machines/tostabar/), [TRINITAS T2 and T7](https://docs.artisan.tools/desktop/machines/trinitas/), [Trobrat](https://docs.artisan.tools/desktop/machines/trobrat/), [Typhoon](https://docs.artisan.tools/desktop/machines/typhoon/), [VNT](https://docs.artisan.tools/desktop/machines/vnt/), [Vortecs](https://docs.artisan.tools/desktop/machines/vortecs/), [Wintop](https://docs.artisan.tools/desktop/machines/wintop/), [Yang-Chia Feima](https://docs.artisan.tools/desktop/machines/yangchia/), and [Yoshan](https://docs.artisan.tools/desktop/machines/yoshan/)
   - adds RoastLog profile importer ([Issue #471](../../../issues/441))
   - adds IKAWA v3 CSV file importer
   - adds import support for new Aillio Bullet R1 JSON format ([Issue #508](../../../issues/508))
   - adds font options "Source Han Sans" offering CN, TW, KR, JP character sets and "WenQuanYi Zen Hei" offering CN and TW character sets ([Issue #493](../../../issues/493))
   - adds sliders Bernoulli mode to emit values respecting Bernoulli's gas law translating non-linear between gas flow (slider values) and gas pressure (gas valve). See [the corresponding discussion on home-barista.com](https://www.home-barista.com/home-roasting/coffee-roasting-best-practices-scott-rao-t65601-70.html#p724654).
   - adds input filter to interpolate duplicate readings that may disturb the RoR computation
-  - adds support for the [artisan platform](https://artisan.plus/) dynamic blend replacements
+  - adds support for the [artisan platform](https://artisan.tools/) dynamic blend replacements
   - adds additional date and time fields to [autosave](https://artisan-roasterscope.blogspot.com/2020/05/autosave-file-naming.html)
   - adds ET and BT rate-of-rise to [special events annotations](https://artisan-roasterscope.blogspot.com/2020/05/special-events-annotations.html)
   - adds post roast update for symbolic ET and BT values in the profile
@@ -1052,7 +1063,7 @@ Last version supporting macOS 10.13 and 10.14; note that legacy builds of v2.6.0
   - adds second set of settings for Phidget TMP1200 RTD modules allowing to run different types of RTDs (eg. PT100 and PT1000) in parallel
   - adds support for the Phidget TMP1000 Ambient Temperature sensor
   - adds VOUT Command `range` to set the voltage range of the Phidget voltage output modules ([Issue #472](../../../issues/472))
-  - adds support for [WebSocket communication](https://artisan-scope.org/devices/websockets/)
+  - adds support for [WebSocket communication](https://docs.artisan.tools/desktop/devices/websockets/)
   - adds S7 support to read booleans and the S7 Commands actions `setDBbool(<dbnumber>,<start>,<index>,<value>)` and `getDBbool(<dbnumber>,<start>,<index>)`
   - adds S7 Command `msetDBint` to write Integers to S7 registers using masks
   - adds S7 help page
@@ -1079,8 +1090,8 @@ Last version supporting macOS 10.13 and 10.14; note that legacy builds of v2.6.0
   - fixes regression that calculated axis limits automatically on incomplete profiles while recording on leaving the Axis dialog ([Issue #476](../../../issues/476))
   - ensures that normal saves respect the autosave path for extra files (JSON, PDF,..) ([Issue #480](../../../issues/480))
   - allow to enter super-user mode with a simple left-click on the timer LCD as right-clicks are not available on touch screens ([Issue #481](../../../issues/481))
-  - fixes a regression that prevented some roasts not to be successfully uploaded to the [artisan platform](https://artisan.plus/) in rare cases related to Fahrenheit conversion
-  - ensures that autosave profiles get synced to the [artisan platform](https://artisan.plus/) in any case
+  - fixes a regression that prevented some roasts not to be successfully uploaded to the [artisan platform](https://artisan.tools/) in rare cases related to Fahrenheit conversion
+  - ensures that autosave profiles get synced to the [artisan platform](https://artisan.tools/) in any case
   - fixes special event annotations will show when there is no DROP event
   - fixes plotting specialevents >100 while recording in step modes
   - makes the Comparator compatible to profiles created by legacy versions of artisan scope
@@ -1101,8 +1112,8 @@ v2.4.0 (June 3, 2020)
   - adds Cropster XLS, IKAWA CSV, Giesen Software CSV and RostPATH URL profile import
   - adds flexible [automatic file name generator](https://artisan-roasterscope.blogspot.com/2020/05/autosave-file-naming.html) ([Issue #430](../../../issues/430), see also [Saving Artisan Profiles - Naming, Saving, File Location etc](https://www.home-barista.com/home-roasting/saving-artisan-profiles-naming-saving-file-location-etc-t61713.html))
   - adds custom [special event annotations](https://artisan-roasterscope.blogspot.com/2020/05/special-events-annotations.html) in step and step+ modes that will show roast data including time, temperature DTR, etc.
-  - adds support for the [Giesen IR sensor](https://artisan-scope.org/machines/giesen/)
-  - adds support for [Twino/Ozstar roasting machines](https://artisan-scope.org/machines/twino-ozstar/)
+  - adds support for the [Giesen IR sensor](https://docs.artisan.tools/desktop/machines/giesen/)
+  - adds support for [Twino/Ozstar roasting machines](https://docs.artisan.tools/desktop/machines/twino-ozstar/)
   - adds S7 and MODBUS communication optimizer
   - adds two more S7 and MODBUS channels
   - adds support for Yoctopuce [Yocto-0-10V-Tx](https://www.yoctopuce.com/EN/products/usb-electrical-interfaces/yocto-0-10v-tx), [Yocto-4-20mA-Tx](https://www.yoctopuce.com/EN/products/usb-electrical-interfaces/yocto-4-20ma-tx), [Yocto-PWM-Tx](https://www.yoctopuce.com/EN/products/usb-electrical-interfaces/yocto-pwm-tx), [Yocto-4-20mA-Rx](https://www.yoctopuce.com/EN/products/usb-electrical-sensors/yocto-4-20ma-rx), [Yocto-Servo](https://www.yoctopuce.com/EN/products/usb-actuators/yocto-servo) and Yoctopuce Relays modules ([Yocto-Relay](https://www.yoctopuce.com/EN/products/usb-actuators/yocto-relay), [Yocto-LatchedRelay](https://www.yoctopuce.com/EN/products/usb-actuators/yocto-latchedrelay), [Yocto-MaxiCoupler-V2](https://www.yoctopuce.com/EN/products/usb-actuators/yocto-maxicoupler-v2), [Yocto-PowerRelay-V2](https://www.yoctopuce.com/EN/products/usb-actuators/yocto-powerrelay-v2), [Yocto-PowerRelay-V3](https://www.yoctopuce.com/EN/products/usb-actuators/yocto-powerrelay-v3), and [Yocto-MaxiPowerRelay](https://www.yoctopuce.com/EN/products/usb-actuators/yocto-maxipowerrelay))
@@ -1137,8 +1148,8 @@ v2.4.0 (June 3, 2020)
   - the axis system to render custom events in Step/Step+/Combo mode extends now from the temperature axis minimum up to the lowest phases temperature if snap mode is not active (or the newly introduced explicit 100% y-axis limit given
   - extends grid alpha range from 1-5 to 1-10
   - allows to edit batch number in super mode also if the batch counter is deactivated
-  - [artisan platform](https://artisan.plus/): after 3 month of expired subscription stop trying to login automatically!
-  - [artisan platform](https://artisan.plus/): on changing the batch size the beans field is automatically updated to listing the weight per component of blends
+  - [artisan platform](https://artisan.tools/): after 3 month of expired subscription stop trying to login automatically!
+  - [artisan platform](https://artisan.tools/): on changing the batch size the beans field is automatically updated to listing the weight per component of blends
   - on loading profiles with extra device channels artisan scope will always ask to update your setup or not. Extra devices settings concerning just the visualization (like color) will always be taken from your current artisan scope settings and never modified on loading a profile.
   - replace the generic "Select" label on extra device color buttons by the name of the selected color
   - suppress event quantification for slider changes triggered by the artisan scope PID
@@ -1252,7 +1263,7 @@ function 16
   - MACHINE SUPPORT: adds Drum Speed and Air Flow to Buhler Roastmaster setup
   - MACHINE SUPPORT: adds support for further [Coffed](https://coffed.pl/en) machines (SR3/5/15/25/60) automatic and manual variants
   - MACHINE SUPPORT: adds support for the [Atilla](https://www.atilla.com.br/) GOLD_plus_7'' II
-  - MACHINE SUPPORT: adds machine configurations for [popular Phidget sets](https://artisan-scope.org/devices/phidget-sets/)
+  - MACHINE SUPPORT: adds machine configurations for [popular Phidget sets](https://docs.artisan.tools/desktop/devices/phidget-sets/)
   - MATH: adds x^2 to the exponent function as well as the possibility to define an offset from CHARGE
   - PHIDGETS: adds Phidget HUB0000 IO 0 and Phidget HUB0000 IO Digital 0 one channel device types that allocate only that single one channel/port to allow the use of all HUB0000 ports with an uneven number of analog or digital IO channels
   - PHIDGETS: attach IO Phidgets already in OFF mode on demand
@@ -1260,9 +1271,9 @@ function 16
   - PHIDGETS: fully supports all 16 ports of the REL1101 (not only the first 4 as before)
   - PHIDGETS: adds ALT-RESET (OPTION-RESET on macOS) button action to additionally detach all IO Phidgets
   - PHIDGETS: adds Phidgets driver version to the about dialog
-  - PLUS: adds [artisan platform](artisan.plus) subscription status indicator
-  - PLUS: adds artisan://roast/<uuid> URL scheme to link back to artisan scope (click to the title) and to the [artisan platform](artisan.plus) (click to the date) on html roast, production and ranking reports
-  - PLUS: adds confirmation dialog on disconnecting from the [artisan platform](artisan.plus)
+  - PLUS: adds [artisan platform](artisan.tools) subscription status indicator
+  - PLUS: adds artisan://roast/<uuid> URL scheme to link back to artisan scope (click to the title) and to the [artisan platform](artisan.tools) (click to the date) on html roast, production and ranking reports
+  - PLUS: adds confirmation dialog on disconnecting from the [artisan platform](artisan.tools)
   - PLUS: adds CTR-click (COMMAND on macOS) on plus icon to disconnect and erase credentials from keychain
   - PLUS: adds ALT+CTR-click (OPTION+COMMAND on macOS) on plus icon to toggle debug logging (defaults to off)
   - PLUS: adds ALT-click (OPTION on macOS) on plus icon to compose an email containing the plus log
@@ -1321,7 +1332,7 @@ v2.0.0 (June 4, 2019)
 ------------------
 
 * NEW FEATURES
-  - adds support for the [artisan platform](https://artisan.plus/) ([Issue #231](../../../issues/231) and [Issue #308](../../../issues/308))
+  - adds support for the [artisan platform](https://artisan.tools/) ([Issue #231](../../../issues/231) and [Issue #308](../../../issues/308))
   - adds support for the [Coffee-Tech Engineering Silon ZR7](https://www.coffee-tech.com/products/shop-roasters/silon-zr-7-shop-roaster/)
   - adds support for [Has Garanti HGS and HSR series](http://www.hasgaranti.com.tr/en/products/shop-type-products/shop-type-roasting-coffee-machine.html)
   - adds support for [Kaldi Fortis](https://eng.homecaffe.net/product/kaldi-fortis-grande-coffee-roaster/126/category/223/display/1/)

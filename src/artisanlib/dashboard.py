@@ -25,6 +25,9 @@
 # AUTHOR
 # Marko Luther, 2026
 
+
+__lazy_modules__ = { 'plus', 'plus.blend', 'plus.stock' }
+
 import os
 import sys
 import platform
@@ -73,22 +76,22 @@ LINE_EDIT_BORDER_COLOR_LIGHT = '#D7D7D7'
 
 # sponsor logo background
 SPONSOR_LOGO_BACKGROUND_COLOR_LIGHT = '#ffffff'
-SPONSOR_LOGO_BACKGROUND_COLOR_DARK = '#4c97c3' # artisan
-#SPONSOR_LOGO_BACKGROUND_COLOR_DARK = '#99303030'
+#SPONSOR_LOGO_BACKGROUND_COLOR_DARK = '#4c97c3' # artisan
+SPONSOR_LOGO_BACKGROUND_COLOR_DARK = '#99303030'
 SPONSOR_LOGO_BACKGROUND_COLOR_HOVER_LIGHT = '#fBfBfB'
-SPONSOR_LOGO_BACKGROUND_COLOR_HOVER_DARK = '#43a7cf' # artisan
-#SPONSOR_LOGO_BACKGROUND_COLOR_HOVER_DARK = '#99404040'
+#SPONSOR_LOGO_BACKGROUND_COLOR_HOVER_DARK = '#43a7cf' # artisan
+SPONSOR_LOGO_BACKGROUND_COLOR_HOVER_DARK = '#99404040'
 SPONSOR_LOGO_BACKGROUND_COLOR_PRESSED_LIGHT = '#f8f8f8'
-SPONSOR_LOGO_BACKGROUND_COLOR_PRESSED_DARK = '#1985ba' # artisan
-#SPONSOR_LOGO_BACKGROUND_COLOR_PRESSED_DARK = '#99505050'
+#SPONSOR_LOGO_BACKGROUND_COLOR_PRESSED_DARK = '#1985ba' # artisan
+SPONSOR_LOGO_BACKGROUND_COLOR_PRESSED_DARK = '#99505050'
 
 
 class Dashboard(QWidget):
 
-    DOCUMENTATION_URL:Final[str] = 'https://artisan-scope.org/docs'
+    DOCUMENTATION_URL:Final[str] = 'https://docs.artisan.tools/'
     USER_FORUM_URL:Final[str] = 'https://github.com/artisan-roaster-scope/artisan/discussions'
     ISSUE_TRACKER_URL:Final[str] = 'https://github.com/artisan-roaster-scope/artisan/issues'
-    DONATE_URL:Final[str] = 'https://artisan-scope.org/donate'
+    DONATE_URL:Final[str] = 'https://artisan.tools/about/#donate'
 
     TITLE_CHANGE_ESTABLISH_PERIOD:Final[int] = 400 # time in ms after which title changes are established
 
@@ -205,6 +208,12 @@ class Dashboard(QWidget):
 
             self.ui.login_pushButton.setIconSize(QSize(20,20))
             self.ui.login_pushButton.setIcon(QIcon(getStyleIconPath('user-circle-stroke-rounded-dark.svg')))
+
+            self.ui.custom_blend.setMinimumWidth(28)
+            self.ui.custom_blend.setMinimumHeight(28)
+
+            self.ui.sync.setMinimumWidth(28)
+            self.ui.sync.setMinimumHeight(28)
 
             self.ui.documentation_pushButton.setIconSize(QSize(10,10))
             self.ui.documentation_pushButton.setIcon(QIcon(getStyleIconPath('external-link-stroke-rounded.svg')))

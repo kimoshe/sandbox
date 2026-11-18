@@ -17,6 +17,7 @@ def test_device_id_is_index_plus_one() -> None:
     assert get_device_name(1) == 'Omega HH806AU'
     assert get_device_name(18) == 'NONE'
     assert get_device_name(138) == 'Kaleido BT/ET'
+    assert get_device_name(209) == 'SR900 BT/ET'
     assert DEVICES[205] == '+MQTT 1112'
 
 

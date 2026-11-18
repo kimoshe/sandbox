@@ -34,8 +34,8 @@ classifiers = [
 ]
 
 [project.urls]
-'Homepage' = 'https://artisan-scope.org/'
-'Documentation' = 'https://artisan-scope.org/docs/quick-start-guide/'
+'Homepage' = 'https://artisan.tools/'
+'Documentation' = 'https://docs.artisan.tools/desktop/'
 'Repository' = 'https://github.com/artisan-roaster-scope/artisan'
 'Issue Tracker' = 'https://github.com/artisan-roaster-scope/artisan/issues'
 'Changelog' = 'https://github.com/artisan-roaster-scope/artisan/blob/master/wiki/ReleaseHistory.md'
@@ -413,13 +413,14 @@ include = [
 ]
 
 [tool.ty.rules]
-invalid-key = "ignore"
+invalid-typed-dict-key = "ignore" # was invalid-key
 invalid-argument-type = "ignore"
-invalid-method-override = "ignore"
+incompatible-method-override = "ignore" # was invalid-method-override
 invalid-assignment = "ignore"
 unknown-argument = "ignore"
-unresolved-attribute = "ignore"
-unresolved-import = "ignore"
+missing-attribute = "ignore" # was unresolved-attribute
+non-literal-typed-dict-key = "ignore"
+import-not-found = "ignore"
 #unused-ignore-comment = "warn"
 #redundant-cast = "ignore"
 #possibly-unbound-attribute = "error"

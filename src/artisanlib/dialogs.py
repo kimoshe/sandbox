@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     from PyQt6.QtWidgets import QTextEdit # pylint: disable=unused-import
 
 
-from PyQt6.QtSvgWidgets import QSvgWidget
 from PyQt6.QtCore import Qt, QEvent, QSettings, pyqtSlot, pyqtSignal, QRegularExpression, QSize
 from PyQt6.QtWidgets import (QApplication, QWidget, QDialog, QMessageBox, QDialogButtonBox, QAbstractButton,
             QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QLayout, QTableWidget, QHeaderView, QPushButton, QSpinBox, QCheckBox)
@@ -265,7 +264,7 @@ class HelpDlg(ArtisanDialog):
 
         # Build the dialog layout
         homeLabel = QLabel()
-        homeLabel.setText(f"{QApplication.translate('Label', 'For more details visit')} <a href='https://artisan-scope.org/docs/'>artisan-scope.org/docs/</a>")
+        homeLabel.setText(f"{QApplication.translate('Label', 'For more details visit')} <a href='https://docs.artisan.tools/'>artisan-scope.org/docs/</a>")
         homeLabel.setOpenExternalLinks(True)
         buttonLayout = QHBoxLayout()
         buttonLayout.addWidget(homeLabel)
@@ -353,11 +352,13 @@ class HelpDlg(ArtisanDialog):
 
             # Collect all matches.
             for _ in range(1000):  # arbitrarily large limit, better than while True, should always exit via break
-                found = self.phelp.document().find(regex, cursor)  # type: ignore[union-attr]  #self.phelp.document() will never be None
-                if found.isNull():
-                    break
-                self.matches.append(found)
-                cursor.setPosition(found.selectionEnd())
+                help_document = self.phelp.document()
+                if help_document is not None:
+                    found = help_document.find(regex, cursor)
+                    if found.isNull():
+                        break
+                    self.matches.append(found)
+                    cursor.setPosition(found.selectionEnd())
         else:
             # For repeated searches with the same search_term, cycle to the next match
             if not self.matches:
@@ -1568,6 +1569,7 @@ def about_dialog(parent:QWidget, aw:'ApplicationWindow') -> None:
     close_btn.clicked.connect(dialog.accept)
     dialog.setButtonTranslations(close_btn,'OK',QApplication.translate('Button','OK'))
 
+    from PyQt6.QtSvgWidgets import QSvgWidget
     logo = QSvgWidget(os.path.join(getResourcePath(), 'artisan-combo-mark-white.svg'))
     svg_renderer = logo.renderer()
     if svg_renderer is not None:

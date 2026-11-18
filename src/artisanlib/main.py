@@ -22,6 +22,10 @@
 # MAINTAINER
 # Marko Luther, 2026
 
+__lazy_modules__ = { 're', 'pydantic', 'getpass', 'json', 'threading', 'arabic_reshaper', 'bidi',
+    'plus.notifications', 'plus.sync', 'plus.blend', 'plus.stock',
+    'cryptography.hazmat.primitives.asymmetric', 'cryptography.hazmat.primitives', 'cryptography.exceptions' }
+
 import time as libtime
 startup_time = libtime.process_time()
 
@@ -30,20 +34,18 @@ from artisanlib import __version__, __revision__, __build__, __signature__
 import os
 import sys  # @UnusedImport
 import getpass
-import ast
 import platform
 import math
 import datetime
 import warnings
 import numpy
 import threading
-import multiprocessing
 import re
-import io
 import functools
 import dateutil.parser
 import copy as copyd
 import arabic_reshaper # type:ignore[import-untyped]
+import io
 from io import StringIO
 from bidi import get_display # type:ignore[import-untyped] # newer rust based implementation of the original Python implementation
 from enum import IntEnum
@@ -118,9 +120,8 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QMessageBox, QLabel, QMainWi
                          QStyleFactory, QMenuBar, QMenu, QLayout, QDockWidget)
 from PyQt6.QtGui import (QScreen, QPageLayout, QAction, QWindow,
                             QKeySequence, QShortcut, QPalette,
-                            QPixmap,QColor,QDesktopServices, QIcon, QFontDatabase,
+                            QPixmap, QColor, qGray, QDesktopServices, QIcon, QFontDatabase,
                             QRegularExpressionValidator, QDoubleValidator, QPainter, QCursor)
-from PyQt6.QtPrintSupport import (QPrinter,QPrintDialog)
 from PyQt6.QtCore import (QStandardPaths, QLibraryInfo, QTranslator, QLocale, QFileInfo, pyqtSignal, pyqtSlot, QtMsgType,
                           qVersion, QVersionNumber, QTime, QTimer, QFile, QIODevice, QTextStream, QSettings, QSize,
                           QRegularExpression, QDate, QUrl, QUrlQuery, QDir, Qt, QPoint, QEvent, QDateTime, QThread, qInstallMessageHandler)
@@ -176,6 +177,8 @@ if TYPE_CHECKING:
     from artisanlib.phases_canvas import tphasescanvas # pylint: disable=unused-import
     from artisanlib.simulator import Simulator # pylint: disable=unused-import
     from artisanlib.large_lcds import (LargeMainLCDs, LargeDeltaLCDs, LargePIDLCDs, LargeExtraLCDs, LargePhasesLCDs, LargeScaleLCDs)  # pylint: disable=unused-import
+
+    from artisanlib.logs import serialLogDlg, errorDlg, messageDlg # pylint: disable=unused-import
     import plus.schedule as plus_schedule # pylint: disable=unused-import
     try:
         from artisanlib.ikawa import IKAWA_BLE # pylint: disable=unused-import
@@ -191,6 +194,7 @@ if TYPE_CHECKING:
     from PyQt6.QtWidgets import QTableWidgetItem, QTableWidget, QScrollBar # pylint: disable=unused-import
     from PyQt6.QtGui import QStyleHints, QClipboard, QKeyEvent, QMouseEvent, QDropEvent, QDragEnterEvent, QCloseEvent, QResizeEvent, QValidator # pylint: disable=unused-import
     from PyQt6.QtCore import QFile, QObject, QPermission, QMessageLogContext  # noqa: F401 # pylint: disable=unused-import,reimported # QFile is reimported for mypy!?
+    from PyQt6.QtPrintSupport import QPrinter # pylint: disable=unused-import
     from matplotlib.backend_bases import Event as MplEvent, MouseEvent # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
     from matplotlib.artist import Artist # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
     from matplotlib.lines import Line2D # type:ignore[untyped-import,unused-ignore] # pylint: disable=unused-import
@@ -214,7 +218,7 @@ from artisanlib.util import (appFrozen, uchr, decodeLocal, decodeLocalStrict, en
         debugLogLevelActive, setDebugLogLevel, createGradient, natsort, setDeviceDebugLogLevel,
         comma2dot, is_proper_temp, weight_units, weight_units_lower, volume_units, float2float, float2str,
         convertWeight, convertVolume, rgba_colorname2argb_colorname, render_weight, serialize, deserialize, csv_load, exportProfile2CSV, findTPint,
-        eventtime2string, toDim, signature_message, rec_int_to_float, smooth_list, getStyleIconPath)
+        eventtime2string, toDim, signature_message, rec_int_to_float, smooth_list, getStyleIconPath, color_delta_e)
 from artisanlib.device_registry import DEVICE_ID_MIN, DEVICE_ID_MAX, DEVICE_ID_NONE, DEVICE_ID_VIRTUAL, get_device_name
 from artisanlib.qtsingleapplication import QtSingleApplication
 from artisanlib.styles import toolbar_style, tool_button_icon_style, combobox_style
@@ -249,7 +253,7 @@ class Artisan(QtSingleApplication):
         self.plus_sync_cache_expiration = 1*40 # how long a plus sync is valid in seconds
 
         self.artisanviewerMode: bool = False # true if this is the ArtianViewer running
-        if multiprocessing.current_process().name == 'MainProcess' and self.isRunning():
+        if self.isRunning():
             self.artisanviewerMode = True
             if str(platform.system()) != 'Windows' and self.isRunningViewer():
                 sys.exit(0) # there is already one ArtisanViewer running, we terminate
@@ -637,20 +641,16 @@ for handler in logging.root.handlers:
 _log: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-
-if multiprocessing.current_process().name == 'MainProcess':
-    _log.info(
-        '%s v%s (%s, %s)',
-        ('artisanViewer' if app.artisanviewerMode else 'artisan'),
-        str(__version__),
-        str(__revision__),
-        str(__build__),
-    )
-    _log.info('date: %s', datetime.datetime.now(datetime.UTC))
-    _log.info('platform: %s',platform.platform())
-    _log.info('exec: %s', sys.executable)
-else:
-    _log.info('child process loaded')
+_log.info(
+    '%s v%s (%s, %s)',
+    ('artisanViewer' if app.artisanviewerMode else 'artisan'),
+    str(__version__),
+    str(__revision__),
+    str(__build__),
+)
+_log.info('date: %s', datetime.datetime.now(datetime.UTC))
+_log.info('platform: %s',platform.platform())
+_log.info('exec: %s', sys.executable)
 
 if platform.system().startswith('Windows'):
     # on Windows we use the Fusion style per default which supports the dark mode
@@ -672,14 +672,13 @@ from artisanlib.styles import (artisan_slider_style, artisan_slider_frame_style,
 from artisanlib.dialogs import (HelpDlg, ArtisanInputDialog, ArtisanComboBoxDialog, ArtisanPortsDialog, ArtisanSliderLCDinputDlg,
     ArtisanIntegerDialog, ArtisanFloatDialog, artisan_confirmation_dialog, about_dialog, artisan_information,
     artisan_warning, artisan_question, artisan_yes_no_cancel_dialog)
-from artisanlib.logs import (serialLogDlg, errorDlg, messageDlg)
 from artisanlib.comm import serialport
 from artisanlib.widgets import (MyQLCDNumber, EventPushButton, MajorEventPushButton,
     AnimatedMajorEventPushButton, MinorEventPushButton, AuxEventPushButton, ClickableLCDFrame, Splitter, SliderUnclickable)
 
 from artisanlib.notifications import Notification, NotificationManager, NotificationType
 from artisanlib.canvas import tgraphcanvas
-from artisanlib.phases_canvas import tphasescanvas
+#from artisanlib.phases_canvas import tphasescanvas
 from artisanlib.scale import ScaleManager
 from artisanlib.dashboard import Dashboard
 
@@ -688,7 +687,6 @@ from artisanlib.dashboard import Dashboard
 import plus.config
 import plus.util as plus_util
 import plus.sync
-import plus.queue
 import plus.controller as plus_controller
 import plus.connection
 import plus.register
@@ -707,7 +705,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
     def __init__(self, plotCanvas:tgraphcanvas, parent:QWidget, white_icons:bool = False) -> None:
 
         # toolitem entries of the form (text, tooltip_text, image_file, callback)
-        self.toolitems: list[tuple[str, ...] | tuple[None, ...]] = [ # zuban:ignore[assignment] # pyrefly:ignore[bad-override] # ty:ignore[invalid-attribute-override]
+        self.toolitems: list[tuple[str, ...] | tuple[None, ...]] = [ # zuban:ignore[assignment] # pyrefly:ignore[bad-override] # ty:ignore[incompatible-attribute-override]
                 ('Plus', QApplication.translate('Tooltip', 'Connect to plus service'), 'plus-off', 'plus'),
                 ('', QApplication.translate('Tooltip', 'Subscription'), 'plus-pro', 'subscription'),
                 (None, None, None, None),
@@ -1001,7 +999,7 @@ class VMToolbar(NavigationToolbar): # pylint: disable=abstract-method
         super().home(*args)
 
         # toggle zoom_follow if recording
-        if self.qmc.flagstart:
+        if self.qmc.flagstart and self.qmc.device != 18: # disable zoom follow for NONE / Manual device
             self.qmc.zoom_follow = not self.qmc.zoom_follow
             if self.qmc.zoom_follow:
                 self.aw.sendmessage(QApplication.translate('Message','follow on'))
@@ -6134,11 +6132,11 @@ class ApplicationWindow(QMainWindow):
 
         return colorPairsToCheck
 
-
+    # transparencies are ignored
+    # colors can be None or 'transparent' or a hex color in MPL format not Qt format (transparency information is ignored)
     def colorDifference(self, color1:str|None, color2:str|None) -> float:
         cDiff:float = 100
         try:
-            from colorspacious import deltaE # type: ignore[import-untyped]
             if color1 is None or color1 == 'None':
                 color1 = '#f0f0f0'
             if color2 is None or color2 == 'None':
@@ -6153,11 +6151,16 @@ class ApplicationWindow(QMainWindow):
                     color2 = '#f0f0f0'
                 else:
                     color2 = self.qmc.palette['canvas']
-            c1 = QColor(color1[:7]).name()
-            c2 = QColor(color2[:7]).name()
-            c1_rgb = tuple(int(c1[i:i+2], 16) for i in (1, 3 ,5))
-            c2_rgb = tuple(int(c2[i:i+2], 16) for i in (1, 3 ,5))
-            cDiff = float(deltaE(c1_rgb, c2_rgb, input_space='sRGB255', uniform_space='CIELab'))
+            # support color names
+            if len(color1)>0 and color1[0] != '#':
+                color1 = QColor(color1).name()
+            else:
+                color1 = color1[:7]
+            if len(color2)>0 and color2[0] != '#':
+                color2 = QColor(color2).name()
+            else:
+                color2 = color2[:7]
+            cDiff = color_delta_e(color1,color2)
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
             _, _, exc_tb = sys.exc_info()
@@ -6166,6 +6169,7 @@ class ApplicationWindow(QMainWindow):
         return cDiff
 
 
+    # colors are assumed to be hex strings starting with a # and of length 7 or 9 with the transparency information in the last two positions (MPL format, not Qt format!)
     def checkColors(self, colorPairsToCheck:list[tuple[str,str,str,str]]|None = None, showMsg:bool = True) -> float:
         if colorPairsToCheck is None:
             colorPairsToCheck = []
@@ -6202,20 +6206,15 @@ class ApplicationWindow(QMainWindow):
         nc = c
         alpha = ''
         try:
-            from colorspacious import cspace_convert
             if c == 'None':
                 return 'None'
             if c.lower() == 'transparent':
                 return 'transparent'
-            cq = str(QColor(c[:7]).name())
+            cq = QColor(c[:7])
             alpha = c[7:9]
-            c_rgb:tuple[int,int,int] = cast(tuple[int,int,int], tuple(int(cq[i:i+2], 16) for i in (1, 3, 5)))
-            nc_greyscale_JCh:numpy.ndarray[tuple[Literal[1]],numpy.dtype[numpy.double]] = cspace_convert(c_rgb, 'sRGB255', 'JCh')
-            nc_greyscale_JCh[..., 1] = 0
-            nc_greyscale_sRGB:numpy.ndarray[tuple[Literal[1]],numpy.dtype[numpy.double]] = cspace_convert(nc_greyscale_JCh, 'JCh', 'sRGB255')
-            nc_greyscale_sRGB = numpy.clip(nc_greyscale_sRGB, 0, 255) # pyright:ignore[reportUnknownArgumentType]
-            nc_greyscale = f'#{int(nc_greyscale_sRGB[0]):2x}{int(nc_greyscale_sRGB[1]):2x}{int(nc_greyscale_sRGB[2]):2x}' # pyright:ignore[reportUnknownArgumentType]
-            nc = str(QColor(nc_greyscale).name())
+            gray_value = qGray(cq.rgb())
+            gray_color = QColor(gray_value, gray_value, gray_value)
+            nc = gray_color.name()
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
             _, _, exc_tb = sys.exc_info()
@@ -11374,57 +11373,47 @@ class ApplicationWindow(QMainWindow):
                         else:
                             # command not recognized
                             _log.info('WebSocket Command <%s> not recognized', cs)
-                elif action == 23:
+                elif action == 23 and cmd_str:
                     # Stepper Command   sn : has the form <hub_serial>[:<hub_port>], an optional serial number of the hub, optionally specifying the port number the module is connected to
                     ##  rescale(ch,rs,[,sn]) : sets the rescaleFactor
                     ##  engaged(ch,b[,sn])   : engage (b=1) or disengage (b = 0)
                     ##  set(ch,pos[,sn])     : set the target position
-                    if cmd_str:
-                        cmds = filter(None, cmd_str.split(';')) # allows for sequences of commands like in "<cmd>;<cmd>;...;<cmd>"
-                        for c in cmds:
-                            cs = c.strip()
-                            # rescale(ch,val[,sn]) # sets rescaleFactor
-                            if cs.startswith('rescale(') and len(cs) > 11:
-                                try:
-                                    n = 2
-                                    cs_split = cs[len('rescale('):-1].split(',')
-                                    channel_str, value_str = cs_split[0:n]
-                                    if len(cs_split)>n:
-                                        sn = cs_split[n]
-                                    else:
-                                        sn = None
-                                    self.ser.phidgetStepperRescale(int(channel_str),toFloat(eval(value_str[:eval_limit])),sn) # pylint: disable=eval-used
-                                except Exception as e: # pylint: disable=broad-except
-                                    _log.exception(e)
-                            # engaged(ch,state[,sn]) # engage channel
-                            elif cs.startswith('engaged(') and len(cs) > 11:
-                                try:
-                                    n = 2
-                                    cs_split = cs[len('engaged('):-1].split(',')
-                                    channel_str, state_str = cs_split[0:n]
-                                    if len(cs_split)>n:
-                                        sn = cs_split[n]
-                                    else:
-                                        sn = None
-                                    state_engaged = bool(state_str.lower() in {'yes', 'true', 't', '1'})
-                                    self.ser.phidgetStepperEngaged(int(channel_str), state_engaged, sn)
-                                except Exception as e: # pylint: disable=broad-except
-                                    _log.exception(e)
-                            # set(ch,pos[,sn]) # set position
-                            elif cs.startswith('set(') and len(cs) > 7:
-                                try:
-                                    n = 2
-                                    cs_split = cs[len('set('):-1].split(',')
-                                    channel_str,pos = cs_split[0:n]
-                                    if len(cs_split)>n:
-                                        sn = cs_split[n]
-                                    else:
-                                        sn = None
-                                    self.ser.phidgetStepperSet(int(channel_str),toFloat(eval(pos[:eval_limit])),sn) # pylint: disable=eval-used
-                                except Exception as e: # pylint: disable=broad-except
-                                    _log.exception(e)
-                            else:
-                                _log.info('Stepper Command <%s> not recognized', cs)
+                    cmds = filter(None, cmd_str.split(';')) # allows for sequences of commands like in "<cmd>;<cmd>;...;<cmd>"
+                    for c in cmds:
+                        cs = c.strip()
+                        # rescale(ch,val[,sn]) # sets rescaleFactor
+                        if cs.startswith('rescale(') and len(cs) > 11:
+                            try:
+                                n = 2
+                                cs_split = cs[len('rescale('):-1].split(',')
+                                channel_str, value_str = cs_split[0:n]
+                                sn = cs_split[n] if len(cs_split) > n else None
+                                self.ser.phidgetStepperRescale(int(channel_str),toFloat(eval(value_str[:eval_limit])),sn) # pylint: disable=eval-used
+                            except Exception as e: # pylint: disable=broad-except
+                                _log.exception(e)
+                        # engaged(ch,state[,sn]) # engage channel
+                        elif cs.startswith('engaged(') and len(cs) > 11:
+                            try:
+                                n = 2
+                                cs_split = cs[len('engaged('):-1].split(',')
+                                channel_str, state_str = cs_split[0:n]
+                                sn = cs_split[n] if len(cs_split) > n else None
+                                state_engaged = bool(state_str.lower() in {'yes', 'true', 't', '1'})
+                                self.ser.phidgetStepperEngaged(int(channel_str), state_engaged, sn)
+                            except Exception as e: # pylint: disable=broad-except
+                                _log.exception(e)
+                        # set(ch,pos[,sn]) # set position
+                        elif cs.startswith('set(') and len(cs) > 7:
+                            try:
+                                n = 2
+                                cs_split = cs[len('set('):-1].split(',')
+                                channel_str,pos = cs_split[0:n]
+                                sn = cs_split[n] if len(cs_split) > n else None
+                                self.ser.phidgetStepperSet(int(channel_str),toFloat(eval(pos[:eval_limit])),sn) # pylint: disable=eval-used
+                            except Exception as e: # pylint: disable=broad-except
+                                _log.exception(e)
+                        else:
+                            _log.info('Stepper Command <%s> not recognized', cs)
             except Exception as e: # pylint: disable=broad-except
                 _log.exception(e)
 
@@ -11773,7 +11762,7 @@ class ApplicationWindow(QMainWindow):
             if active_window is not None:
                 fw = active_window.focusWidget()
                 if fw is not None and hasattr(fw, 'cut') and callable(getattr(fw, 'cut')): # noqa: B009
-                    fw.cut() # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[call-non-callable]
+                    fw.cut() # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[not-callable]
         except Exception: # pylint: disable=broad-except
             pass # not every QWidget has a cut method
 
@@ -11785,7 +11774,7 @@ class ApplicationWindow(QMainWindow):
             if active_window is not None:
                 fw = active_window.focusWidget()
                 if fw is not None and hasattr(fw, 'copy') and callable(getattr(fw, 'copy')): # noqa: B009
-                    fw.copy() # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[call-non-callable]
+                    fw.copy() # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[not-callable]
         except Exception: # pylint: disable=broad-except
             pass # not every QWidget has a copy method
 
@@ -11797,7 +11786,7 @@ class ApplicationWindow(QMainWindow):
             if active_window is not None:
                 fw = active_window.focusWidget()
                 if fw is not None and hasattr(fw, 'paste') and callable(getattr(fw, 'paste')): # noqa: B009
-                    fw.paste() # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[call-non-callable]
+                    fw.paste() # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[not-callable]
         except Exception: # pylint: disable=broad-except
             pass # not every QWidget has a paste method
 
@@ -17885,6 +17874,7 @@ class ApplicationWindow(QMainWindow):
                 headers={'Accept-Encoding' : 'gzip'},
     #            verify=False
                 )
+            import ast
             return self.validateProfileDict(ast.literal_eval(r.text), validate_signature=True, quiet=False)
         except Exception: # pylint: disable=broad-except
             return None
@@ -21729,9 +21719,11 @@ class ApplicationWindow(QMainWindow):
         if image.isNull():
             return
         if self.printer is None:
+            from PyQt6.QtPrintSupport import QPrinter
             self.printer = QPrinter(QPrinter.PrinterMode.HighResolution) # (QPrinter.PrinterMode.PrinterResolution)
         self.printer.setCreator(application_name)
 #        self.printer.setResolution(300)
+        from PyQt6.QtPrintSupport import QPrintDialog
         form = QPrintDialog(self.printer, self)
         if form.exec():
             # painter coordinates
@@ -23839,7 +23831,7 @@ class ApplicationWindow(QMainWindow):
             cp = self.computedProfileInformation()
 
             if 'CHARGE_ET' in cp and 'CHARGE_BT' in cp:
-                charge = f"BT {cp['CHARGE_BT']:.0f}&deg;{self.qmc.mode} <br>ET {cp['CHARGE_ET']:.0f}{self.qmc.mode}"
+                charge = f"BT {cp['CHARGE_BT']:.0f}&deg;{self.qmc.mode} <br>ET {cp['CHARGE_ET']:.0f}&deg;{self.qmc.mode}"
             else:
                 charge = '--'
             dryphase, midphase, finishphase, coolphase = self.phases2html(cp)
@@ -23848,9 +23840,9 @@ class ApplicationWindow(QMainWindow):
             if ('AUC' in cp and cp['AUC'] != 0):
                 etbta = f"{cp['AUC']:.0f}C*min"
                 if ('AUCbegin' in cp and cp['AUCbegin'] != '' and 'AUCbase' in cp):
-                    etbta += f" [{cp['AUCbegin']},{cp['AUCbase']:.0f}{self.qmc.mode}]"
+                    etbta += f" [{cp['AUCbegin']},{cp['AUCbase']:.0f}&deg;{self.qmc.mode}]"
                 elif 'AUCbase' in cp:
-                    etbta += f" [{cp['AUCbase']:.0f}]"
+                    etbta += f" [{cp['AUCbase']:.0f}&deg;{self.qmc.mode}]"
             tmpdir = str(QDir.tempPath() + '/')
 
             org_patheffects = self.qmc.patheffects
@@ -24643,6 +24635,7 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot(bool)
     def viewErrorLog(self, _:bool = False) -> None:
         if self.error_dlg is None:
+            from artisanlib.logs import errorDlg
             self.error_dlg = errorDlg(self,self)
             self.error_dlg.setModal(False)
             self.error_dlg.show()
@@ -24653,6 +24646,7 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot(bool)
     def viewSerialLog(self, _:bool = False) -> None:
         if self.serial_dlg is None:
+            from artisanlib.logs import serialLogDlg
             self.serial_dlg = serialLogDlg(self,self)
             self.serial_dlg.setModal(False)
             self.serial_dlg.show()
@@ -24672,6 +24666,7 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot(bool)
     def viewMessageLog(self, _:bool = False) -> None:
         if self.message_dlg is None:
+            from artisanlib.logs import messageDlg
             self.message_dlg = messageDlg(self, self)
             self.message_dlg.setModal(False)
             self.message_dlg.show()
@@ -24713,7 +24708,7 @@ class ApplicationWindow(QMainWindow):
     @pyqtSlot()
     @pyqtSlot(bool)
     def helpHelp(self, _:bool = False) -> None:  # pylint: disable=no-self-use # used as slot
-        QDesktopServices.openUrl(QUrl('https://artisan-scope.org/docs/', QUrl.ParsingMode.TolerantMode))
+        QDesktopServices.openUrl(QUrl('https://docs.artisan.tools/', QUrl.ParsingMode.TolerantMode))
 
     @pyqtSlot()
     @pyqtSlot(bool)
@@ -24734,7 +24729,7 @@ class ApplicationWindow(QMainWindow):
                             update_str = QApplication.translate('About', 'A new release is available.')
                             update_str += '<br/><a href="https://github.com/artisan-roaster-scope/artisan/blob/master/wiki/ReleaseHistory.md">'
                             update_str +=  QApplication.translate('About', 'Show Change list')
-                            update_str += '<br/><a href="https://artisan-scope.org/download/">'
+                            update_str += '<br/><a href="https://artisan.tools/download/">'
                             update_str +=  QApplication.translate('About', 'Download Release') + ' ' + str(tag_name)
                         elif latest == __version__ :
                             update_str = QApplication.translate('About', 'You are using the latest release.')
@@ -26599,7 +26594,7 @@ class ApplicationWindow(QMainWindow):
                         'Title': f'{batch_nr_str}{self.qmc.title}',
                         'Author': getpass.getuser(),
                         'Description': f'artisan roast profile {batch_nr_str}{self.qmc.title}',
-                        'Software': f'artisan v{__version__}, https://artisan-scope.org/'
+                        'Software': f'artisan v{__version__}, https://artisan.tools/'
                     }
                 else:
                     metadata = None
@@ -26652,7 +26647,7 @@ class ApplicationWindow(QMainWindow):
                             'Author': getpass.getuser(),
                             'Subject': f'artisan roast profile {batch_nr_str}{self.qmc.title}',
                             'Keywords': ', '.join(filter(None, ['artisan', 'roast profile', batch_nr_str])),
-                            'Creator': f'artisan v{__version__}, https://artisan-scope.org/'
+                            'Creator': f'artisan v{__version__}, https://artisan.tools/'
                             }
                 else: # SVG
                     metadata = {
@@ -26660,7 +26655,7 @@ class ApplicationWindow(QMainWindow):
                             'Creator': getpass.getuser(),
                             'Description': f'artisan roast profile {batch_nr_str}{self.qmc.title}',
                             'Keywords': ', '.join(filter(None, ['artisan', 'roast profile', batch_nr_str])),
-                            'Publisher': f'artisan v{__version__}, https://artisan-scope.org/'
+                            'Publisher': f'artisan v{__version__}, https://artisan.tools/'
                     }
                     if self.curFile is not None:
                         metadata['Source'] = Path(self.curFile).name

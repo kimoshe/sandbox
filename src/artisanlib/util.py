@@ -25,6 +25,8 @@
 # AUTHOR
 # Marko Luther, 2023
 
+__lazy_modules__ = {'ast'}
+
 import warnings
 import codecs
 import logging
@@ -445,14 +447,14 @@ def getDataDirectory() -> str|None:
 # internal function to return
 @functools.cache
 def _getAppDataDirectory(app:'Artisan') -> str|None:
-    # temporarily switch app name to Artisan (as it might be artisanViewer)
-    appName = app.applicationName()
-    app.setApplicationName(application_name)
-    data_dir = QStandardPaths.standardLocations(
-        QStandardPaths.StandardLocation.AppLocalDataLocation
-    )[0]
-    app.setApplicationName(appName)
     try:
+        # temporarily switch app name to Artisan (as it might be artisanViewer)
+        appName = app.applicationName()
+        app.setApplicationName(application_name)
+        data_dir = QStandardPaths.standardLocations(
+            QStandardPaths.StandardLocation.AppLocalDataLocation
+        )[0]
+        app.setApplicationName(appName)
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
         return data_dir
@@ -565,7 +567,46 @@ def getTaskURL(port:int, index_path:str) -> str:
 def open_link(url:str) -> None:
     QDesktopServices.openUrl(QUrl(url, QUrl.ParsingMode.TolerantMode))
 
-# standard/MPL hex color strings append alpha information to the end, while QColor assumes the alpha information in color name strings at the begin
+
+# COLOR
+
+# NOTE: standard/MPL hex color strings append alpha information to the end, while QColor assumes the alpha information in color name strings at the begin
+
+
+@functools.lru_cache(maxsize=50)
+def color_to_lab(color: str) -> tuple[float, float, float]:
+    # Ensure color is in RGB model and extract normalized (0.0 - 1.0) values
+    r, g, b = tuple(int(color[i:i+2], 16)/255 for i in (1, 3 ,5))
+
+    # 1. sRGB to linear RGB
+    r = ((r + 0.055) / 1.055) ** 2.4 if r > 0.04045 else r / 12.92
+    g = ((g + 0.055) / 1.055) ** 2.4 if g > 0.04045 else g / 12.92
+    b = ((b + 0.055) / 1.055) ** 2.4 if b > 0.04045 else b / 12.92
+
+    # 2. Linear RGB to XYZ (D65 reference white)
+    x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047
+    y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.00000
+    z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883
+
+    # 3. XYZ to CIELAB
+    def f(t: float) -> float:
+        return t ** (1 / 3) if t > 0.008856 else (7.787 * t) + (16 / 116)
+
+    L = (116 * f(y)) - 16
+    a = 500 * (f(x) - f(y))
+    b_val = 200 * (f(y) - f(z))
+    return (L, a, b_val)
+
+# takes two MPL hex colors (RGB) and computes the delta_e euclidean distance in CIElab
+# Note: alpha information is ignored
+@functools.lru_cache(maxsize=50)
+def color_delta_e(c1: str, c2: str) -> float:
+    try:
+        L1, a1, b1 = color_to_lab(c1[:7])
+        L2, a2, b2 = color_to_lab(c2[:7])
+        return math.sqrt((L2 - L1) ** 2 + (a2 - a1) ** 2 + (b2 - b1) ** 2)
+    except Exception: # pylint: disable=broad-except
+        return 0.5
 
 # converts QColor ARGB names to a standard/MPL hex color strings with alpha values at the end
 @functools.lru_cache(maxsize=50)
@@ -1525,7 +1566,6 @@ def csv_load(csvFile:io.TextIOWrapper) -> 'ProfileData':
 
     return profile
 
-
 def exportProfile2CSV(filename:str, profile:'ProfileData') -> bool:
     if all(key in profile for key in [ 'mode', 'timex', 'timeindex', 'temp1', 'temp2', 'roastdate', 'roasttime', 'extratimex' ]) and len(profile['timex']) > 0: # pyright: ignore[reportTypedDictNotRequiredAccess]
         import csv
@@ -1574,7 +1614,7 @@ def exportProfile2CSV(filename:str, profile:'ProfileData') -> bool:
                 'Time:' + QTime.fromString(decodeLocalStrict(profile['roasttime'])).toString()[:-3]]) # pyright: ignore[reportTypedDictNotRequiredAccess]
             headrow:list[str] = (['Time1','Time2','ET','BT','Event'] + functools.reduce(lambda x,y : x + [str(y[0]),str(y[1])],
                     (list(zip(profile['extraname1'][0:extradevices],profile['extraname2'][0:extradevices], strict=True)) if 'extraname1' in profile and 'extraname2' in profile else []),
-                    cast(list[str], [])))
+                    cast(list[str], []))) # ty:ignore[redundant-cast]
             writer.writerow(headrow)
             last_time:str|None = None
             events_set:set[str] = set()
@@ -1608,7 +1648,6 @@ def exportProfile2CSV(filename:str, profile:'ProfileData') -> bool:
                 last_time = time1
         return True
     return False
-
 
 #### roast time
 

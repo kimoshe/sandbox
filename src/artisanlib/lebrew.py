@@ -25,6 +25,8 @@
 # AUTHOR
 # Marko Luther, 2025
 
+__lazy_modules__ = { 'asyncio', 'pymodbus.framer.rtu' }
+
 import re
 import time
 import asyncio
@@ -251,7 +253,6 @@ class Lebrew_RoastSeeNEXT:
 
         except Exception as e: # pylint: disable=broad-except
             _log.exception(e)
-
 
     def send_msg(self, message:bytes) -> None:
         if hasattr(self, '_ble_client') and self._ble_client is not None:
