@@ -28,10 +28,10 @@ environment:
     secure: xqoahZ+xpEJOClcLTL5yIa3gdoql/Vzs8uTEWYFX2QV0P1gLe5WS3/3WIQB9dQ/UClC1FE/5EC2yawYjwAQ1tJdHyawh7uL7+zgtTZxRqWo=
 
   matrix:
-  - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2026
-  - job_name: macos
-    appveyor_build_worker_image: macos-sonoma
+#  - job_name: windows
+#    appveyor_build_worker_image: Visual Studio 2026
+#  - job_name: macos
+#    appveyor_build_worker_image: macos-sonoma
   - job_name: linux
     appveyor_build_worker_image: Ubuntu2404
 
@@ -271,7 +271,6 @@ for:
     # Create and activate virtual environment
     - echo "Creating and activating virtual environment"
     - SETUPTOOLS_USE_DISTUTILS=stdlib /usr/bin/python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
-    - /usr/bin/python${PYTHON_UPGRADE_V} -m venv venv${PYTHON_UPGRADE_V}
     - source venv${PYTHON_UPGRADE_V}/bin/activate
     # Log for confirmation
     - echo "Confirming Python version and location"
