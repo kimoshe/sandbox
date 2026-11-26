@@ -106,7 +106,6 @@ curl -L -O https://www.python.org/ftp/python/!PYUPGRADE_WIN_VER!/python-!PYUPGRA
 if not exist python-!PYUPGRADE_WIN_VER!-amd64.exe (exit /b 80)
 echo *** Installing Python !PYUPGRADE_WIN_VER!
 set "WIN_PYTHON_PATH=!PYTHON_PATH:/=\!"
-echo *** start /wait python-!PYUPGRADE_WIN_VER!-amd64.exe /quiet PrependPath=1 TargetDir="!WIN_PYTHON_PATH!"
 start /wait python-!PYUPGRADE_WIN_VER!-amd64.exe /quiet PrependPath=1 TargetDir="!WIN_PYTHON_PATH!"
 if not exist !PYTHON_PATH!\python.exe (exit /b 90)
 echo ***** Upgrade Complete
