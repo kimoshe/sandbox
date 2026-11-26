@@ -99,6 +99,9 @@ for:
     # expose the python version
     - cmd: python -V
 
+    # Stop for inspection
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
     # generate the path to PyQt translations files (used by artisan-win.spec)
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
 
@@ -108,6 +111,9 @@ for:
 
     # run the install script
     - cmd: .ci/install-win.bat
+
+    # Stop for inspection
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 
   build_script:
