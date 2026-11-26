@@ -83,7 +83,6 @@ from time import sleep
 import sys
 sys.dont_write_bytecode = True  #prevents __pycache__ folder written to help/
 
-from typing import List, Tuple
 from openpyxl.worksheet.worksheet import Worksheet # pylint: disable=unused-import
 
 from PyQt6.QtWidgets import QApplication

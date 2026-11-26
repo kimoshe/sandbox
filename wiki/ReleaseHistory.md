@@ -5,12 +5,20 @@ Detailed Release History
 v5.0.1
 ------------------
 
+* ADDITIONS
+  - adds `SRM auto`setup with autoCHARGE/autoDROP estimation for [Sivetz](https://docs.artisan.tools/desktop/machines/sivetz/) machines
+
 * CHANGES
   - Revise Slovak translation ([PR #2255](../../../pull/2255)) contributed by [Patrik Cevela](https://github.com/pcevela))
+  - refreshes Santoker machine setups to reflect features of newer models
 
 * FIXES
   - fixes Svietz SRM machine setup quantifier range (min was 0, but should have been 20)
   - disables zoom follow for NONE / Manual device ([Issue #2252](../../../issues/2252))
+  - fixes BLE loop deadlock on disconnect ([PR #2260](../../../pull/2260) contributed by [Brian Schmitt](https://github.com/brianschmitt))
+  - prevents clearing of extra devices data on theme loading
+  - prevents default theme to adjust axis limits
+  - fixes memory leak in BLE scanning ([bleak PR #20406](https://github.com/hbldh/bleak/pull/2040#issuecomment-6660071329))
 
 ----
 v5.0.0 (Nov 5, 2026)

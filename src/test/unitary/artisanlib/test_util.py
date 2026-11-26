@@ -78,7 +78,7 @@ def sample_profile_data() -> dict[str, Any]:
     }
 
 @pytest.fixture(scope='session', autouse=True)
-def session_level_isolation() -> Generator[None, None, None]:
+def session_level_isolation() -> Generator[None]:
     """Session-level isolation fixture to prevent cross-file module contamination.
 
     This fixture ensures that external dependencies are properly isolated
@@ -91,6 +91,7 @@ def session_level_isolation() -> Generator[None, None, None]:
 
 
 from artisanlib.util import (
+    replace_umlauts,
     RoRfromCtoF,
     RoRfromCtoFstrict,
     RoRfromFtoC,
@@ -181,6 +182,12 @@ from artisanlib.util import (
     min_blocks,
 )
 
+
+@given(text=st.text())
+def test_fuzz_replace_umlauts(text: str) -> None:
+    replace_umlauts(text=text)
+
+
 # fromCtoF
 
 
@@ -188,6 +195,7 @@ from artisanlib.util import (
 @settings(max_examples=10)
 @example(-1)
 @example(None)
+@example(temp=0.0)
 def test_fromCtoF(temp: float|None) -> None:
     if temp == -1:
         assert fromCtoF(temp) == -1
@@ -204,6 +212,8 @@ def test_fromCtoF(temp: float|None) -> None:
 @settings(max_examples=10)
 @example(-1)
 @example(None)
+@example(temp=0.0)
+@example(temp=15.0)
 def test_fromFtoC(temp: float|None) -> None:
     if temp == -1:
         assert fromFtoC(temp) == -1
@@ -688,7 +698,7 @@ def test_toList() -> None:
     assert toList({'a': 1, 'b': 2}.values()) == [1, 2]
 
     # Test with generator
-    def gen() -> Generator[int, None, None]:
+    def gen() -> Generator[int]:
         yield 1
         yield 2
         yield 3

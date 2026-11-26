@@ -44,14 +44,14 @@ import usb.util # type: ignore[import-untyped] # zuban: ignore[no-redef]
 from PyQt6.QtCore import Qt, QDateTime, QLocale
 
 if system().startswith('Windows'):
-    import libusb_package # type:ignore [import-not-found, unused-ignore] # pyright:ignore[reportMissingImports] # pylint: disable=import-error
+    import libusb_package   # type:ignore[import-not-found, unused-ignore] # pyright:ignore[reportMissingImports] # pylint: disable=import-error
 
 import logging
 from typing import Final, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     try:
-        from multiprocessing.connection import PipeConnection as Connection # type: ignore[unused-ignore,attr-defined,assignment] # pylint: disable=unused-import
+        from multiprocessing.connection import PipeConnection as Connection # type:ignore[unused-ignore,attr-defined,assignment] # pylint: disable=unused-import # ty:ignore[missing-module-member]
     except ImportError:
         from multiprocessing.connection import Connection # type: ignore[unused-ignore,attr-defined,assignment] # pylint: disable=unused-import
 
@@ -99,7 +99,7 @@ class AillioR1:
         self.simulated = False
         self.AILLIO_DEBUG = debug
         self.__dbg('init')
-        self.usbhandle:Generator[usb.core.Device, Any, None]|usb.core.Device|None = None # type:ignore[no-any-unimported,unused-ignore]
+        self.usbhandle:Generator[usb.core.Device, Any]|usb.core.Device|None = None # type:ignore[no-any-unimported,unused-ignore]
         self.bt:float = 0
         self.dt:float = 0
         self.heater:float = 0
@@ -323,7 +323,7 @@ class AillioR1:
         d = abs(f - value)
         if d <= 0:
             return
-        d = int(round(min(d,11)))
+        d = round(min(d,11))
         if f > value:
             if self.parent_pipe is not None:
                 for _ in range(d):
@@ -498,7 +498,7 @@ def extractProfileAillioCSV(file:str,
         date:QDateTime|None = None
         if len(line3)>0:
             try:
-                locale_date = QDateTime.fromString(line3[0], str(QLocale.system().dateFormat(QLocale.FormatType.ShortFormat)))
+                locale_date = QDateTime.fromString(line3[0], QLocale.system().dateFormat(QLocale.FormatType.ShortFormat))
                 if locale_date.isValid():
                     date = locale_date
             except Exception: # pylint: disable=broad-except
@@ -520,7 +520,7 @@ def extractProfileAillioCSV(file:str,
             roasttime:str|None = encodeLocal(date.time().toString())
             if roasttime is not None:
                 res['roasttime'] = roasttime
-            res['roastepoch'] = int(date.toSecsSinceEpoch())
+            res['roastepoch'] = date.toSecsSinceEpoch()
             res['roasttzoffset'] = time.timezone
         except Exception: # pylint: disable=broad-except
             pass

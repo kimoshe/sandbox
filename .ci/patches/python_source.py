@@ -37,7 +37,7 @@ class PythonSource(SourceFile, User):
         super().__init__(**kwargs)
 
         # Read the source file.
-        self.progress(f'Reading {self.filename}...')
+        self.progress(f"Reading {self.filename}...")
         with open(self.filename, 'rb') as f:
             source = f.read()
 
@@ -63,14 +63,13 @@ class PythonSource(SourceFile, User):
             raise UserException(f"Unsupported encoding '{encoding}'")
 
         # Parse the source file.
-        self.progress(f'Parsing {self.filename}...')
+        self.progress(f"Parsing {self.filename}...")
 
         try:
             tree = ast.parse(source, filename=self.filename)
         except SyntaxError as e:
             raise UserException(
-                    'Invalid syntax at line {} of {}:\n{}'.format(
-                            e.lineno, e.filename, e.text.rstrip()))
+                    f"Invalid syntax at line {e.lineno} of {e.filename}:\n{e.text.rstrip()}")
 
         # Look for translation contexts and their contents.
         visitor = Visitor(self)
